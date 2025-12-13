@@ -1,0 +1,7 @@
+// env.ts 
+export const ENV = { 
+  TOMORROW_API_KEY: process.env.EXPO_PUBLIC_TOMORROW_API_KEY, 
+  OPENWEATHER_API_KEY: process.env.EXPO_PUBLIC_OPENWEATHER_API_KEY, 
+  WEATHERBIT_API_KEY: process.env.EXPO_PUBLIC_WEATHERBIT_API_KEY, 
+  MAPS_API_KEY: process.env.EXPO_PUBLIC_MAPS_API_KEY, 
+} as const; 

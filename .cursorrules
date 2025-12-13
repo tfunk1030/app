@@ -1,0 +1,98 @@
+Project rules for AI edits (Cursor)
+
+Overview
+
+- Stack: Expo (SDK 53), React Native 0.79.x, React 19, expo-router 5.
+- Single app root: aicaddypro/ (do not write/edit files outside this folder unless explicitly asked).
+- Path alias: use `@/` for imports (configured in tsconfig). Do not use long relative paths.
+
+Navigation
+
+- Use expo-router only. Do not add or wrap with `NavigationContainer`.
+- Do not introduce `createNativeStackNavigator` or `createBottomTabNavigator` directly.
+- Keep routes file-based under `app/`. Update `app/_layout.tsx` and tab layouts only.
+- Avoid multiple versions of `@react-navigation/*`. Use versions resolved by `expo-router`.
+
+TypeScript
+
+- Strict typing. Prefer interfaces over types for public shapes.
+- In React Native, do not use Node types like `NodeJS.Timeout`. Use `ReturnType<typeof setTimeout>`.
+- Avoid adding `@types/node` references in app code.
+- Export function components with explicit props interfaces. Avoid classes.
+
+Environment & Secrets
+
+- Never hardcode API keys. Use env: `EXPO_PUBLIC_*` for values needed on client.
+- Read env via `process.env.EXPO_PUBLIC_*` and document keys in `.env.example` (no secrets).
+- For builds, set secrets with EAS env. Do not commit secrets.
+
+UI/UX & Responsiveness
+
+- Always wrap screens with `SafeAreaView` from `react-native-safe-area-context`.
+- Use `src/utils/responsive.ts` helpers: `scaledFontSize`, `moderateScale`, `getResponsiveCompassSize`.
+- For large numbers/text (e.g., temperature, yardage): set `numberOfLines={1}`, `adjustsFontSizeToFit`, and a reasonable `minimumFontScale`.
+- Collapse multi-column layouts for narrow widths or high `fontScale` (use `useWindowDimensions`).
+- Replace fixed paddings/margins with `moderateScale(...)`. Avoid magic numbers.
+
+**Additional Rule – Theme Token Enforcement**
+- No hardcoded colors, gradients, shadows, or borders anywhere in the codebase.
+- All colors, shadows, and radii must come from `src/theme/tokens.ts` or `constants/Colors.ts`.
+- If a required token does not exist, create it in `tokens.ts` and apply it consistently.
+- Every text style must use `scaledFontSize()` and maintain WCAG AA+ contrast in light and dark modes.
+- All cards must share the same radius, padding, shadows, and border tokens.
+- All pressable elements must use Android ripple and iOS opacity fade for feedback.
+- Final pass must include **all screens, components, cards, modals, and navigation layouts**.
+- AI must **enumerate every UI file**, apply updates, and provide a ✅ checklist before stopping.
+
+State/Data
+
+- Use `EnhancedEnvironmentalProvider` for conditions. Do not reintroduce legacy providers/services.
+- Throttle/queue sensor or periodic updates using `ThrottleManager`. Do not implement ad-hoc polling.
+- Avoid direct fetches in components. Add logic under `src/services/*` and call from hooks/providers.
+
+Performance
+
+- Use `ProgressiveLoader` and `SkeletonLoader` for async UI states where applicable.
+- Memoize heavy/pure components (`memo`, `useMemo`, `useCallback`).
+- Avoid unnecessary animations; if needed, prefer Reanimated 3 patterns.
+
+Testing
+
+- Prefer `@testing-library/react-native` over `react-test-renderer`. Limit snapshot tests.
+- Ignore/remove template tests under `components/__tests__/` if incompatible with current React.
+
+Project Structure
+
+- Organize by feature when possible (e.g., `src/features/wind`, `src/features/settings`).
+- Shared UI in `src/core/components` and `src/components/ui`.
+- Keep providers in `src/core/context` or `src/providers`.
+
+Dependencies
+
+- Keep aligned with Expo via: `yarn align` (runs `npx expo-doctor && npx expo install`).
+- Avoid adding duplicate versions of `@react-navigation/*`, Metro, or React/React DOM.
+
+Lint/Format
+
+- Follow existing ESLint/Prettier conventions.
+- Use clear, descriptive names; avoid abbreviations. Keep functions small, with early returns.
+- Add concise comments for non-obvious logic (explain "why" not "what").
+
+Do
+
+- Use `@/` imports, responsive helpers, safe areas, memoization where beneficial.
+- Centralize network and calculation logic in `src/services/*` with typed interfaces.
+- Add unit tests for calculations and providers (no network in tests).
+
+Don't
+
+- Don’t hardcode secrets, add new navigators, or import legacy providers.
+- Don’t bypass providers/services for data access from components.
+- Don’t introduce Node-specific types or APIs into React Native code.
+
+Commands
+
+- Install/align: `yarn && yarn align`
+- Run app: `npx expo start`
+- Typecheck: `npx tsc --noEmit`
+- Tests: `yarn test`

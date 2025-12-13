@@ -1,0 +1,87 @@
+{
+  "expo": {
+    "name": "aicaddypro",
+    "slug": "aicaddypro",
+    "version": "1.2.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "myapp",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/images/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#111827"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/notif-icon.png",
+          "color": "#111827"
+        }
+      ],
+      [
+        "react-native-permissions",
+        {
+          "iosPermissions": ["LocationAlways", "LocationWhenInUse"]
+        }
+      ],
+      [
+        "expo-sensors",
+        {
+          "motionPermission": "Allow $(PRODUCT_NAME) to access your device motion"
+        }
+      ],
+      "expo-font",
+      "expo-web-browser"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.tfunk1030.aicaddypro",
+      "buildNumber": "1.2.0",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "aps-environment": "production",
+        "NSCompassUsageDescription": "This app uses the compass to provide directional information",
+        "NSMotionUsageDescription": "This app uses the compass to provide directional information",
+        "UIRequiredDeviceCapabilities": ["gyroscope", "magnetometer", "accelerometer"],
+        "NSLocationWhenInUseUsageDescription": "AICaddyPro needs access to your location to provide accurate weather conditions and environmental data for your golf game.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "AICaddyPro needs access to your location to provide accurate weather conditions and environmental data for your golf game.",
+        "NSLocationAlwaysUsageDescription": "AICaddyPro needs access to your location to provide accurate weather conditions and environmental data for your golf game."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "backgroundColor": "#111827"
+      },
+      "package": "com.tfunk1030.aicaddypro",
+      "versionCode": 1
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./assets/images/favicon.png"
+    },
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "22d97181-5980-4d2c-ab9f-58036e334d0d"
+      }
+    },
+    "owner": "tfunk1030",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/22d97181-5980-4d2c-ab9f-58036e334d0d"
+    }
+  }
+}

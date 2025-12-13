@@ -1,0 +1,41 @@
+pluginManagement {
+  repositories {
+    gradlePluginPortal()
+    google()
+    mavenCentral()
+  }
+
+  // ✅ React Native Gradle plugins live here
+  includeBuild("../node_modules/@react-native/gradle-plugin")
+
+  // ✅ Expo autolinking settings plugin lives here
+  includeBuild("../node_modules/expo-modules-autolinking/android/expo-gradle-plugin")
+}
+
+plugins {
+  id("com.facebook.react.settings")
+  id("expo-autolinking-settings")
+}
+
+rootProject.name = "aicaddypro"
+include(":app")
+
+// ---- React Native autolinking ----
+// IMPORTANT: On Windows, avoid "npx" + shell wrappers.
+// Call node directly so we don't depend on cmd.exe quirks.
+extensions.configure(com.facebook.react.ReactSettingsExtension) { ex ->
+  def cliFile = file("../node_modules/react-native/cli.js")
+  ex.autolinkLibrariesFromCommand([
+    "node",
+    cliFile.absolutePath,
+    "config",
+    "--platform",
+    "android"
+  ])
+}
+
+// ---- Expo modules autolinking ----
+extensions.configure(expo.modules.plugin.ExpoAutolinkingSettingsExtension) { ex ->
+  ex.useExpoModules()
+  ex.useExpoVersionCatalog()
+}
