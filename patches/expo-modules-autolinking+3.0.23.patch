@@ -1,0 +1,17 @@
+diff --git a/node_modules/expo-modules-autolinking/android/expo-gradle-plugin/expo-autolinking-plugin-shared/src/main/kotlin/expo/modules/plugin/Os.kt b/node_modules/expo-modules-autolinking/android/expo-gradle-plugin/expo-autolinking-plugin-shared/src/main/kotlin/expo/modules/plugin/Os.kt
+index 12c7119..adee251 100644
+--- a/node_modules/expo-modules-autolinking/android/expo-gradle-plugin/expo-autolinking-plugin-shared/src/main/kotlin/expo/modules/plugin/Os.kt
++++ b/node_modules/expo-modules-autolinking/android/expo-gradle-plugin/expo-autolinking-plugin-shared/src/main/kotlin/expo/modules/plugin/Os.kt
+@@ -5,9 +5,7 @@ object Os {
+     System.getProperty("os.name")?.lowercase()?.contains("windows") == true
+ 
+   fun windowsAwareCommandLine(args: List<String>): List<String> =
+-    if (isWindows()) {
+-      listOf("cmd", "/c") + args
+-    } else {
+-      args
+-    }
++    // Workaround: Don't wrap with cmd /c on Windows as it causes issues with Gradle's exec
++    // The command works fine when executed directly by Gradle
++    args
+ }

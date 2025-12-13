@@ -4,11 +4,20 @@ buildscript {
   repositories {
     google()
     mavenCentral()
+    mavenLocal()
+    // Add local Maven repository for React Native Gradle plugin
+    maven {
+      url = uri("${rootDir}/local-maven-repo")
+    }
   }
   dependencies {
-    classpath('com.android.tools.build:gradle')
-    classpath('com.facebook.react:react-native-gradle-plugin')
-    classpath('org.jetbrains.kotlin:kotlin-gradle-plugin')
+    classpath('com.android.tools.build:gradle:8.6.1')
+    classpath('org.jetbrains.kotlin:kotlin-gradle-plugin:2.1.20')
+    // Note: Expo plugins require com.facebook.react:react-native-gradle-plugin
+    // but it's only available as an included build. This is a known compatibility
+    // issue between Expo SDK 53 and React Native 0.79. The included build should
+    // make it available, but there's a Gradle limitation where included builds
+    // can't resolve dependencies from other included builds during compilation.
   }
 }
 
@@ -30,6 +39,11 @@ allprojects {
     google()
     mavenCentral()
     maven { url 'https://www.jitpack.io' }
+    // Add local Maven repository for React Native Gradle plugin
+    // This allows included builds (Expo plugins) to resolve it
+    maven {
+      url = uri("${rootDir}/local-maven-repo")
+    }
   }
 }
 

@@ -77,9 +77,7 @@
       }
     },
     "owner": "tfunk1030",
-    "runtimeVersion": {
-      "policy": "appVersion"
-    },
+    "runtimeVersion": "1.2.0",
     "updates": {
       "url": "https://u.expo.dev/22d97181-5980-4d2c-ab9f-58036e334d0d"
     }
