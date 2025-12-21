@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Skill(brainstorming)",
+      "Skill(aicaddy-pro)",
+      "Skill(frontend-design)",
+      "Skill(ui-design-system)",
+      "Skill(code-reviewer)",
+      "Skill(remembering-conversations)"
+    ]
+  }
+}

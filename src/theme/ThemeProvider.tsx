@@ -1,42 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { Appearance, ColorSchemeName } from 'react-native';
-import { tokens as brandLightTokens, type Tokens } from './tokens';
-
-// Dark palette aligned to requested premium dark mode
-const brandDarkTokens: Tokens = {
-  colors: {
-    background: '#0B0F17',
-    surface: '#121826',
-    surfaceAlt: '#1A2233',
-    border: '#2C3446',
-    textPrimary: '#FFFFFF',
-    textMuted: '#B0B9C6',
-    brand: '#18C964',
-    brandAlt: '#4FB3F6',
-    success: '#22C55E',
-    danger: '#EF4444',
-    shadow: '#000000',
-  },
-  radius: { sm: 8, md: 12, lg: 16 },
-  spacing: (n: number) => n * 4,
-  shadow: {
-    card: {
-      shadowColor: '#000000',
-      shadowOffset: { width: 0, height: 6 },
-      shadowOpacity: 0.5,
-      shadowRadius: 12,
-      elevation: 8,
-    },
-    subtle: {
-      shadowColor: '#000000',
-      shadowOffset: { width: 0, height: 3 },
-      shadowOpacity: 0.3,
-      shadowRadius: 6,
-      elevation: 4,
-    },
-  },
-} as const;
+import { Appearance } from 'react-native';
+import { darkTokens, lightTokens, type Tokens } from './tokens';
 
 export type ThemeMode = 'system' | 'light' | 'dark';
 
@@ -52,7 +17,7 @@ const STORAGE_KEY = 'themeMode';
 
 export const AppThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [mode, setModeState] = useState<ThemeMode>('system');
-  const systemScheme: ColorSchemeName = Appearance.getColorScheme();
+  const systemScheme = Appearance.getColorScheme() ?? 'dark';
 
   useEffect(() => {
     (async () => {
@@ -70,12 +35,15 @@ export const AppThemeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     AsyncStorage.setItem(STORAGE_KEY, m).catch(() => {});
   }, []);
 
-  const effectiveScheme: ColorSchemeName = useMemo(() => {
-    return mode === 'system' ? systemScheme : mode;
+  const effectiveScheme = useMemo(() => {
+    if (mode === 'system') {
+      return systemScheme === 'light' ? 'light' : 'dark';
+    }
+    return mode;
   }, [mode, systemScheme]);
 
   const palette: Tokens = useMemo(() => {
-    return effectiveScheme === 'dark' ? brandDarkTokens : brandLightTokens;
+    return effectiveScheme === 'dark' ? darkTokens : lightTokens;
   }, [effectiveScheme]);
 
   const value = useMemo<ThemeContextValue>(
@@ -88,7 +56,8 @@ export const AppThemeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
 export function useThemeTokens(): Tokens {
   const ctx = useContext(ThemeContext);
-  return ctx ? ctx.tokens : brandLightTokens;
+  // Default to dark tokens (Modern Sports Tech primary)
+  return ctx ? ctx.tokens : darkTokens;
 }
 
 export function useThemeMode(): { mode: ThemeMode; setMode: (m: ThemeMode) => void } {

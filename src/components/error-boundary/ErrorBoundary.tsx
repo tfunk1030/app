@@ -1,6 +1,6 @@
 import { useTokens } from '@/src/theme/useTokens';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import React from 'react';
 import { Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
 import nativeErrorBridge from '../../modules/NativeErrorBridge';

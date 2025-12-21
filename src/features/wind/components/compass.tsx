@@ -24,6 +24,7 @@ import {
 } from '@/src/utils/responsive';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import React, { useEffect, useMemo, useRef } from 'react';
 import { Animated, Dimensions, Platform, Pressable, StyleSheet, Text, View, AccessibilityInfo } from 'react-native';
@@ -540,7 +541,7 @@ const WindDirectionCompass = ({
           ]}
         >
           <BlurView
-            intensity={20}
+            intensity={25}
             tint={mode === 'dark' ? 'dark' : 'light'}
             style={StyleSheet.absoluteFill}
           />
@@ -553,17 +554,27 @@ const WindDirectionCompass = ({
               },
             ]}
           />
-          <View
-            style={[
-              styles.ring,
-              {
-                width: size - 12,
-                height: size - 12,
-                borderColor: tokens.colors.border,
-                borderWidth: 3,
-              },
-            ]}
-          />
+          {/* Gradient outer ring */}
+          <View style={[styles.gradientRingContainer, { width: size - 8, height: size - 8 }]}>
+            <LinearGradient
+              colors={
+                isLocked
+                  ? [tokens.colors.success, tokens.colors.successGlow, tokens.colors.success]
+                  : (tokens.gradients.primary as [string, string, ...string[]])
+              }
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.gradientRing}
+            />
+            <View
+              style={[
+                styles.gradientRingInner,
+                {
+                  backgroundColor: mode === 'dark' ? tokens.colors.surface : tokens.colors.surfaceAlt,
+                },
+              ]}
+            />
+          </View>
           <View
             style={[
               styles.innerRing,
@@ -572,6 +583,10 @@ const WindDirectionCompass = ({
                 height: size - 36,
                 borderColor: isLocked ? tokens.colors.success : tokens.colors.brandAlt,
                 borderWidth: 2,
+                shadowColor: isLocked ? tokens.colors.success : tokens.colors.glowPrimary,
+                shadowOffset: { width: 0, height: 0 },
+                shadowOpacity: mode === 'dark' ? 0.5 : 0.2,
+                shadowRadius: 8,
               },
             ]}
           />
@@ -593,9 +608,10 @@ const WindDirectionCompass = ({
                 height: getCenterElementSizes(size).centerDot,
                 borderRadius: getCenterElementSizes(size).centerDot / 2,
                 backgroundColor: tokens.colors.brandAlt,
-                shadowColor: '#000',
-                shadowOpacity: 0.08,
-                shadowRadius: 3,
+                shadowColor: mode === 'dark' ? tokens.colors.glowSecondary : '#000',
+                shadowOpacity: mode === 'dark' ? 0.8 : 0.15,
+                shadowRadius: mode === 'dark' ? 12 : 4,
+                shadowOffset: { width: 0, height: 0 },
               },
             ]}
           />
@@ -777,6 +793,25 @@ const styles = StyleSheet.create({
   },
   ring: {
     position: 'absolute',
+    borderRadius: 999,
+  },
+  gradientRingContainer: {
+    position: 'absolute',
+    borderRadius: 999,
+    overflow: 'hidden',
+  },
+  gradientRing: {
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
+    borderRadius: 999,
+  },
+  gradientRingInner: {
+    position: 'absolute',
+    top: 3,
+    left: 3,
+    right: 3,
+    bottom: 3,
     borderRadius: 999,
   },
   innerRing: {

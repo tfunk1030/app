@@ -1,16 +1,27 @@
 import { useThemeMode } from '@/src/theme/ThemeProvider';
 import { useTokens } from '@/src/theme/useTokens';
-import { 
-  safeScaledFontSize, 
-  getTouchTargetSize, 
+import {
+  safeScaledFontSize,
+  getTouchTargetSize,
   getFlexibleMinHeight,
   getScrollPadding,
-  getResponsiveSpacing
+  getResponsiveSpacing,
 } from '@/src/utils/responsive';
 import { Slider as NativeSlider } from '@miblanchard/react-native-slider';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
+
+const AnimatedView = Animated.View;
 
 interface SliderProps {
   value: number;
@@ -21,6 +32,7 @@ interface SliderProps {
   label?: string;
   unit?: string;
   dense?: boolean;
+  glow?: boolean; // Enable glow effect on track and thumb
 }
 
 export function Slider({
@@ -32,12 +44,45 @@ export function Slider({
   label,
   unit,
   dense = false,
+  glow = true,
 }: SliderProps) {
   const t = useTokens();
   const { mode } = useThemeMode();
-  const rippleColor = mode === 'dark' ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)';
+  const isDark = mode === 'dark' || mode === 'system';
+  const rippleColor = isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)';
   const [inputValue, setInputValue] = useState(String(value));
   const [sliderValue, setSliderValue] = useState(value);
+  const [isDragging, setIsDragging] = useState(false);
+
+  // Animation values
+  const thumbScale = useSharedValue(1);
+  const thumbGlow = useSharedValue(0.3);
+  const tooltipOpacity = useSharedValue(0);
+  const tooltipScale = useSharedValue(0.8);
+
+  // Pulse animation for thumb glow
+  useEffect(() => {
+    if (glow && isDark) {
+      thumbGlow.value = withRepeat(
+        withSequence(
+          withTiming(0.6, { duration: 1500 }),
+          withTiming(0.3, { duration: 1500 })
+        ),
+        -1,
+        true
+      );
+    }
+  }, [glow, isDark, thumbGlow]);
+
+  const thumbAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: thumbScale.value }],
+    shadowOpacity: thumbGlow.value,
+  }));
+
+  const tooltipAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: tooltipOpacity.value,
+    transform: [{ scale: tooltipScale.value }],
+  }));
 
   useEffect(() => {
     setInputValue(String(value));
@@ -86,38 +131,110 @@ export function Slider({
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
-  const handleSliderChange = (values: number[]) => {
-    const newValue = values[0];
-    setSliderValue(newValue);
-    setInputValue(String(Math.round(newValue)));
-    onValueChange(newValue);
-  };
+  const handleSliderChange = useCallback(
+    (values: number[]) => {
+      const newValue = values[0];
+      setSliderValue(newValue);
+      setInputValue(String(Math.round(newValue)));
+      onValueChange(newValue);
+    },
+    [onValueChange]
+  );
 
-  // Reduced sizes for more compact layout with bigger slider track
-  const buttonSize = getTouchTargetSize(dense ? 36 : 40);  // Smaller buttons
-  const inputMinHeight = getFlexibleMinHeight(dense ? 32 : 36);  // Smaller input
-  const containerPadding = getScrollPadding(dense ? 2 : 4, { minPadding: 2, maxPadding: 8 });  // Less padding
+  const handleSlidingStart = useCallback(() => {
+    setIsDragging(true);
+    thumbScale.value = withSpring(1.2, {
+      damping: t.animation.spring.damping,
+      stiffness: t.animation.spring.stiffness,
+    });
+    tooltipOpacity.value = withTiming(1, { duration: 150 });
+    tooltipScale.value = withSpring(1, {
+      damping: t.animation.spring.damping,
+      stiffness: t.animation.spring.stiffness,
+    });
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  }, [thumbScale, tooltipOpacity, tooltipScale, t.animation.spring]);
+
+  const handleSlidingComplete = useCallback(() => {
+    setIsDragging(false);
+    thumbScale.value = withSpring(1, {
+      damping: t.animation.spring.damping,
+      stiffness: t.animation.spring.stiffness,
+    });
+    tooltipOpacity.value = withTiming(0, { duration: 200 });
+    tooltipScale.value = withTiming(0.8, { duration: 200 });
+  }, [thumbScale, tooltipOpacity, tooltipScale, t.animation.spring]);
+
+  // Calculate tooltip position based on slider value with edge clamping
+  // This ensures the tooltip doesn't clip off the edges of the screen
+  const rawTooltipPosition = ((sliderValue - min) / (max - min)) * 100;
+  // Clamp the position to keep tooltip visible (accounting for tooltip width)
+  const tooltipPosition = Math.max(8, Math.min(92, rawTooltipPosition));
+
+  // Calculate dynamic transform based on position to prevent edge clipping
+  const tooltipTransformX = rawTooltipPosition < 15
+    ? -8
+    : rawTooltipPosition > 85
+      ? -32
+      : -20;
+
+  // Ensure touch targets meet 44pt minimum for accessibility
+  const buttonSize = getTouchTargetSize(44);
+  const inputMinHeight = getFlexibleMinHeight(dense ? 36 : 40);
+  const containerPadding = getScrollPadding(dense ? 2 : 4, {
+    minPadding: 2,
+    maxPadding: 8,
+  });
+
+  // Custom thumb component with glow effect
+  const renderThumb = useCallback(() => {
+    const thumbSize = dense ? 22 : 26;
+    return (
+      <AnimatedView
+        style={[
+          {
+            width: thumbSize,
+            height: thumbSize,
+            borderRadius: thumbSize / 2,
+            backgroundColor: t.colors.brandAlt,
+            shadowColor: glow && isDark ? t.colors.glowSecondary : t.colors.shadow,
+            shadowOffset: { width: 0, height: 0 },
+            shadowRadius: glow && isDark ? 10 : 3,
+            elevation: 4,
+          },
+          thumbAnimatedStyle,
+        ]}
+      />
+    );
+  }, [dense, t.colors, glow, isDark, thumbAnimatedStyle]);
+
+  // Custom track with gradient
+  const renderTrackMarkComponent = useCallback(() => null, []);
 
   return (
     <View style={[styles.container, { paddingVertical: containerPadding }]}>
       {label && (
-        <View style={[styles.labelContainer, { marginBottom: getResponsiveSpacing(dense ? 1 : 2, 'vertical') }]}>
-          <Text style={[
-            styles.label,
-            {
-              color: t.colors.textMuted,
-              fontSize: safeScaledFontSize(dense ? 12 : 14)  // Smaller label text in dense mode
-            }
-          ]}>
+        <View
+          style={[
+            styles.labelContainer,
+            { marginBottom: getResponsiveSpacing(dense ? 1 : 2, 'vertical') },
+          ]}
+        >
+          <Text
+            style={[
+              styles.label,
+              {
+                color: t.colors.textMuted,
+                fontSize: safeScaledFontSize(dense ? 12 : 14),
+              },
+            ]}
+          >
             {label}
           </Text>
         </View>
       )}
 
-      <View style={[
-        styles.inputContainer,
-        { marginBottom: 0 }  // No margin between input and slider
-      ]}>
+      <View style={[styles.inputContainer, { marginBottom: 0 }]}>
         <Pressable
           style={[
             styles.button,
@@ -175,13 +292,15 @@ export function Slider({
             placeholderTextColor={t.colors.textMuted}
           />
           {unit && (
-            <Text style={[
-              styles.unit, 
-              { 
-                color: t.colors.textMuted,
-                fontSize: safeScaledFontSize(dense ? 12 : 14)
-              }
-            ]}>
+            <Text
+              style={[
+                styles.unit,
+                {
+                  color: t.colors.textMuted,
+                  fontSize: safeScaledFontSize(dense ? 12 : 14),
+                },
+              ]}
+            >
               {unit}
             </Text>
           )}
@@ -217,44 +336,92 @@ export function Slider({
         </Pressable>
       </View>
 
-      <View style={[
-        styles.sliderOuterContainer,
-        {
-          paddingVertical: getResponsiveSpacing(dense ? 2 : 4, 'vertical'),  // Reduced padding
-          marginTop: getResponsiveSpacing(dense ? 1 : 2, 'vertical'),  // Reduced margin
-        },
-      ]}>
-        <View style={[
-          styles.sliderContainer,
+      <View
+        style={[
+          styles.sliderOuterContainer,
           {
-            minHeight: getFlexibleMinHeight(dense ? 28 : 36),  // Reduced height
+            paddingVertical: getResponsiveSpacing(dense ? 2 : 4, 'vertical'),
+            marginTop: getResponsiveSpacing(dense ? 1 : 2, 'vertical'),
           },
-        ]}>
+        ]}
+      >
+        {/* Tooltip that appears during drag */}
+        <AnimatedView
+          style={[
+            styles.tooltip,
+            {
+              left: `${tooltipPosition}%`,
+              transform: [{ translateX: tooltipTransformX }],
+              backgroundColor: t.colors.surface,
+              borderColor: t.colors.brand,
+            },
+            tooltipAnimatedStyle,
+          ]}
+          pointerEvents="none"
+        >
+          <Text
+            style={[
+              styles.tooltipText,
+              {
+                color: t.colors.brand,
+                fontSize: safeScaledFontSize(12),
+              },
+            ]}
+          >
+            {Math.round(sliderValue)}
+            {unit ? ` ${unit}` : ''}
+          </Text>
+        </AnimatedView>
+
+        <View
+          style={[
+            styles.sliderContainer,
+            {
+              minHeight: getFlexibleMinHeight(dense ? 28 : 36),
+            },
+          ]}
+        >
           <View style={styles.sliderPadding} />
           <View style={styles.sliderTrackContainer}>
+            {/* Gradient track background */}
+            {glow && isDark && (
+              <View style={styles.gradientTrackWrapper}>
+                <LinearGradient
+                  colors={t.gradients.primary as [string, string, ...string[]]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={[
+                    styles.gradientTrack,
+                    {
+                      width: `${((sliderValue - min) / (max - min)) * 100}%`,
+                      height: dense ? 6 : 8,
+                      borderRadius: dense ? 3 : 4,
+                      shadowColor: t.colors.glowPrimary,
+                      shadowOffset: { width: 0, height: 0 },
+                      shadowOpacity: 0.5,
+                      shadowRadius: 6,
+                    },
+                  ]}
+                />
+              </View>
+            )}
             <NativeSlider
               value={sliderValue}
               onValueChange={handleSliderChange}
+              onSlidingStart={handleSlidingStart}
+              onSlidingComplete={handleSlidingComplete}
               minimumValue={min}
               maximumValue={max}
               step={step}
-              minimumTrackTintColor={t.colors.brand}
+              minimumTrackTintColor={
+                glow && isDark ? 'transparent' : t.colors.brand
+              }
               maximumTrackTintColor={t.colors.border}
-              thumbTintColor={t.colors.brandAlt}
-              thumbStyle={StyleSheet.flatten([
-                styles.thumb,
-                {
-                  width: dense ? 20 : 24,  // Bigger thumb for better touch target
-                  height: dense ? 20 : 24,  // Bigger thumb for better touch target
-                  borderRadius: dense ? 10 : 12,
-                  backgroundColor: t.colors.brandAlt,
-                  shadowColor: t.colors.shadow,
-                },
-              ])}
+              renderThumbComponent={renderThumb}
               trackStyle={StyleSheet.flatten([
                 styles.track,
                 {
-                  height: dense ? 6 : 8,  // Much thicker track for better visibility and touch
+                  height: dense ? 6 : 8,
                   borderRadius: dense ? 3 : 4,
                 },
               ])}
@@ -282,7 +449,9 @@ const styles = StyleSheet.create({
   unit: {
     marginLeft: 2,
   },
-  sliderOuterContainer: {},
+  sliderOuterContainer: {
+    position: 'relative',
+  },
   sliderContainer: {
     justifyContent: 'center',
     flexDirection: 'row',
@@ -292,12 +461,19 @@ const styles = StyleSheet.create({
   },
   sliderTrackContainer: {
     flex: 1,
+    position: 'relative',
   },
-  thumb: {
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.15,
-    shadowRadius: 2,
-    elevation: 2,
+  gradientTrackWrapper: {
+    position: 'absolute',
+    top: '50%',
+    left: 0,
+    right: 0,
+    zIndex: 1,
+    transform: [{ translateY: -3 }],
+  },
+  gradientTrack: {
+    position: 'absolute',
+    left: 0,
   },
   track: {},
   inputContainer: {
@@ -327,5 +503,21 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     fontWeight: '700',
+  },
+  tooltip: {
+    position: 'absolute',
+    top: -28,
+    // Transform is now applied dynamically based on edge position
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    borderWidth: 1,
+    zIndex: 10,
+    minWidth: 40,
+    alignItems: 'center',
+  },
+  tooltipText: {
+    fontWeight: '600',
+    textAlign: 'center',
   },
 });

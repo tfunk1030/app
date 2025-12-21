@@ -1,7 +1,7 @@
 // src/features/wind/screen.tsx
 
 import { Button } from '@/src/core/components/ui/button';
-import { Card } from '@/src/core/components/ui/card';
+import { GlassCard } from '@/src/core/components/ui/GlassCard';
 import { Slider } from '@/src/core/components/ui/slider';
 import { usePremium } from '@/src/features/settings/context/premium';
 import WindDirectionCompass from '@/src/features/wind/components/compass';
@@ -12,14 +12,58 @@ import { CompassLockProvider, useCompassLock } from '@/src/features/wind/context
 import { useSensorData } from '@/src/features/wind/context/sensor-data';
 import { useWindCalculator } from '@/src/features/wind/hooks/useWindCalculator';
 import { useEnhancedEnvironmental } from '@/src/providers/EnhancedEnvironmentalProvider';
-import { tokens } from '@/src/theme/tokens';
+import { useThemeMode } from '@/src/theme/ThemeProvider';
+import { useTokens } from '@/src/theme/useTokens';
 import { LogManager } from '@/src/utils/LogManager';
-import { scaledFontSize } from '@/src/utils/responsive';
+import { safeScaledFontSize, getScrollPadding } from '@/src/utils/responsive';
+import { useAccessibleAnimations } from '@/src/hooks/useAccessibility';
+import { Crown, Wind } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import Animated from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Create a logger for the wind screen
 const logger = LogManager.getLogger('WindScreen');
+
+// Quick yardage presets
+const YARDAGE_PRESETS = [100, 125, 150, 175, 200];
+
+interface YardagePresetButtonProps {
+  value: number;
+  isSelected: boolean;
+  onPress: () => void;
+  tokens: ReturnType<typeof useTokens>;
+}
+
+const YardagePresetButton = React.memo<YardagePresetButtonProps>(({
+  value,
+  isSelected,
+  onPress,
+  tokens,
+}) => (
+  <Pressable
+    onPress={onPress}
+    style={[
+      styles.presetButton,
+      {
+        backgroundColor: isSelected ? `${tokens.colors.brand}20` : tokens.colors.surfaceAlt,
+        borderColor: isSelected ? tokens.colors.brand : tokens.colors.border,
+      },
+    ]}
+  >
+    <Text
+      style={[
+        styles.presetButtonText,
+        {
+          color: isSelected ? tokens.colors.brand : tokens.colors.textMuted,
+        },
+      ]}
+    >
+      {value}
+    </Text>
+  </Pressable>
+));
 
 // Wind calculation component
 function WindCalculatorComponent() {
@@ -29,6 +73,13 @@ function WindCalculatorComponent() {
   const { relativeWindAngle } = useCompassLock();
   const { isLoading, windSpeed, setWindSpeed, targetYardage, setTargetYardage, result, calculate } =
     useWindCalculator();
+  const tokens = useTokens();
+  const { mode } = useThemeMode();
+  const isDark = mode === 'dark' || mode === 'system';
+  const insets = useSafeAreaInsets();
+  const { headerEntering, cardEntering } = useAccessibleAnimations();
+
+  const padding = getScrollPadding(16, { minPadding: 12, maxPadding: 20 });
 
   // Handle calculation button press
   const handleCalculate = () => {
@@ -43,16 +94,26 @@ function WindCalculatorComponent() {
   // Premium check
   if (!isPremium) {
     return (
-      <View style={[styles.container, styles.centerContent]}>
-        <Text style={styles.premiumText}>Wind calculator is a premium feature</Text>
-        <Button
-          onPress={() => {}} // Handle premium upgrade
-          variant="default"
-          size="lg"
-          style={{ marginTop: 16 }}
-        >
-          Upgrade to Premium
-        </Button>
+      <View style={[styles.container, styles.centerContent, { backgroundColor: tokens.colors.background }]}>
+        <Animated.View entering={headerEntering} style={styles.premiumContainer}>
+          <View style={[styles.premiumIconContainer, { backgroundColor: `${tokens.colors.brand}20` }]}>
+            <Crown size={48} color={tokens.colors.brand} />
+          </View>
+          <Text style={[styles.premiumTitle, { color: tokens.colors.textPrimary }]}>
+            Premium Feature
+          </Text>
+          <Text style={[styles.premiumText, { color: tokens.colors.textMuted }]}>
+            Wind calculator is available with premium
+          </Text>
+          <Button
+            onPress={() => {}} // Handle premium upgrade
+            variant="neon"
+            size="lg"
+            style={styles.premiumButton}
+          >
+            Upgrade to Premium
+          </Button>
+        </Animated.View>
       </View>
     );
   }
@@ -60,8 +121,9 @@ function WindCalculatorComponent() {
   // Loading state
   if (isLoading) {
     return (
-      <View style={[styles.container, styles.centerContent]}>
-        <Text style={styles.loadingText}>Loading conditions...</Text>
+      <View style={[styles.container, styles.centerContent, { backgroundColor: tokens.colors.background }]}>
+        <View style={[styles.loadingPulse, { backgroundColor: tokens.colors.surfaceAlt }]} />
+        <View style={[styles.loadingPulse, { backgroundColor: tokens.colors.surfaceAlt, width: '60%' }]} />
       </View>
     );
   }
@@ -69,37 +131,56 @@ function WindCalculatorComponent() {
   // Error state
   if (!conditions) {
     return (
-      <View style={[styles.container, styles.centerContent]}>
-        <Text style={styles.errorText}>Unable to load conditions</Text>
+      <View style={[styles.container, styles.centerContent, { backgroundColor: tokens.colors.background }]}>
+        <Wind size={48} color={tokens.colors.textMuted} />
+        <Text style={[styles.errorText, { color: tokens.colors.textMuted }]}>
+          Unable to load conditions
+        </Text>
       </View>
     );
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
-      <Text style={styles.title}>Wind Calculator</Text>
+    <ScrollView
+      style={[styles.container, { backgroundColor: tokens.colors.background }]}
+      contentContainerStyle={[
+        styles.contentContainer,
+        { paddingTop: insets.top + 16, paddingHorizontal: padding },
+      ]}
+      showsVerticalScrollIndicator={false}
+    >
+      {/* Header */}
+      <Animated.View entering={headerEntering}>
+        <Text style={[styles.title, { color: tokens.colors.textPrimary }]}>Wind Calculator</Text>
+        <Text style={[styles.subtitle, { color: tokens.colors.textMuted }]}>
+          Calculate wind effect on your shot
+        </Text>
+      </Animated.View>
 
-      {/* Weather Bar */}
-      <WindHourlyForecastBar />
-      <WindWeatherBar />
+      {/* Weather Bars - Collapsible sections */}
+      <Animated.View entering={cardEntering(0)}>
+        <WindHourlyForecastBar />
+      </Animated.View>
 
-      {/* Main Calculator Card */}
-      <Card style={styles.mainCard}>
-        {/* Wind Direction Compass */}
-        <View style={styles.compassContainer}>
-          <View style={styles.compassInstructions}>
-            <Text style={styles.compassHint}>
-              Point phone in shot direction and tap lock to set reference
-            </Text>
-          </View>
+      <Animated.View entering={cardEntering(1)}>
+        <WindWeatherBar />
+      </Animated.View>
+
+      {/* Compass Card */}
+      <Animated.View entering={cardEntering(2)}>
+        <GlassCard gradient glow style={styles.compassCard}>
+          <Text style={[styles.compassHint, { color: tokens.colors.textMuted }]}>
+            Point phone in shot direction and tap lock
+          </Text>
           <View style={styles.compassWrapper}>
-            <View style={styles.compassGlow} />
-            <WindDirectionCompass size={280} />
+            <WindDirectionCompass size={260} />
           </View>
-        </View>
+        </GlassCard>
+      </Animated.View>
 
-        {/* Wind Speed Slider */}
-        <View style={styles.inputGroup}>
+      {/* Wind Speed Slider */}
+      <Animated.View entering={cardEntering(3)}>
+        <GlassCard style={styles.sliderCard}>
           <Slider
             value={windSpeed}
             onValueChange={setWindSpeed}
@@ -107,12 +188,14 @@ function WindCalculatorComponent() {
             max={50}
             step={1}
             label="Wind Speed"
-            unit=" mph"
+            unit="mph"
           />
-        </View>
+        </GlassCard>
+      </Animated.View>
 
-        {/* Target Yardage Slider */}
-        <View style={styles.inputGroup}>
+      {/* Target Yardage Section */}
+      <Animated.View entering={cardEntering(4)}>
+        <GlassCard style={styles.yardageCard}>
           <Slider
             value={targetYardage}
             onValueChange={setTargetYardage}
@@ -120,23 +203,48 @@ function WindCalculatorComponent() {
             max={300}
             step={1}
             label="Target Yardage"
-            unit=" yards"
+            unit="yds"
           />
-        </View>
 
-        {/* Calculate Button */}
+          {/* Quick Presets */}
+          <View style={[styles.presetsContainer, { borderTopColor: tokens.colors.border }]}>
+            <Text style={[styles.presetsLabel, { color: tokens.colors.textMuted }]}>
+              Quick Select
+            </Text>
+            <View style={styles.presetsRow}>
+              {YARDAGE_PRESETS.map((preset) => (
+                <YardagePresetButton
+                  key={preset}
+                  value={preset}
+                  isSelected={targetYardage === preset}
+                  onPress={() => setTargetYardage(preset)}
+                  tokens={tokens}
+                />
+              ))}
+            </View>
+          </View>
+        </GlassCard>
+      </Animated.View>
+
+      {/* Calculate Button */}
+      <Animated.View entering={cardEntering(5)}>
         <Button
           onPress={handleCalculate}
-          variant="default"
+          variant="neon"
           size="lg"
+          glow
           style={styles.calculateButton}
         >
           Calculate Wind Effect
         </Button>
-      </Card>
+      </Animated.View>
 
-      {/* Results Panel - with the enhanced results component */}
-      {result && <WindCalculationResults result={result} />}
+      {/* Results Panel */}
+      {result && (
+        <Animated.View entering={cardEntering(0)}>
+          <WindCalculationResults result={result} />
+        </Animated.View>
+      )}
     </ScrollView>
   );
 }
@@ -146,23 +254,36 @@ function WindCalculatorScreen() {
   const [error, setError] = useState<Error | null>(null);
   const { conditions } = useEnhancedEnvironmental();
   const { heading } = useSensorData();
+  const tokens = useTokens();
+  const insets = useSafeAreaInsets();
+  const { headerEntering } = useAccessibleAnimations();
 
   // Error state
   if (error) {
     return (
-      <View style={[styles.container, styles.centerContent]}>
-        <Text style={styles.errorText}>An error occurred while loading the wind calculator</Text>
-        <Text style={[styles.errorText, { fontSize: 12, marginTop: 8 }]}>
-          {error?.message || 'Unknown error'}
-        </Text>
-        <Button
-          onPress={() => setError(null)}
-          variant="default"
-          size="lg"
-          style={{ marginTop: 16 }}
-        >
-          Try Again
-        </Button>
+      <View
+        style={[
+          styles.container,
+          styles.centerContent,
+          { backgroundColor: tokens.colors.background, paddingTop: insets.top },
+        ]}
+      >
+        <Animated.View entering={headerEntering} style={styles.errorContainer}>
+          <Text style={[styles.errorTitle, { color: tokens.colors.danger }]}>
+            Something went wrong
+          </Text>
+          <Text style={[styles.errorMessage, { color: tokens.colors.textMuted }]}>
+            {error?.message || 'Unknown error'}
+          </Text>
+          <Button
+            onPress={() => setError(null)}
+            variant="neon"
+            size="lg"
+            style={styles.retryButton}
+          >
+            Try Again
+          </Button>
+        </Animated.View>
       </View>
     );
   }
@@ -181,20 +302,24 @@ function WindCalculatorScreen() {
 // Main screen wrapper with initialization
 export default function WindScreen() {
   const [initialized, setInitialized] = useState(false);
+  const tokens = useTokens();
+  const { headerEntering } = useAccessibleAnimations();
 
   // Handle initialization
   useEffect(() => {
     const timer = setTimeout(() => {
       setInitialized(true);
-    }, 500);
+    }, 300);
 
     return () => clearTimeout(timer);
   }, []);
 
   if (!initialized) {
     return (
-      <View style={[styles.container, styles.centerContent]}>
-        <Text style={styles.loadingText}>Initializing wind calculator...</Text>
+      <View style={[styles.container, styles.centerContent, { backgroundColor: tokens.colors.background }]}>
+        <Animated.View entering={headerEntering}>
+          <Wind size={32} color={tokens.colors.textMuted} />
+        </Animated.View>
       </View>
     );
   }
@@ -205,79 +330,134 @@ export default function WindScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: tokens.colors.background,
   },
   contentContainer: {
-    padding: 16,
-    paddingBottom: 32,
+    paddingBottom: 120,
   },
   centerContent: {
-    padding: 16,
     justifyContent: 'center',
     alignItems: 'center',
   },
   title: {
-    fontSize: scaledFontSize(24),
-    fontWeight: 'bold',
-    color: tokens.colors.textPrimary,
+    fontSize: safeScaledFontSize(32),
+    fontWeight: '700',
+    letterSpacing: -0.5,
+    marginBottom: 4,
+  },
+  subtitle: {
+    fontSize: safeScaledFontSize(15),
+    fontWeight: '500',
     marginBottom: 24,
-    // avoid additional shadows in light mode to reduce glare
   },
-  mainCard: {
+  compassCard: {
     marginBottom: 16,
-    padding: 24,
-    backgroundColor: tokens.colors.surface,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: tokens.colors.border,
-    overflow: 'hidden',
-  },
-  compassContainer: {
-    marginBottom: 48,  // Increased from 24 to push sliders down
     alignItems: 'center',
   },
-  compassInstructions: {
-    marginBottom: 8,
-  },
   compassHint: {
-    fontSize: scaledFontSize(12),
-    color: tokens.colors.textMuted,
+    fontSize: safeScaledFontSize(12),
+    fontWeight: '500',
     textAlign: 'center',
-    opacity: 0.75,
+    marginBottom: 16,
+    opacity: 0.8,
   },
   compassWrapper: {
-    position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  compassGlow: { position: 'absolute', inset: -20, opacity: 0.05, borderRadius: 999, zIndex: -1 },
-  inputGroup: {
-    marginBottom: 24,
-    backgroundColor: tokens.colors.surfaceAlt,
-    padding: 12,
-    borderRadius: 8,
+  sliderCard: {
+    marginBottom: 16,
+  },
+  yardageCard: {
+    marginBottom: 16,
+  },
+  presetsContainer: {
+    marginTop: 20,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    // Note: borderTopColor is set dynamically in component via tokens.colors.border
+  },
+  presetsLabel: {
+    fontSize: safeScaledFontSize(12),
+    fontWeight: '500',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  presetsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  presetButton: {
+    flex: 1,
+    minHeight: 44,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: tokens.colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  presetButtonText: {
+    fontSize: safeScaledFontSize(14),
+    fontWeight: '600',
+    ...Platform.select({
+      ios: { fontFamily: 'Menlo' },
+      android: { fontFamily: 'monospace' },
+    }),
   },
   calculateButton: {
-    backgroundColor: tokens.colors.brand,
-    paddingVertical: 12,
-    borderRadius: 8,
-    shadowColor: tokens.colors.shadow,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 3,
+    marginBottom: 16,
   },
-  loadingText: {
-    color: tokens.colors.textPrimary,
-    fontSize: scaledFontSize(16),
+  loadingPulse: {
+    borderRadius: 12,
+    marginBottom: 16,
+    height: 32,
+    width: '80%',
+  },
+  errorContainer: {
+    alignItems: 'center',
+    padding: 24,
+  },
+  errorTitle: {
+    fontSize: safeScaledFontSize(20),
+    fontWeight: '700',
+    marginBottom: 8,
+  },
+  errorMessage: {
+    fontSize: safeScaledFontSize(14),
+    textAlign: 'center',
+    marginBottom: 24,
   },
   errorText: {
-    color: tokens.colors.danger,
-    fontSize: scaledFontSize(16),
+    fontSize: safeScaledFontSize(16),
+    marginTop: 16,
+  },
+  retryButton: {
+    minWidth: 160,
+  },
+  premiumContainer: {
+    alignItems: 'center',
+    padding: 32,
+  },
+  premiumIconContainer: {
+    width: 96,
+    height: 96,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 24,
+  },
+  premiumTitle: {
+    fontSize: safeScaledFontSize(24),
+    fontWeight: '700',
+    marginBottom: 8,
   },
   premiumText: {
-    color: tokens.colors.textPrimary,
-    fontSize: scaledFontSize(18),
+    fontSize: safeScaledFontSize(16),
     textAlign: 'center',
+    marginBottom: 24,
+  },
+  premiumButton: {
+    minWidth: 200,
   },
 });

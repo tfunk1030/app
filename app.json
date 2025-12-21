@@ -23,12 +23,6 @@
         }
       ],
       [
-        "react-native-permissions",
-        {
-          "iosPermissions": ["LocationAlways", "LocationWhenInUse"]
-        }
-      ],
-      [
         "expo-sensors",
         {
           "motionPermission": "Allow $(PRODUCT_NAME) to access your device motion"
