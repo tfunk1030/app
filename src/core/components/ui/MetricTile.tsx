@@ -7,8 +7,8 @@ import {
   getIconSize,
 } from '@/src/utils/responsive';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useCallback } from 'react';
-import { Pressable, StyleSheet, Text, View, ViewStyle, Platform } from 'react-native';
+import React, { useCallback, useMemo } from 'react';
+import { Pressable, Text, View, ViewStyle, Platform } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -38,9 +38,14 @@ export const MetricTile: React.FC<MetricTileProps> = ({
   trend,
   onPress,
 }) => {
-  const tokens = useTokens();
+  const t = useTokens();
   const { mode } = useThemeMode();
   const isDark = mode === 'dark' || mode === 'system';
+
+  // Token-based border radius values for consistency with GlassCard
+  const cardBorderRadius = t.borderRadius.xl; // 16
+  const gradientBorderWidth = t.borderWidth.medium; // 1.5
+  const innerBorderRadius = cardBorderRadius - gradientBorderWidth; // 14.5
 
   // Animation values
   const scale = useSharedValue(1);
@@ -52,91 +57,160 @@ export const MetricTile: React.FC<MetricTileProps> = ({
   const handlePressIn = useCallback(() => {
     if (onPress) {
       scale.value = withSpring(0.98, {
-        damping: tokens.animation.spring.damping,
-        stiffness: tokens.animation.spring.stiffness,
-        mass: tokens.animation.spring.mass,
+        damping: t.animation.spring.damping,
+        stiffness: t.animation.spring.stiffness,
+        mass: t.animation.spring.mass,
       });
     }
-  }, [onPress, scale, tokens.animation.spring]);
+  }, [onPress, scale, t.animation.spring]);
 
   const handlePressOut = useCallback(() => {
     scale.value = withSpring(1, {
-      damping: tokens.animation.spring.damping,
-      stiffness: tokens.animation.spring.stiffness,
-      mass: tokens.animation.spring.mass,
+      damping: t.animation.spring.damping,
+      stiffness: t.animation.spring.stiffness,
+      mass: t.animation.spring.mass,
     });
-  }, [scale, tokens.animation.spring]);
+  }, [scale, t.animation.spring]);
 
-  // Use responsive padding that adapts to fontScale
-  const padding = getScrollPadding(16, { minPadding: 12, maxPadding: 20 });
-  const iconContainerSize = getIconSize(32);
+  // Use responsive padding that adapts to fontScale (using token values)
+  const padding = getScrollPadding(t.spacing.md, { minPadding: t.spacing.base, maxPadding: 20 });
+  const iconContainerSize = getIconSize(t.containerSize.icon.sm);
 
   // Determine trend color
   const getTrendColor = () => {
     switch (trend) {
       case 'up':
-        return tokens.colors.success;
+        return t.colors.success;
       case 'down':
-        return tokens.colors.danger;
+        return t.colors.danger;
       default:
-        return tokens.colors.textMuted;
+        return t.colors.textMuted;
     }
   };
 
-  // Shadow style for highlight effect
+  // Shadow style for highlight effect (using token values)
   const getShadowStyle = (): ViewStyle => {
     if (highlight && isDark) {
       return {
-        shadowColor: tokens.colors.glowPrimary,
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.4,
-        shadowRadius: 12,
-        elevation: 6,
+        shadowColor: t.shadow.glow.shadowColor,
+        shadowOffset: t.shadow.glow.shadowOffset,
+        shadowOpacity: t.shadow.glow.shadowOpacity * 0.65, // Slightly reduced for tiles
+        shadowRadius: t.shadow.glow.shadowRadius,
+        elevation: t.shadow.glow.elevation,
       };
     }
     return {
-      shadowColor: tokens.colors.shadow,
-      shadowOffset: tokens.shadow.subtle.shadowOffset,
-      shadowOpacity: tokens.shadow.subtle.shadowOpacity,
-      shadowRadius: tokens.shadow.subtle.shadowRadius,
-      elevation: tokens.shadow.subtle.elevation,
+      shadowColor: t.colors.shadow,
+      shadowOffset: t.shadow.subtle.shadowOffset,
+      shadowOpacity: t.shadow.subtle.shadowOpacity,
+      shadowRadius: t.shadow.subtle.shadowRadius,
+      elevation: t.shadow.subtle.elevation,
     };
   };
+
+  // Memoized dynamic styles for consistent token-based styling
+  const dynamicStyles = useMemo(() => ({
+    card: {
+      borderRadius: cardBorderRadius,
+      overflow: 'hidden' as const,
+      minHeight: getTouchTargetSize(t.touchTarget.minimum),
+    },
+    gradientBorder: {
+      position: 'absolute' as const,
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      borderRadius: cardBorderRadius,
+    },
+    innerCard: {
+      flex: 1,
+      borderRadius: cardBorderRadius,
+      overflow: 'hidden' as const,
+    },
+    withGradientBorder: {
+      margin: gradientBorderWidth,
+      borderRadius: innerBorderRadius,
+    },
+    header: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+    },
+    iconContainer: {
+      overflow: 'hidden' as const,
+      marginRight: t.spacing.sm + 2, // 10px spacing between icon and label
+    },
+    iconGradient: {
+      flex: 1,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+      borderRadius: t.borderRadius.full,
+    },
+    label: {
+      flex: 1,
+      flexShrink: 1,
+      flexWrap: 'nowrap' as const,
+      fontWeight: t.fontWeight.medium,
+      letterSpacing: t.letterSpacing.normal + 0.3, // Slightly wider for labels
+    },
+    valueContainer: {
+      flexDirection: 'row' as const,
+      alignItems: 'baseline' as const,
+    },
+    value: {
+      fontWeight: t.fontWeight.bold,
+      flexWrap: 'nowrap' as const,
+      letterSpacing: t.letterSpacing.tight,
+      // Use system monospace font for metrics
+      ...Platform.select({
+        ios: {
+          fontFamily: 'Menlo',
+        },
+        android: {
+          fontFamily: 'monospace',
+        },
+      }),
+    },
+    unit: {
+      marginLeft: t.spacing.xs,
+      fontWeight: t.fontWeight.medium,
+    },
+  }), [cardBorderRadius, gradientBorderWidth, innerBorderRadius, t]);
 
   const content = (
     <>
       {/* Gradient border for highlight */}
       {highlight && isDark && (
         <LinearGradient
-          colors={tokens.gradients.primary as [string, string, ...string[]]}
+          colors={t.gradients.primary as [string, string, ...string[]]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={styles.gradientBorder}
+          style={dynamicStyles.gradientBorder}
         />
       )}
 
       <View
         style={[
-          styles.innerCard,
+          dynamicStyles.innerCard,
           {
-            backgroundColor: isDark ? tokens.colors.surface : tokens.colors.surfaceAlt,
-            borderColor: highlight && isDark ? 'transparent' : tokens.colors.border,
-            borderWidth: highlight && isDark ? 0 : 1,
+            backgroundColor: isDark ? t.colors.surface : t.colors.surfaceAlt,
+            borderColor: highlight && isDark ? 'transparent' : t.colors.border,
+            borderWidth: highlight && isDark ? 0 : t.borderWidth.thin,
             padding: padding,
           },
-          highlight && isDark && styles.withGradientBorder,
+          highlight && isDark && dynamicStyles.withGradientBorder,
         ]}
       >
         <View
           style={[
-            styles.header,
-            { marginBottom: getScrollPadding(8, { minPadding: 6, maxPadding: 10 }) },
+            dynamicStyles.header,
+            { marginBottom: getScrollPadding(t.spacing.sm, { minPadding: 6, maxPadding: 10 }) },
           ]}
         >
           {/* Icon with gradient background */}
           <View
             style={[
-              styles.iconContainer,
+              dynamicStyles.iconContainer,
               {
                 width: iconContainerSize,
                 height: iconContainerSize,
@@ -147,21 +221,21 @@ export const MetricTile: React.FC<MetricTileProps> = ({
             <LinearGradient
               colors={
                 isDark
-                  ? (tokens.gradients.surface as [string, string, ...string[]])
-                  : ['rgba(16, 185, 129, 0.1)', 'rgba(6, 182, 212, 0.1)']
+                  ? (t.gradients.surface as [string, string, ...string[]])
+                  : (t.gradients.iconBackground as [string, string, ...string[]])
               }
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
-              style={styles.iconGradient}
+              style={dynamicStyles.iconGradient}
             >
               {icon}
             </LinearGradient>
           </View>
           <Text
             style={[
-              styles.label,
+              dynamicStyles.label,
               {
-                color: tokens.colors.textMuted,
+                color: t.colors.textMuted,
                 fontSize: safeScaledFontSize(13, { maxScale: 1.2 }),
               },
             ]}
@@ -174,12 +248,12 @@ export const MetricTile: React.FC<MetricTileProps> = ({
         </View>
 
         {/* Value with separate unit styling */}
-        <View style={styles.valueContainer}>
+        <View style={dynamicStyles.valueContainer}>
           <Text
             style={[
-              styles.value,
+              dynamicStyles.value,
               {
-                color: trend ? getTrendColor() : tokens.colors.textPrimary,
+                color: trend ? getTrendColor() : t.colors.textPrimary,
                 fontSize: safeScaledFontSize(26, { maxScale: 1.15 }),
               },
             ]}
@@ -192,10 +266,10 @@ export const MetricTile: React.FC<MetricTileProps> = ({
           {unit && (
             <Text
               style={[
-                styles.unit,
+                dynamicStyles.unit,
                 {
-                  color: tokens.colors.textMuted,
-                  fontSize: safeScaledFontSize(14, { maxScale: 1.15 }),
+                  color: t.colors.textMuted,
+                  fontSize: safeScaledFontSize(t.fontSize.sm, { maxScale: 1.15 }),
                 },
               ]}
             >
@@ -213,7 +287,7 @@ export const MetricTile: React.FC<MetricTileProps> = ({
         onPress={onPress}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
-        style={[styles.card, getShadowStyle(), animatedStyle, style]}
+        style={[dynamicStyles.card, getShadowStyle(), animatedStyle, style]}
         accessible
         accessibilityLabel={`${label} ${value}${unit ? ` ${unit}` : ''}`}
         accessibilityRole="button"
@@ -225,7 +299,7 @@ export const MetricTile: React.FC<MetricTileProps> = ({
 
   return (
     <Animated.View
-      style={[styles.card, getShadowStyle(), style]}
+      style={[dynamicStyles.card, getShadowStyle(), style]}
       accessible
       accessibilityLabel={`${label} ${value}${unit ? ` ${unit}` : ''}`}
     >
@@ -233,71 +307,3 @@ export const MetricTile: React.FC<MetricTileProps> = ({
     </Animated.View>
   );
 };
-
-const styles = StyleSheet.create({
-  card: {
-    borderRadius: 16,
-    overflow: 'hidden',
-    minHeight: getTouchTargetSize(44),
-  },
-  gradientBorder: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    borderRadius: 16,
-  },
-  innerCard: {
-    flex: 1,
-    borderRadius: 16,
-    overflow: 'hidden',
-  },
-  withGradientBorder: {
-    margin: 1.5,
-    borderRadius: 14.5,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  iconContainer: {
-    overflow: 'hidden',
-    marginRight: 10,
-  },
-  iconGradient: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 100,
-  },
-  label: {
-    flex: 1,
-    flexShrink: 1,
-    flexWrap: 'nowrap',
-    fontWeight: '500',
-    letterSpacing: 0.3,
-  },
-  valueContainer: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-  },
-  value: {
-    fontWeight: '700',
-    flexWrap: 'nowrap',
-    letterSpacing: -0.5,
-    // Use system monospace font for metrics
-    ...Platform.select({
-      ios: {
-        fontFamily: 'Menlo',
-      },
-      android: {
-        fontFamily: 'monospace',
-      },
-    }),
-  },
-  unit: {
-    marginLeft: 4,
-    fontWeight: '500',
-  },
-});
