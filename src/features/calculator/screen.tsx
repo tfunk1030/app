@@ -18,7 +18,7 @@ import {
   Thermometer,
 } from 'lucide-react-native';
 import * as React from 'react';
-import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Platform, ScrollView, Text, View, ViewStyle, TextStyle } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSettings } from '../../../src/core/context/settings';
@@ -26,6 +26,7 @@ import { useShotCalc } from '../../../src/core/context/shotcalc';
 import { SkillLevel, YardageModelEnhanced } from '../../../src/core/models/YardageModel';
 import { useClubSettings } from '../../../src/features/settings/context/clubs';
 import { normalizeClubName } from '../../../src/features/settings/utils/club-mapping';
+import type { Tokens } from '@/src/theme/tokens';
 
 const convertDistance = (value: number, unit: 'meters' | 'yards'): number => {
   return unit === 'meters' ? value * 0.9144 : value;
@@ -36,7 +37,7 @@ export default function ShotCalculatorScreen() {
   const { getRecommendedClub } = useClubSettings();
   const { settings, formatDistance, formatTemperature, formatAltitude } = useSettings();
   const { setShotCalcData } = useShotCalc();
-  const tokens = useTokens();
+  const t = useTokens();
   const { mode } = useThemeMode();
   const isDark = mode === 'dark' || mode === 'system';
   const insets = useSafeAreaInsets();
@@ -45,7 +46,8 @@ export default function ShotCalculatorScreen() {
   const [lastUpdate, setLastUpdate] = React.useState<number | null>(null);
   const [yardageModel] = React.useState(() => new YardageModelEnhanced());
 
-  const padding = getScrollPadding(16, { minPadding: 12, maxPadding: 20 });
+  const padding = getScrollPadding(t.spacing.md, { minPadding: t.spacing.base, maxPadding: t.spacing.xl });
+  const styles = React.useMemo(() => createStyles(t), [t]);
 
   const calculateShot = React.useCallback(() => {
     if (!conditions) return null;
@@ -112,7 +114,7 @@ export default function ShotCalculatorScreen() {
 
   if (!conditions) {
     return (
-      <View style={[styles.loadingContainer, { backgroundColor: tokens.colors.background, paddingTop: insets.top + 16 }]}>
+      <View style={[styles.loadingContainer, { backgroundColor: t.colors.background, paddingTop: insets.top + t.spacing.md }]}>
         <SkeletonScreen showHero={true} cardCount={1} />
       </View>
     );
@@ -137,17 +139,17 @@ export default function ShotCalculatorScreen() {
 
   return (
     <ScrollView
-      style={[styles.container, { backgroundColor: tokens.colors.background }]}
+      style={[styles.container, { backgroundColor: t.colors.background }]}
       contentContainerStyle={[
         styles.contentContainer,
-        { paddingTop: insets.top + 16, paddingHorizontal: padding },
+        { paddingTop: insets.top + t.spacing.md, paddingHorizontal: padding },
       ]}
       showsVerticalScrollIndicator={false}
     >
       {/* Header */}
       <Animated.View entering={headerEntering}>
-        <Text style={[styles.title, { color: tokens.colors.textPrimary }]}>Shot Calculator</Text>
-        <Text style={[styles.subtitle, { color: tokens.colors.textMuted }]}>
+        <Text style={[styles.title, { color: t.colors.textPrimary }]}>Shot Calculator</Text>
+        <Text style={[styles.subtitle, { color: t.colors.textMuted }]}>
           Environmental shot adjustments
         </Text>
       </Animated.View>
@@ -157,24 +159,24 @@ export default function ShotCalculatorScreen() {
         <GlassCard style={styles.conditionsCard}>
           <View style={styles.conditionsRow}>
             <ConditionChip
-              icon={<Gauge size={14} color={tokens.colors.brandAlt} />}
+              icon={<Gauge size={t.fontSize.sm} color={t.colors.brandAlt} />}
               value={conditions?.density?.toFixed(3) ?? 'N/A'}
-              tokens={tokens}
+              tokens={t}
             />
             <ConditionChip
-              icon={<Mountain size={14} color={tokens.colors.brandAlt} />}
+              icon={<Mountain size={t.fontSize.sm} color={t.colors.brandAlt} />}
               value={formatAltitude(conditions.altitude)}
-              tokens={tokens}
+              tokens={t}
             />
             <ConditionChip
-              icon={<Thermometer size={14} color={tokens.colors.brandAlt} />}
+              icon={<Thermometer size={t.fontSize.sm} color={t.colors.brandAlt} />}
               value={formatTemperature(conditions.temperature)}
-              tokens={tokens}
+              tokens={t}
             />
             <ConditionChip
-              icon={<Droplets size={14} color={tokens.colors.brandAlt} />}
+              icon={<Droplets size={t.fontSize.sm} color={t.colors.brandAlt} />}
               value={`${conditions.humidity.toFixed(0)}%`}
-              tokens={tokens}
+              tokens={t}
             />
           </View>
         </GlassCard>
@@ -205,25 +207,25 @@ export default function ShotCalculatorScreen() {
                   styles.adjustmentIndicator,
                   {
                     backgroundColor: isPositive
-                      ? `${tokens.colors.danger}20`
-                      : `${tokens.colors.success}20`,
+                      ? t.colors.dangerBackgroundAlpha
+                      : t.colors.successBackgroundAlpha,
                   },
                 ]}
               >
                 {isPositive ? (
-                  <ArrowUp size={20} color={tokens.colors.danger} />
+                  <ArrowUp size={t.fontSize.xl} color={t.colors.danger} />
                 ) : (
-                  <ArrowDown size={20} color={tokens.colors.success} />
+                  <ArrowDown size={t.fontSize.xl} color={t.colors.success} />
                 )}
               </View>
               <View style={styles.adjustmentText}>
-                <Text style={[styles.adjustmentLabel, { color: tokens.colors.textMuted }]}>
+                <Text style={[styles.adjustmentLabel, { color: t.colors.textMuted }]}>
                   Shot Adjustment
                 </Text>
                 <Text
                   style={[
                     styles.adjustmentValue,
-                    { color: isPositive ? tokens.colors.danger : tokens.colors.success },
+                    { color: isPositive ? t.colors.danger : t.colors.success },
                   ]}
                 >
                   {formatAdjustment(totalAdjustment)}
@@ -231,17 +233,17 @@ export default function ShotCalculatorScreen() {
               </View>
             </View>
 
-            <View style={[styles.divider, { backgroundColor: tokens.colors.border }]} />
+            <View style={[styles.divider, { backgroundColor: t.colors.border }]} />
 
             <View style={styles.playsLikeContainer}>
-              <Text style={[styles.playsLikeLabel, { color: tokens.colors.textMuted }]}>
+              <Text style={[styles.playsLikeLabel, { color: t.colors.textMuted }]}>
                 Plays Like
               </Text>
               <View style={styles.playsLikeValueRow}>
-                <Text style={[styles.playsLikeValue, { color: tokens.colors.textPrimary }]}>
+                <Text style={[styles.playsLikeValue, { color: t.colors.textPrimary }]}>
                   {Math.round(shotData.result.carryDistance)}
                 </Text>
-                <Text style={[styles.playsLikeUnit, { color: tokens.colors.textMuted }]}>
+                <Text style={[styles.playsLikeUnit, { color: t.colors.textMuted }]}>
                   {settings.distanceUnit === 'yards' ? 'yds' : 'm'}
                 </Text>
               </View>
@@ -255,15 +257,15 @@ export default function ShotCalculatorScreen() {
         <Animated.View entering={cardEntering(3)}>
           <GlassCard accent style={styles.clubCard}>
             <View style={styles.clubHeader}>
-              <Target size={20} color={tokens.colors.brand} />
-              <Text style={[styles.clubLabel, { color: tokens.colors.textMuted }]}>
+              <Target size={t.fontSize.xl} color={t.colors.brand} />
+              <Text style={[styles.clubLabel, { color: t.colors.textMuted }]}>
                 Recommended Club
               </Text>
             </View>
-            <Text style={[styles.clubName, { color: tokens.colors.textPrimary }]}>
+            <Text style={[styles.clubName, { color: t.colors.textPrimary }]}>
               {shotData.recommendedClub.name}
             </Text>
-            <Text style={[styles.clubRange, { color: tokens.colors.textMuted }]}>
+            <Text style={[styles.clubRange, { color: t.colors.textMuted }]}>
               {Math.round(shotData.recommendedClub.normalYardage * 0.9)} - {Math.round(shotData.recommendedClub.normalYardage * 1.1)} yds
             </Text>
           </GlassCard>
@@ -276,155 +278,166 @@ export default function ShotCalculatorScreen() {
 interface ConditionChipProps {
   icon: React.ReactNode;
   value: string;
-  tokens: ReturnType<typeof useTokens>;
+  tokens: Tokens;
 }
 
-const ConditionChip = React.memo<ConditionChipProps>(({ icon, value, tokens }) => (
-  <View
-    style={[styles.conditionChip, { backgroundColor: tokens.colors.surfaceAlt }]}
-    accessible
-    accessibilityLabel={`${value}`}
-  >
-    {icon}
-    <Text style={[styles.conditionChipText, { color: tokens.colors.textPrimary }]}>{value}</Text>
-  </View>
-));
+const ConditionChip = React.memo<ConditionChipProps>(({ icon, value, tokens: t }) => {
+  const chipStyles = React.useMemo(() => ({
+    chip: {
+      flex: 1,
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+      gap: t.spacing.xs,
+      paddingVertical: t.spacing.sm,
+      paddingHorizontal: t.spacing.sm,
+      borderRadius: t.borderRadius.md + 2, // 10px - slightly between md (8) and lg (12)
+      backgroundColor: t.colors.surfaceAlt,
+    } as ViewStyle,
+    text: {
+      fontSize: safeScaledFontSize(t.fontSize.xs + 1), // 13px - between xs (12) and sm (14)
+      fontWeight: t.fontWeight.semibold,
+      color: t.colors.textPrimary,
+    } as TextStyle,
+  }), [t]);
 
-const styles = StyleSheet.create({
+  return (
+    <View
+      style={chipStyles.chip}
+      accessible
+      accessibilityLabel={`${value}`}
+    >
+      {icon}
+      <Text style={chipStyles.text}>{value}</Text>
+    </View>
+  );
+});
+
+/**
+ * Creates token-based styles for Shot Calculator screen
+ * Uses memoized dynamic styles pattern for consistent theming
+ */
+const createStyles = (t: Tokens) => ({
   container: {
     flex: 1,
-  },
+  } as ViewStyle,
   contentContainer: {
-    paddingBottom: 120,
-  },
+    paddingBottom: t.spacing['5xl'], // 120px - scroll bottom padding
+  } as ViewStyle,
   loadingContainer: {
     flex: 1,
-    padding: 32,
-  },
+    padding: t.spacing.xl, // 32px
+  } as ViewStyle,
   loadingPulse: {
-    borderRadius: 12,
-    marginBottom: 16,
-    height: 32,
-  },
+    borderRadius: t.borderRadius.lg, // 12px
+    marginBottom: t.spacing.md, // 16px
+    height: t.spacing.xl, // 32px
+  } as ViewStyle,
   title: {
-    fontSize: safeScaledFontSize(32),
-    fontWeight: '700',
-    letterSpacing: -0.5,
-    marginBottom: 4,
-  },
+    fontSize: safeScaledFontSize(t.fontSize['4xl'] - 4), // 32px hero title
+    fontWeight: t.fontWeight.bold,
+    letterSpacing: t.letterSpacing.tight, // -0.5
+    marginBottom: t.spacing.xs, // 4px
+  } as TextStyle,
   subtitle: {
-    fontSize: safeScaledFontSize(15),
-    fontWeight: '500',
-    marginBottom: 24,
-  },
+    fontSize: safeScaledFontSize(t.fontSize.sm + 1), // 15px
+    fontWeight: t.fontWeight.medium,
+    marginBottom: t.spacing.lg, // 24px
+  } as TextStyle,
   conditionsCard: {
-    marginBottom: 16,
-  },
+    marginBottom: t.spacing.md, // 16px
+  } as ViewStyle,
   conditionsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: 8,
-  },
-  conditionChip: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-    paddingVertical: 8,
-    paddingHorizontal: 8,
-    borderRadius: 10,
-  },
-  conditionChipText: {
-    fontSize: safeScaledFontSize(13),
-    fontWeight: '600',
-  },
+    gap: t.spacing.sm, // 8px
+  } as ViewStyle,
   sliderCard: {
-    marginBottom: 16,
-  },
+    marginBottom: t.spacing.md, // 16px
+  } as ViewStyle,
   resultCard: {
-    marginBottom: 16,
-  },
+    marginBottom: t.spacing.md, // 16px
+  } as ViewStyle,
   resultHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-  },
+    gap: t.spacing.base, // 12px
+  } as ViewStyle,
   adjustmentIndicator: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
+    width: t.containerSize.icon.md, // 44px
+    height: t.containerSize.icon.md, // 44px
+    borderRadius: t.borderRadius.lg + 2, // 14px (slightly larger than lg=12)
     alignItems: 'center',
     justifyContent: 'center',
-  },
+  } as ViewStyle,
   adjustmentText: {
     flex: 1,
-  },
+  } as ViewStyle,
   adjustmentLabel: {
-    fontSize: safeScaledFontSize(13),
-    fontWeight: '500',
+    fontSize: safeScaledFontSize(t.fontSize.xs + 1), // 13px
+    fontWeight: t.fontWeight.medium,
     marginBottom: 2,
-  },
+  } as TextStyle,
   adjustmentValue: {
-    fontSize: safeScaledFontSize(24),
-    fontWeight: '700',
+    fontSize: safeScaledFontSize(t.fontSize['2xl']), // 24px
+    fontWeight: t.fontWeight.bold,
     ...Platform.select({
       ios: { fontFamily: 'Menlo' },
       android: { fontFamily: 'monospace' },
     }),
-  },
+  } as TextStyle,
   divider: {
-    height: 1,
-    marginVertical: 16,
-  },
+    height: t.borderWidth.thin, // 1px
+    marginVertical: t.spacing.md, // 16px
+  } as ViewStyle,
   playsLikeContainer: {
     alignItems: 'center',
-  },
+  } as ViewStyle,
   playsLikeLabel: {
-    fontSize: safeScaledFontSize(14),
-    fontWeight: '600',
-    marginBottom: 8,
+    fontSize: safeScaledFontSize(t.fontSize.sm), // 14px
+    fontWeight: t.fontWeight.semibold,
+    marginBottom: t.spacing.sm, // 8px
     textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
+    letterSpacing: t.letterSpacing.wider, // 1
+  } as TextStyle,
   playsLikeValueRow: {
     flexDirection: 'row',
     alignItems: 'baseline',
-  },
+  } as ViewStyle,
   playsLikeValue: {
-    fontSize: safeScaledFontSize(56),
-    fontWeight: '800',
-    letterSpacing: -2,
+    fontSize: safeScaledFontSize(t.containerSize.icon.lg + 8), // 56px - matches hero pattern
+    fontWeight: t.fontWeight.extrabold, // '800'
+    letterSpacing: t.letterSpacing.tighter * 2, // -2 (tighter is -1)
     ...Platform.select({
       ios: { fontFamily: 'Menlo' },
       android: { fontFamily: 'monospace' },
     }),
-  },
+  } as TextStyle,
   playsLikeUnit: {
-    fontSize: safeScaledFontSize(18),
-    fontWeight: '500',
-    marginLeft: 4,
-  },
+    fontSize: safeScaledFontSize(t.fontSize.lg), // 18px
+    fontWeight: t.fontWeight.medium,
+    marginLeft: t.spacing.xs, // 4px
+  } as TextStyle,
   clubCard: {
-    marginBottom: 16,
-  },
+    marginBottom: t.spacing.md, // 16px
+  } as ViewStyle,
   clubHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginBottom: 8,
-  },
+    gap: t.spacing.sm, // 8px
+    marginBottom: t.spacing.sm, // 8px
+  } as ViewStyle,
   clubLabel: {
-    fontSize: safeScaledFontSize(13),
-    fontWeight: '500',
-  },
+    fontSize: safeScaledFontSize(t.fontSize.xs + 1), // 13px
+    fontWeight: t.fontWeight.medium,
+  } as TextStyle,
   clubName: {
-    fontSize: safeScaledFontSize(22),
-    fontWeight: '700',
-    marginBottom: 4,
-  },
+    fontSize: safeScaledFontSize(t.fontSize.xl + 2), // 22px
+    fontWeight: t.fontWeight.bold,
+    marginBottom: t.spacing.xs, // 4px
+  } as TextStyle,
   clubRange: {
-    fontSize: safeScaledFontSize(14),
-    fontWeight: '500',
-  },
+    fontSize: safeScaledFontSize(t.fontSize.sm), // 14px
+    fontWeight: t.fontWeight.medium,
+  } as TextStyle,
 });
