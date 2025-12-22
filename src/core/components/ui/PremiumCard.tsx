@@ -95,7 +95,7 @@ export const PremiumCard: React.FC<PremiumCardProps> = ({
         <Animated.View
           style={[
             styles.iconContainer,
-            { backgroundColor: `${tokens.colors.brand}20` },
+            { backgroundColor: tokens.colors.brandBackgroundAlpha },
             crownStyle,
           ]}
         >
@@ -127,7 +127,7 @@ export const PremiumCard: React.FC<PremiumCardProps> = ({
       {!prefersReducedMotion && (
         <Animated.View style={[styles.shimmerOverlay, shimmerStyle]}>
           <LinearGradient
-            colors={['transparent', tokens.colors.brand + '20', 'transparent']}
+            colors={['transparent', tokens.colors.brandBackgroundAlpha, 'transparent']}
             start={{ x: 0, y: 0.5 }}
             end={{ x: 1, y: 0.5 }}
             style={StyleSheet.absoluteFill}

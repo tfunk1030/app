@@ -23,7 +23,7 @@ export function UpgradeModal() {
       transparent={true}
       onRequestClose={() => setShowUpgradeModal(false)}
     >
-      <View style={styles.overlay}>
+      <View style={[styles.overlay, { backgroundColor: t.colors.overlay }]}>
         <View
           style={[
             styles.container,
@@ -78,10 +78,10 @@ export function UpgradeModal() {
   );
 }
 
+// NOTE: overlay backgroundColor is applied inline via tokens
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 16,

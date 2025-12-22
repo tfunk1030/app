@@ -15,9 +15,9 @@ export function ConnectivityBanner() {
 
   if (online && !checking) return null;
 
-  const bg = online ? palette.colors.surfaceAlt : '#FEE2E2';
-  const border = online ? palette.colors.border : '#FCA5A5';
-  const text = online ? palette.colors.textMuted : '#7F1D1D';
+  const bg = online ? palette.colors.surfaceAlt : palette.colors.offlineBackground;
+  const border = online ? palette.colors.border : palette.colors.offlineBorder;
+  const text = online ? palette.colors.textMuted : palette.colors.offlineText;
 
   return (
     <View
