@@ -1,165 +1,95 @@
-# AICaddy Pro - Claude Code Context
+﻿# AICaddyPro - Professional Golf Application
 
 ## Project Overview
-AICaddy Pro is a React Native/Expo golf application that provides environmental shot adjustments, wind calculations, and club recommendations based on real-time weather data.
-
-## Tech Stack
-- **Framework**: React Native + Expo
-- **Language**: TypeScript
-- **State**: React Context (Settings, Theme, Premium, Clubs, ShotCalc)
-- **Animations**: react-native-reanimated
-- **Styling**: StyleSheet with design tokens
-- **Navigation**: expo-router with tabs
+React Native golf application with weather-based shot calculations, GPS course mapping, and real-time score tracking.
 
 ## Architecture
+- Framework: React Native with Expo SDK 54+
+- Routing: Expo Router with file-based navigation
+- Styling: NativeWind v4 (Tailwind for React Native)
+- State: Zustand for global state
 
-### Directory Structure
-```
-src/
-├── core/               # Shared core components and context
-│   ├── components/ui/  # Design system components (GlassCard, MetricTile, Button, Slider)
-│   ├── context/        # App-wide contexts (settings, theme, shotcalc)
-│   └── models/         # Business logic (YardageModel)
-├── features/           # Feature modules
-│   ├── home/           # Weather conditions screen
-│   ├── calculator/     # Shot calculator screen
-│   ├── wind/           # Wind calculator screen (premium)
-│   └── settings/       # Settings screen
-├── hooks/              # Custom hooks (useAccessibility, useConnectivity)
-├── providers/          # Provider components (EnhancedEnvironmentalProvider)
-├── services/           # API and business services
-├── theme/              # Design tokens and theme system
-└── utils/              # Utilities (responsive, LogManager, caching)
-```
-
-### Key Patterns
-
-#### Screen Template
-All screens follow this pattern:
-```tsx
-const { headerEntering, cardEntering } = useAccessibleAnimations();
-const tokens = useTokens();
-const insets = useSafeAreaInsets();
-const padding = getScrollPadding(16, { minPadding: 12, maxPadding: 20 });
-
-<ScrollView
-  style={{ backgroundColor: tokens.colors.background }}
-  contentContainerStyle={{ paddingTop: insets.top + 16, paddingHorizontal: padding, paddingBottom: 120 }}
->
-  <Animated.View entering={headerEntering}>...</Animated.View>
-  <Animated.View entering={cardEntering(0)}>...</Animated.View>
-</ScrollView>
-```
-
-#### Animation Accessibility
-ALWAYS use `useAccessibleAnimations()` hook - NEVER raw Reanimated imports:
-```tsx
-// CORRECT
-const { headerEntering, cardEntering } = useAccessibleAnimations();
-
-// WRONG - bypasses reduced motion preferences
-<Animated.View entering={FadeIn.duration(300)}>
-```
-
-#### Touch Targets
-All interactive elements must be 44pt minimum:
-```tsx
-const buttonSize = getTouchTargetSize(44);
-```
+## Code Style Requirements
+- TypeScript everywhere - no any types (use unknown if needed)
+- File naming: kebab-case (e.g., course-card.tsx)
+- Import paths: Use @/ alias
+- Components: Functional only, typed with React.FC<Props>
+- Lists: Use FlashList for >20 items
 
 ## Design System
 
-### Theme Tokens (`src/theme/tokens.ts`)
-- **Colors**: background, surface, surfaceAlt, textPrimary, textMuted, brand, brandAlt, success, danger
-- **Spacing**: `tokens.spacing(n)` returns `n * 4`
-- **Radius**: xs(4), sm(8), md(12), lg(16), xl(24)
-- **Shadows**: card, subtle, glow, neon
-- **Gradients**: primary, accent, surface
+### Color Palette
+- primary: #2E8B57 (Course green)
+- primaryLight: #3CB371
+- primaryDark: #228B22
+- accent: #F4D03F (Sand/gold)
+- background: #FAFAFA (Light)
+- backgroundDark: #0F172A (Dark)
+- surface: #FFFFFF
+- surfaceDark: #1E293B
+- textPrimary: #1A1A1A
+- textSecondary: #6B7280
+- success: #16A34A (Under par)
+- warning: #F59E0B (Bogey)
+- error: #DC2626 (Out of bounds)
 
-### Typography
-Always use `safeScaledFontSize()` for responsive text:
-```tsx
-fontSize: safeScaledFontSize(32)  // Respects system font scale with clamping
-```
+### Spacing Scale (8pt Grid)
+- xs: 4px
+- sm: 8px
+- md: 16px
+- lg: 24px
+- xl: 32px
+- 2xl: 48px
 
-### Consistent Spacing
-- Header title: 32px, marginBottom: 4
-- Subtitle: 15px, marginBottom: 24
-- Card margins: 16px
-- Grid gaps: 12px
-- Bottom padding: 120px (for floating tab bar)
+### Touch Targets
+- Minimum: 48x48dp (larger than standard for glove use)
+- Primary actions: 56x56dp
 
-## Code Review Findings (2025-12-21)
+## Frontend Design Skill
 
-### Overall Grade: B+ (7.8/10)
+When building UI:
+- Make creative, distinctive interfaces
+- Avoid overused patterns and AI slop aesthetics
+- Choose beautiful, unique fonts (avoid Inter, Roboto, Arial for headings)
+- Commit to cohesive, intentional color themes
+- Avoid purple-blue gradients on white
+- Create atmosphere and depth with gradients, textures, shadows
+- Avoid flat solid color backgrounds
+- Use purposeful whitespace
 
-### Strengths
-- Clean feature-based architecture
-- Excellent design token system with light/dark mode
-- Good accessibility foundations (useAccessibleAnimations, 44pt touch targets)
-- Proper memoization (120 useMemo/useCallback occurrences)
-- Comprehensive error handling with boundaries
+## Component Requirements
+1. ALL interactive elements must have accessibilityLabel and accessibilityRole
+2. Support both light and dark modes (dark: prefix)
+3. Use design tokens only - NO hardcoded colors/spacing
+4. Include loading, error, and empty states
+5. Wrap in React.memo for list items
 
-### Issues to Address
+## Animation Standards
+- Library: react-native-reanimated
+- Button press: scale(0.9) then spring back
+- Page transitions: 200-300ms or spring physics
+- Respect reduceMotion accessibility setting
 
-#### Critical
-1. **Replace `any` types** (30+ occurrences) - especially:
-   - `throttlingStatus: any` in EnhancedEnvironmentalProvider
-   - `data?: any` in LogManager
-   - `any[]` in ThrottleManager
+## CLI Commands
+- npm start or npx expo start - Start dev server
+- npx expo install [package] - Install dependencies
+- npx expo lint - Run ESLint
+- eas build -p ios --profile preview - iOS build
+- eas build -p android --profile preview - Android build
 
-2. **Consolidate env files** - merge `src/env.ts` and `src/lib/env.ts`
+## NEVER Do These Things
+- Use FlatList for lists >20 items (use FlashList)
+- Hardcode colors without semantic meaning
+- Use magic numbers for spacing
+- Modify existing tests without permission
+- Use any type
+- Create components without accessibilityLabel
+- Skip loading/error/empty states
 
-#### High Priority
-1. **Replace console.logs** (136 occurrences) with LogManager
-2. **Add compass screen reader support** - critical for visually impaired golfers
-3. **Add `accessibilityRole`** to all Pressable components
-
-#### Medium Priority
-1. Standardize spacing to use `tokens.spacing(n)`
-2. Add focus management for modals
-3. Complete NWS hourly forecast (TODO in hourly-forecast.ts)
-
-### Recent Fixes Applied
-- Touch targets increased to 44pt (settings, wind, slider)
-- Condition chip font: 11px → 13px
-- Theme-aware borders (removed hardcoded rgba)
-- "Plays Like" visual hierarchy improved (56px, 800 weight)
-- Accessibility labels added to condition chips
-
-## File-Specific Notes
-
-### `src/lib/api-keys.ts`
-Remove `'use server'` directive - not applicable to React Native.
-
-### `src/core/components/ui/slider.tsx`
-Contains edge-clamping for tooltip positioning to prevent clipping.
-
-### `src/services/enhanced-environmental-service.ts`
-Singleton service with throttling. Uses Open-Meteo primary, NWS fallback.
-
-### `src/core/models/YardageModel.ts`
-Physics-based golf calculations with O1 model refinements. Constants include:
-- WIND_POWER_SCALE: 0.230
-- TAILWIND_AMPLIFIER: 1.235
-- AIR_DENSITY_SEA_LEVEL: 1.193 kg/m³
-
-## Commands
-```bash
-# Development
-npx expo start
-
-# Type check
-npx tsc --noEmit
-
-# Build
-eas build --platform ios
-eas build --platform android
-```
-
-## Testing Checklist
-- [ ] All touch targets ≥ 44pt
-- [ ] Animations respect reduced motion
-- [ ] Dark/light mode switching
-- [ ] Offline fallback with cached data
-- [ ] Screen reader navigation
+## ALWAYS Do These Things
+- Use semantic tokens for colors and spacing
+- Include TypeScript interfaces for all props
+- Add testID for interactive elements
+- Test on both iOS and Android
+- Consider outdoor sunlight readability
+- Design for one-handed thumb-zone operation
