@@ -7,13 +7,14 @@
  */
 
 import { useThemeMode } from '@/src/theme/ThemeProvider';
+import type { Tokens } from '@/src/theme/tokens';
 import { useTokens } from '@/src/theme/useTokens';
-import { getResponsiveSpacing } from '@/src/utils/responsive';
+import { getResponsiveSpacing, safeScaledFontSize } from '@/src/utils/responsive';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
-import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import React, { useMemo } from 'react';
+import { Pressable, Text, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -37,8 +38,7 @@ const TabButton: React.FC<TabButtonProps> = ({
   options,
 }) => {
   const t = useTokens();
-  const { mode } = useThemeMode();
-  const isDark = mode === 'dark' || mode === 'system';
+  const styles = useMemo(() => createStyles(t), [t]);
 
   // Animation values
   const scale = useSharedValue(isFocused ? 1 : 0.9);
@@ -70,7 +70,7 @@ const TabButton: React.FC<TabButtonProps> = ({
     ? options.tabBarIcon({
         focused: isFocused,
         color: isFocused ? t.colors.brand : t.colors.textMuted,
-        size: 24,
+        size: t.containerSize.icon.xs, // 24 - tab bar icon size
       })
     : null;
 
@@ -83,7 +83,7 @@ const TabButton: React.FC<TabButtonProps> = ({
       onLongPress={onLongPress}
       style={[styles.tabButton, animatedStyle]}
       android_ripple={{
-        color: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
+        color: t.colors.ripple,
         borderless: true,
       }}
     >
@@ -122,7 +122,6 @@ const TabButton: React.FC<TabButtonProps> = ({
               styles.label,
               {
                 color: isFocused ? activeColor : inactiveColor,
-                fontSize: 11,
               },
             ]}
             numberOfLines={1}
@@ -140,14 +139,15 @@ export const FloatingTabBar: React.FC<BottomTabBarProps> = ({ state, descriptors
   const { mode } = useThemeMode();
   const isDark = mode === 'dark' || mode === 'system';
   const insets = useSafeAreaInsets();
+  const styles = useMemo(() => createStyles(t), [t]);
 
   return (
     <View
       style={[
         styles.container,
         {
-          paddingBottom: Math.max(insets.bottom, getResponsiveSpacing(12, 'vertical')),
-          paddingTop: getResponsiveSpacing(8, 'vertical'),
+          paddingBottom: Math.max(insets.bottom, getResponsiveSpacing(t.spacing.base, 'vertical')),
+          paddingTop: getResponsiveSpacing(t.spacing.sm, 'vertical'),
         },
       ]}
     >
@@ -158,10 +158,10 @@ export const FloatingTabBar: React.FC<BottomTabBarProps> = ({ state, descriptors
             styles.shadowWrapper,
             {
               // Subtle top shadow for better elevation perception in dark mode
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: -4 },
+              shadowColor: t.colors.shadow,
+              shadowOffset: { width: 0, height: -t.spacing.xs },
               shadowOpacity: 0.25,
-              shadowRadius: 16,
+              shadowRadius: t.spacing.md,
               elevation: 12,
             },
           ]}
@@ -270,60 +270,65 @@ export const FloatingTabBar: React.FC<BottomTabBarProps> = ({ state, descriptors
   );
 };
 
-const styles = StyleSheet.create({
+/**
+ * Create memoized styles based on theme tokens
+ * This ensures consistent token usage and theme-aware styling
+ */
+const createStyles = (t: Tokens) => ({
   container: {
-    position: 'absolute',
+    position: 'absolute' as const,
     bottom: 0,
     left: 0,
     right: 0,
-    paddingHorizontal: getResponsiveSpacing(16, 'horizontal'),
+    paddingHorizontal: getResponsiveSpacing(t.spacing.md, 'horizontal'),
   },
   shadowWrapper: {
-    borderRadius: 24,
+    borderRadius: t.borderRadius['3xl'], // 24
   },
   blurContainer: {
-    borderRadius: 24,
-    overflow: 'hidden',
+    borderRadius: t.borderRadius['3xl'], // 24
+    overflow: 'hidden' as const,
   },
   tabBar: {
-    flexDirection: 'row',
-    borderRadius: 24,
-    borderWidth: 1,
-    paddingHorizontal: getResponsiveSpacing(8, 'horizontal'),
-    paddingVertical: getResponsiveSpacing(8, 'vertical'),
-    minHeight: 64,
-    alignItems: 'center',
-    justifyContent: 'space-around',
+    flexDirection: 'row' as const,
+    borderRadius: t.borderRadius['3xl'], // 24
+    borderWidth: t.borderWidth.thin, // 1
+    paddingHorizontal: getResponsiveSpacing(t.spacing.sm, 'horizontal'),
+    paddingVertical: getResponsiveSpacing(t.spacing.sm, 'vertical'),
+    minHeight: 64, // Custom tab bar height
+    alignItems: 'center' as const,
+    justifyContent: 'space-around' as const,
   },
   tabButton: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 48,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    minHeight: t.touchTarget.minimum, // 48
   },
   tabButtonContent: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    position: 'relative' as const,
   },
   glowContainer: {
-    position: 'absolute',
-    top: -8,
-    left: -8,
-    right: -8,
-    bottom: -8,
-    borderRadius: 20,
-    overflow: 'hidden',
+    position: 'absolute' as const,
+    top: -t.spacing.sm, // -8
+    left: -t.spacing.sm, // -8
+    right: -t.spacing.sm, // -8
+    bottom: -t.spacing.sm, // -8
+    borderRadius: t.borderRadius['2xl'], // 20
+    overflow: 'hidden' as const,
   },
   glowGradient: {
     flex: 1,
     opacity: 0.3,
   },
   iconContainer: {
-    marginBottom: 4,
+    marginBottom: t.spacing.xs, // 4
   },
   label: {
-    fontWeight: '600',
-    textAlign: 'center',
+    fontWeight: t.fontWeight.semibold as '600', // '600'
+    textAlign: 'center' as const,
+    fontSize: safeScaledFontSize(t.fontSize.xs - 1, { maxScale: 1.15 }), // 11 - tab bar label size
   },
 });
