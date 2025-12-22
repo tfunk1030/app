@@ -136,7 +136,7 @@
           "id": "2.3",
           "title": "Add Missing Token Categories",
           "description": "Add any missing token categories identified during audit: section header styles, input styles, slider styles, etc.",
-          "status": "pending",
+          "status": "completed",
           "files": [
             "src/theme/tokens.ts"
           ],
@@ -145,7 +145,8 @@
             "Consistent naming conventions",
             "Type safety with Tokens interface"
           ],
-          "notes": "Reference existing component implementations for required values"
+          "notes": "Added comprehensive missing token categories identified during audit:\n\n**Spacing tokens:**\n- spacing.base: 12 (used 15+ times for grids, form layouts)\n- spacing.4xl: 96 (large containers like premium icons)\n- spacing.5xl: 120 (scroll bottom padding)\n\n**Typography tokens:**\n- fontWeight.extrabold: '800' (hero values, emphasis)\n- letterSpacing: tighter (-1), tight (-0.5), normal (0), wide (0.6), wider (1)\n\n**Border radius tokens:**\n- borderRadius.2xl: 20 (hero icon containers)\n- borderRadius.3xl: 24 (premium/large containers)\n\n**Container size tokens:**\n- icon sizes: xs (24) to 2xl (96)\n- input heights: sm (36), md (40), lg (48)\n- slider dimensions: track, trackDense, thumb, thumbDense\n\n**Additional tokens:**\n- borderWidth: hairline (0.5) to thick (2)\n- opacity: disabled (0.5), muted (0.6), subtle (0.8), full (1)\n- Shadow configs: successGlow, warningGlow, infoGlow for both themes\n\nTypeScript compilation verified. All changes maintain backward compatibility with existing components.",
+          "updated_at": "2025-12-22T05:06:54.563127+00:00"
         }
       ]
     },
@@ -159,7 +160,7 @@
           "id": "3.1",
           "title": "Standardize Card Components",
           "description": "Ensure GlassCard and card.tsx use consistent border radius, padding, and shadow values from tokens",
-          "status": "pending",
+          "status": "completed",
           "files": [
             "src/core/components/ui/GlassCard.tsx",
             "src/core/components/ui/card.tsx"
@@ -170,13 +171,14 @@
             "Shadow values use token definitions",
             "Consistent gradient border implementation"
           ],
-          "notes": "GlassCard currently hardcodes borderRadius: 16"
+          "notes": "Standardized card components with consistent token-based styling:\n\n**GlassCard.tsx changes:**\n- Replaced hardcoded borderRadius: 16 with t.borderRadius.xl (5 instances)\n- Replaced hardcoded borderRadius: 14.5 with calculated innerBorderRadius (cardBorderRadius - gradientBorderWidth)\n- Replaced hardcoded margin: 1.5 with t.borderWidth.medium for gradient border effect\n- Replaced hardcoded borderWidth: 1 with t.borderWidth.thin\n- Updated padding to use t.spacing.md/base tokens in getScrollPadding\n- Removed static StyleSheet in favor of memoized dynamic styles\n\n**card.tsx changes:**\n- Replaced hardcoded borderRadius: 16 with t.borderRadius.xl\n- Replaced hardcoded borderWidth: 1 with t.borderWidth.thin\n- Updated spacing values from magic numbers (16, 12, 8, 4) to tokens (t.spacing.md, t.spacing.base, t.spacing.sm, t.spacing.xs)\n- Updated font sizes from hardcoded (22, 14) to tokens (t.fontSize.xl, t.fontSize.sm)\n- Removed redundant shadow styles from StyleSheet (now applied inline from tokens)\n\n**Consistency achieved:**\n- Both cards use t.borderRadius.xl (16) for border radius\n- Both use t.borderWidth.thin (1) for standard borders\n- Both use getScrollPadding(t.spacing.md, { minPadding: t.spacing.base }) pattern\n- Both use t.shadow.card for shadow configuration\n- GlassCard gradient border uses t.borderWidth.medium (1.5)\n\nTypeScript compilation verified, no errors introduced.",
+          "updated_at": "2025-12-22T05:11:41.265744+00:00"
         },
         {
           "id": "3.2",
           "title": "Standardize MetricTile Component",
           "description": "Ensure MetricTile uses tokens for all styling and matches GlassCard patterns",
-          "status": "pending",
+          "status": "completed",
           "files": [
             "src/core/components/ui/MetricTile.tsx"
           ],
@@ -186,13 +188,14 @@
             "Typography uses defined presets",
             "Glow effects use token values"
           ],
-          "notes": "Check icon marginRight: 10 is token-based"
+          "notes": "MetricTile now uses tokens for all styling and matches GlassCard patterns:\n\n**Token-based styling implemented:**\n- Border radius: t.borderRadius.xl (16) with calculated innerBorderRadius\n- Gradient border: t.borderWidth.medium (1.5)\n- Standard border: t.borderWidth.thin (1)\n- Padding: getScrollPadding(t.spacing.md, { minPadding: t.spacing.base })\n- Icon size: t.containerSize.icon.sm (32)\n- Icon margin: t.spacing.sm + 2 (10px)\n- Touch target: t.touchTarget.minimum (48)\n\n**Typography tokens:**\n- Font weights: t.fontWeight.medium, t.fontWeight.bold\n- Letter spacing: t.letterSpacing.tight, t.letterSpacing.normal + 0.3\n- Unit margin: t.spacing.xs (4)\n- Unit font size: t.fontSize.sm (14)\n\n**Glow effects:**\n- Uses t.shadow.glow token values with 0.65 opacity multiplier for tiles\n\n**Light mode support:**\n- Uses t.gradients.iconBackground for icon backgrounds in light mode\n- Removed hardcoded rgba values\n\n**Architecture:**\n- Removed static StyleSheet, using memoized dynamic styles like GlassCard\n- TypeScript compiles successfully",
+          "updated_at": "2025-12-22T05:15:40.792146+00:00"
         },
         {
           "id": "3.3",
           "title": "Standardize Button Variants",
           "description": "Ensure all button variants use consistent spacing, typography, and glow effects from tokens",
-          "status": "pending",
+          "status": "completed",
           "files": [
             "src/core/components/ui/button.tsx"
           ],
@@ -202,13 +205,14 @@
             "Neon border width consistent (1.5px pattern)",
             "Glow shadow values from tokens"
           ],
-          "notes": "Currently has good responsive implementation"
+          "notes": "Button component standardized with consistent token-based styling:\n\n**Token-based sizing:**\n- All spacing values use t.spacing.* tokens (base: 12, sm: 8, md: 16)\n- Touch targets use t.containerSize.icon.md (44px)\n- Font sizes use t.fontSize.* tokens (sm: 14, base: 16, lg: 18)\n\n**Token-based styling:**\n- Border radius uses t.borderRadius.lg (12px) instead of hardcoded 12\n- Border widths use t.borderWidth.thin (1) and t.borderWidth.medium (1.5)\n- Neon inner border radius calculated as borderRadius - gradientBorderWidth (10.5px)\n- Font weight uses t.fontWeight.semibold instead of hardcoded '600'\n- Disabled opacity uses t.opacity.disabled instead of hardcoded 0.5\n\n**Token-based colors:**\n- Ripple color uses t.colors.ripple instead of hardcoded rgba values\n- Button text uses t.colors.onBrand/onDanger instead of hardcoded #FFFFFF\n\n**Token-based shadows:**\n- Primary/neon/premium glow uses t.shadow.glow with proper shadowColor\n- Premium variant uses t.shadow.glowSecondary for cyan glow\n- Destructive variant uses t.shadow.dangerGlow for danger glow\n- Default shadow uses t.shadow.subtle values\n\n**Architecture:**\n- Converted static StyleSheet to memoized dynamic styles (useMemo)\n- Removed unused Platform and StyleSheet imports\n\n**Acceptance Criteria Met:**\n\u2713 All variants use getResponsiveSpacing\n\u2713 Border radius uses token value (t.borderRadius.lg)\n\u2713 Neon border width consistent (1.5px pattern via t.borderWidth.medium)\n\u2713 Glow shadow values from tokens (t.shadow.glow, t.shadow.glowSecondary, t.shadow.dangerGlow)",
+          "updated_at": "2025-12-22T05:20:03.048565+00:00"
         },
         {
           "id": "3.4",
           "title": "Standardize SectionHeader Component",
           "description": "Update SectionHeader to use typography presets and token-based styling",
-          "status": "pending",
+          "status": "completed",
           "files": [
             "src/core/components/ui/SectionHeader.tsx"
           ],
@@ -217,7 +221,8 @@
             "Colors from tokens",
             "Pill styling uses consistent radius"
           ],
-          "notes": "Currently uses borderRadius: 999 for pill shape"
+          "notes": "SectionHeader now uses tokens for all styling:\n\n**Token mappings applied:**\n- borderRadius: t.borderRadius.full (9999) - consistent pill shape\n- borderWidth: t.borderWidth.thin (1) - standard border\n- fontWeight: t.fontWeight.bold ('700') - bold section labels\n- letterSpacing: t.letterSpacing.wide (0.6) - wide spacing for uppercase labels\n- fontSize: t.fontSize.xs (12) via safeScaledFontSize with maxScale 1.15\n- Colors: t.colors.border, t.colors.surfaceAlt, t.colors.textPrimary\n\n**Spacing tokens:**\n- Container padding: t.spacing.xs (4) horizontal\n- Container margin: t.spacing.sm (8) bottom\n- Pill padding: t.spacing.xs and t.spacing.sm based values with responsive getScrollPadding\n\n**Architecture improvements:**\n- Removed static StyleSheet in favor of memoized dynamic styles (useMemo)\n- Follows same pattern as GlassCard, MetricTile, and Button components\n- All style values now derived from theme tokens for consistency\n\n**Acceptance criteria met:**\n\u2713 Font size uses typography token (t.fontSize.xs)\n\u2713 Colors from tokens (textPrimary, border, surfaceAlt)\n\u2713 Pill styling uses consistent radius (t.borderRadius.full)",
+          "updated_at": "2025-12-22T05:23:15.781268+00:00"
         }
       ]
     },
@@ -231,7 +236,7 @@
           "id": "4.1",
           "title": "Update Weather Screen (Home)",
           "description": "Apply spacing consistency fixes, ensure all typography uses presets, verify color token usage",
-          "status": "pending",
+          "status": "completed",
           "files": [
             "src/features/home/screen.tsx"
           ],
@@ -241,13 +246,14 @@
             "Grid gap values consistent (12px)",
             "Hero card styling matches design system"
           ],
-          "notes": "Currently well-structured but uses some magic numbers"
+          "notes": "Weather screen (home/screen.tsx) updated to use token-based styling:\n\n**Spacing tokens applied:**\n- t.spacing.xs (4) for small margins\n- t.spacing.sm (8) for icon gaps, freshness indicator size\n- t.spacing.base (12) for grid gaps (consistent pattern)\n- t.spacing.md (16) for card margins, padding, content spacing\n- t.spacing.lg (24) for subtitle bottom margin\n- t.spacing['5xl'] (120) for scroll bottom padding\n\n**Typography tokens applied:**\n- t.fontWeight.medium, semibold, bold for all font weights\n- t.letterSpacing.tight (-0.5) for title\n- t.letterSpacing.tighter (-1) for hero value\n- t.fontSize.xs, sm, base, lg, xl, 2xl for all font sizes\n\n**Container sizes applied:**\n- t.containerSize.icon.sm (32) for hero thermometer\n- t.containerSize.icon.lg (48) for loading icon and hero value size\n- t.containerSize.icon.xl (64) for hero icon container\n- t.containerSize.input.md (40) for divider height\n\n**Border radius applied:**\n- t.borderRadius['2xl'] (20) for hero icon container\n- t.borderRadius.full (9999) for freshness indicator\n\n**Colors standardized:**\n- All inline `${tokens.colors.brand}15` replaced with t.colors.brandBackgroundAlpha\n- All colors use t.colors.* tokens\n\n**Architecture:**\n- Converted from static StyleSheet.create to memoized createStyles(t: Tokens) pattern\n- Follows same pattern as GlassCard, MetricTile, Button, SectionHeader components\n\nAcceptance criteria met:\n\u2705 All marginBottom values use consistent pattern (16px cards via t.spacing.md)\n\u2705 Title/subtitle use typography tokens (fontWeight, letterSpacing)\n\u2705 Grid gap values consistent (12px via t.spacing.base)\n\u2705 Hero card styling matches design system (token-based radius, sizes, spacing)",
+          "updated_at": "2025-12-22T05:27:40.238993+00:00"
         },
         {
           "id": "4.2",
           "title": "Update Shot Calculator Screen",
           "description": "Apply consistent spacing and styling to conditions row, slider cards, and result display",
-          "status": "pending",
+          "status": "completed",
           "files": [
             "src/features/calculator/screen.tsx"
           ],
@@ -257,13 +263,14 @@
             "Plays Like value typography matches hero pattern",
             "Club card matches other card patterns"
           ],
-          "notes": "Has good structure, needs token alignment"
+          "notes": "Shot Calculator screen (calculator/screen.tsx) updated to memoized token-based styling pattern.\n\n**Spacing tokens applied:**\n- t.spacing.md (16) for card margins\n- t.spacing.base (12) for result header gap\n- t.spacing.sm (8) for condition chip gaps\n- t.spacing.xs (4) for small margins\n- t.spacing.lg (24) for subtitle margin\n- t.spacing['5xl'] (120) for scroll bottom padding\n\n**Typography tokens applied:**\n- t.fontSize['4xl'] - 4 (32px) for title\n- t.fontSize.sm + 1 (15px) for subtitle\n- t.fontSize.xs + 1 (13px) for small labels\n- t.fontSize['2xl'] (24px) for adjustment value\n- t.containerSize.icon.lg + 8 (56px) for Plays Like hero value\n- t.fontWeight.extrabold ('800') for hero values\n- t.letterSpacing.wider (1) for uppercase labels\n- t.letterSpacing.tighter * 2 (-2) for hero values\n\n**Container/size tokens applied:**\n- t.containerSize.icon.md (44px) for adjustment indicator\n- t.borderRadius.lg + 2 (14px) for indicator radius\n- t.borderRadius.md + 2 (10px) for condition chips\n- t.borderWidth.thin (1px) for divider\n\n**Color tokens applied:**\n- t.colors.dangerBackgroundAlpha for positive adjustment background\n- t.colors.successBackgroundAlpha for negative adjustment background\n- All colors use semantic token references\n\n**Architecture:**\n- Converted from static StyleSheet.create to memoized createStyles(t: Tokens)\n- ConditionChip component uses memoized inline styles\n- Follows same pattern as GlassCard, MetricTile, Button, home/screen.tsx\n\n**Acceptance criteria met:**\n\u2705 Condition chips use consistent spacing\n\u2705 Result card divider uses token color\n\u2705 Plays Like value typography matches hero pattern\n\u2705 Club card matches other card patterns\n\nTypeScript compilation verified. Commit: 71bcdbc",
+          "updated_at": "2025-12-22T05:33:16.409551+00:00"
         },
         {
           "id": "4.3",
           "title": "Update Wind Calculator Screen",
           "description": "Apply consistent styling to compass card, slider cards, preset buttons, and results section",
-          "status": "pending",
+          "status": "completed",
           "files": [
             "src/features/wind/screen.tsx"
           ],
@@ -273,13 +280,14 @@
             "Quick Select label typography matches section headers",
             "Calculate button styling matches primary CTA pattern"
           ],
-          "notes": "Complex screen with many components"
+          "notes": "Wind Calculator screen (wind/screen.tsx) updated to memoized token-based styling pattern.\n\n**Spacing tokens applied:**\n- t.spacing.xs (4) for small margins\n- t.spacing.sm (8) for preset button gaps\n- t.spacing.base (12) for quick select label margin\n- t.spacing.md (16) for card margins, content padding\n- t.spacing.lg (24) for subtitle/error margins\n- t.spacing.xl (32) for premium container padding\n- t.spacing['5xl'] (120) for scroll bottom padding\n\n**Typography tokens applied:**\n- t.fontWeight.medium, semibold, bold for all font weights\n- t.letterSpacing.tight (-0.5) for title\n- t.fontSize.xs, sm, base, lg, xl, 2xl, 4xl for all font sizes\n\n**Container/size tokens applied:**\n- t.containerSize.icon.sm (32) for loading pulse height, wind icon\n- t.containerSize.icon.lg (48) for premium crown icon\n- t.containerSize.icon['2xl'] (96) for premium icon container\n\n**Border radius applied:**\n- t.borderRadius.lg (12) for preset buttons, loading pulse\n- t.borderRadius['3xl'] (24) for premium icon container\n\n**Border width applied:**\n- t.borderWidth.thin (1) for preset container divider, preset buttons\n\n**Opacity applied:**\n- t.opacity.subtle (0.8) for compass hint\n\n**Color tokens applied:**\n- t.colors.brandBackgroundAlpha for premium icon background and selected preset\n- All colors use semantic t.colors.* tokens\n\n**Architecture:**\n- Converted from static StyleSheet.create to memoized createStyles(t: Tokens)\n- YardagePresetButton uses memoized inline styles with useMemo\n- Follows same pattern as home/screen.tsx and calculator/screen.tsx\n\n**Acceptance Criteria Met:**\n\u2713 Compass card padding consistent (uses t.spacing.md)\n\u2713 Preset buttons use consistent border radius (12px via t.borderRadius.lg)\n\u2713 Quick Select label typography matches section headers (t.fontSize.xs, t.fontWeight.medium)\n\u2713 Calculate button styling matches primary CTA pattern (neon variant with glow)\n\nTypeScript compilation verified. Commit: 6d5d0d7",
+          "updated_at": "2025-12-22T05:39:43.022356+00:00"
         },
         {
           "id": "4.4",
           "title": "Update Settings Screen",
           "description": "Apply consistent styling to segmented controls, form inputs, and club list items",
-          "status": "pending",
+          "status": "completed",
           "files": [
             "src/features/settings/screen.tsx"
           ],
@@ -289,7 +297,8 @@
             "Club action buttons consistent with other icon buttons",
             "Form container border uses token color"
           ],
-          "notes": "Has hardcoded border color: rgba(255,255,255,0.1)"
+          "notes": "Settings screen (settings/screen.tsx) updated to memoized token-based styling pattern.\n\n**Critical fixes applied:**\n- Fixed hardcoded #fff (line 505) \u2192 t.colors.onBrand for club icon text\n- Fixed hardcoded rgba(255,255,255,0.1) (line 547) \u2192 t.colors.border for form container divider\n\n**Segmented Control updates:**\n- borderRadius: t.borderRadius.lg (12px) for container\n- borderRadius: t.borderRadius.md + 2 (10px) for inner segments\n- padding/gap: t.spacing.xs (4px) for consistent spacing\n- borderWidth: t.borderWidth.thin (1px) for selected state\n- fontWeight: t.fontWeight.semibold for text\n\n**Form Input updates:**\n- height: t.containerSize.input.lg (48px) for touch target compliance\n- borderRadius: t.borderRadius.lg (12px) for consistency\n- borderWidth: t.borderWidth.thin (1px)\n- paddingHorizontal: t.spacing.md (16px)\n- gap: t.spacing.base (12px) between form elements\n\n**Club List Item updates:**\n- Club action buttons: t.containerSize.icon.md (44px) for touch targets\n- borderRadius: t.borderRadius.lg (12px) for consistency\n- backgroundColor: t.colors.brandBackgroundAlpha / dangerBackgroundAlpha (semantic alpha tokens)\n- gap: t.spacing.sm (8px) between action buttons\n\n**Architecture:**\n- Converted from static StyleSheet.create to memoized createStyles(t: Tokens) function\n- All sub-components (SegmentedControl, SettingsRow, ClubItem) use memoized inline styles\n\n**Acceptance Criteria Met:**\n\u2713 Segmented control uses consistent padding/radius\n\u2713 Input fields use token-based styling\n\u2713 Club action buttons consistent with other icon buttons\n\u2713 Form container border uses token color\n\nTypeScript compilation verified. Commit: 5928237",
+          "updated_at": "2025-12-22T05:45:18.242926+00:00"
         }
       ]
     },
@@ -303,7 +312,7 @@
           "id": "5.1",
           "title": "Update WindCalculationResults Component",
           "description": "Verify results section uses consistent card, typography, and spacing patterns",
-          "status": "pending",
+          "status": "completed",
           "files": [
             "src/features/wind/components/WindCalculationResults.tsx"
           ],
@@ -312,7 +321,8 @@
             "Typography matches defined presets",
             "Spacing uses token values"
           ],
-          "notes": "Main results container component"
+          "notes": "Updated Wind Calculator results components to use memoized token-based styling pattern:\n\n**ResultCard.tsx:**\n- Uses memoized createStyles(t: Tokens) pattern\n- marginTop: t.spacing.md (16)\n- paddingHorizontal/Bottom: t.spacing.xs (4)\n- Uses GlassCard component (already in place)\n\n**ClubRecommendation.tsx:**\n- Replaced deprecated scaledFontSize with safeScaledFontSize\n- borderRadius: t.borderRadius.lg (12)\n- padding/marginVertical: t.spacing.base (12)\n- borderWidth: t.borderWidth.thin (1)\n- fontWeight: t.fontWeight.bold ('700')\n- fontSize uses t.fontSize.base (16), t.fontSize.xs (12/13)\n- spacing uses t.spacing.xs (4), t.spacing.sm (8)\n\n**LateralAdjustment.tsx:**\n- Replaced deprecated scaledFontSize with safeScaledFontSize\n- fontSize: t.fontSize.lg (18), t.fontSize.xl (20)\n- fontWeight: t.fontWeight.semibold ('600')\n- marginBottom: t.spacing.sm (8)\n\n**AimOffsetViz.tsx:**\n- height: t.spacing.md (16)\n- marginVertical: t.spacing.sm (8)\n- centerLine width: t.borderWidth.thin (1)\n- arrow bounds: t.spacing.base (12) to t.spacing['5xl'] (120)\n- borderWidths: t.spacing.sm (8)\n\n**IterationDetails.tsx:**\n- Replaced deprecated scaledFontSize with safeScaledFontSize\n- borderRadius: t.borderRadius.lg (12)\n- padding: t.spacing.base (12)\n- marginTop: t.spacing.md (16), t.spacing.base (12)\n- fontWeight: t.fontWeight.semibold ('600')\n- minHeight: t.touchTarget.minimum (48) for touch target compliance\n- borderWidth: t.borderWidth.thin (1)\n\n**Acceptance Criteria Met:**\n\u2713 Result cards use GlassCard component (ResultCard wraps children in GlassCard)\n\u2713 Typography matches defined presets (uses t.fontSize.*, t.fontWeight.*, safeScaledFontSize)\n\u2713 Spacing uses token values (all hardcoded values replaced with t.spacing.*, t.borderRadius.*, etc.)\n\nTypeScript compilation verified. Commit: ca1b248",
+          "updated_at": "2025-12-22T05:50:43.449307+00:00"
         },
         {
           "id": "5.2",
@@ -540,5 +550,5 @@
       "severity": "medium"
     }
   ],
-  "last_updated": "2025-12-22T05:01:16.044435+00:00"
+  "last_updated": "2025-12-22T05:50:43.449307+00:00"
 }

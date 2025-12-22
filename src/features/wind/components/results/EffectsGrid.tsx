@@ -6,10 +6,11 @@
  */
 
 import { useSettings } from '@/src/core/context/settings';
+import { Tokens } from '@/src/theme/tokens';
 import { useTokens as useThemeTokens } from '@/src/theme/useTokens';
-import { scaledFontSize } from '@/src/utils/responsive';
+import { safeScaledFontSize, getScrollPadding } from '@/src/utils/responsive';
 import React, { memo, useCallback, useMemo } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 
 interface EffectsGridProps {
   environmentalEffect: number;
@@ -22,8 +23,8 @@ export const EffectsGrid = memo(function EffectsGrid({
   windEffect,
   lateralEffect,
 }: EffectsGridProps) {
-  const palette = useThemeTokens();
-  const styles = React.useMemo(() => getThemedStyles(palette), [palette]);
+  const t = useThemeTokens();
+  const styles = useMemo(() => createStyles(t), [t]);
   const { settings } = useSettings();
   const unitLabel = useMemo(
     () => (settings.distanceUnit === 'yards' ? 'yards' : 'm'),
@@ -160,41 +161,53 @@ export const EffectsGrid = memo(function EffectsGrid({
 
 EffectsGrid.displayName = 'EffectsGrid';
 
-function getThemedStyles(palette: ReturnType<typeof useThemeTokens>) {
-  return StyleSheet.create({
+/**
+ * Token-based styles matching MetricTile pattern
+ */
+function createStyles(t: Tokens) {
+  // Use responsive padding that adapts to fontScale (matching MetricTile pattern)
+  const tilePadding = getScrollPadding(t.spacing.md, {
+    minPadding: t.spacing.base,
+    maxPadding: 20,
+  });
+
+  return {
     effectsGrid: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      justifyContent: 'space-between',
-      gap: 12,
-      marginTop: 16,
+      flexDirection: 'row' as const,
+      flexWrap: 'wrap' as const,
+      justifyContent: 'space-between' as const,
+      gap: t.spacing.base, // 12px - consistent grid gap
+      marginTop: t.spacing.md, // 16px
     },
     effectItem: {
-      width: '48%',
-      backgroundColor: palette.colors.surface,
-      padding: 12,
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: palette.colors.border,
+      width: '48%' as const,
+      backgroundColor: t.colors.surface,
+      padding: tilePadding,
+      borderRadius: t.borderRadius.lg, // 12px - matches MetricTile inner radius
+      borderWidth: t.borderWidth.thin, // 1px
+      borderColor: t.colors.border,
     },
     effectLabel: {
-      fontSize: scaledFontSize(12),
-      color: palette.colors.textMuted,
-      marginBottom: 4,
+      fontSize: safeScaledFontSize(t.fontSize.xs, { maxScale: 1.2 }), // 12px with safety limit
+      color: t.colors.textMuted,
+      marginBottom: t.spacing.xs, // 4px
+      fontWeight: t.fontWeight.medium, // '500' - matches MetricTile label
+      letterSpacing: t.letterSpacing.normal + 0.3, // Slightly wider for labels
     },
     effectValue: {
-      fontSize: scaledFontSize(16),
-      fontWeight: '600',
-      color: palette.colors.textPrimary,
+      fontSize: safeScaledFontSize(t.fontSize.base, { maxScale: 1.2 }), // 16px with safety limit
+      fontWeight: t.fontWeight.semibold, // '600'
+      color: t.colors.textPrimary,
+      letterSpacing: t.letterSpacing.tight, // -0.5 - matches MetricTile values
     },
     positive: {
-      color: palette.colors.success,
+      color: t.colors.success,
     },
     negative: {
-      color: palette.colors.danger,
+      color: t.colors.danger,
     },
     warning: {
-      color: palette.colors.brandAlt,
+      color: t.colors.brandAlt,
     },
-  });
+  };
 }
