@@ -3,8 +3,8 @@ import { useTokens } from '@/src/theme/useTokens';
 import { getScrollPadding, getFlexibleMinHeight } from '@/src/utils/responsive';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useCallback } from 'react';
-import { Pressable, StyleSheet, View, ViewStyle } from 'react-native';
+import React, { useCallback, useMemo } from 'react';
+import { Pressable, View, ViewStyle } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -37,7 +37,12 @@ export const GlassCard: React.FC<GlassCardProps> = ({
   const t = useTokens();
   const { mode } = useThemeMode();
   const isDark = mode === 'dark' || mode === 'system';
-  const padding = getScrollPadding(16, { minPadding: 12, maxPadding: 20 });
+  const padding = getScrollPadding(t.spacing.md, { minPadding: t.spacing.base, maxPadding: 20 });
+
+  // Token-based border radius values for consistency
+  const cardBorderRadius = t.borderRadius.xl; // 16
+  const gradientBorderWidth = t.borderWidth.medium; // 1.5
+  const innerBorderRadius = cardBorderRadius - gradientBorderWidth; // 14.5
 
   // Animation values
   const scale = useSharedValue(1);
@@ -84,6 +89,45 @@ export const GlassCard: React.FC<GlassCardProps> = ({
         elevation: t.shadow.card.elevation,
       };
 
+  // Memoized dynamic styles for consistent token-based styling
+  const dynamicStyles = useMemo(() => ({
+    card: {
+      borderRadius: cardBorderRadius,
+      overflow: 'hidden' as const,
+    },
+    gradientBorder: {
+      position: 'absolute' as const,
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      borderRadius: cardBorderRadius,
+    },
+    blurContainer: {
+      flex: 1,
+      borderRadius: cardBorderRadius,
+      overflow: 'hidden' as const,
+    },
+    lightContainer: {
+      flex: 1,
+      borderRadius: cardBorderRadius,
+      overflow: 'hidden' as const,
+    },
+    withGradientBorder: {
+      margin: gradientBorderWidth,
+      borderRadius: innerBorderRadius,
+    },
+    glassInner: {
+      flex: 1,
+      borderRadius: innerBorderRadius,
+      overflow: 'hidden' as const,
+    },
+    accent: {
+      height: 3,
+      width: '100%' as const,
+    },
+  }), [cardBorderRadius, gradientBorderWidth, innerBorderRadius]);
+
   const cardContent = (
     <>
       {/* Gradient border effect */}
@@ -92,7 +136,7 @@ export const GlassCard: React.FC<GlassCardProps> = ({
           colors={t.gradients.primary as [string, string, ...string[]]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={styles.gradientBorder}
+          style={dynamicStyles.gradientBorder}
         />
       )}
 
@@ -102,18 +146,18 @@ export const GlassCard: React.FC<GlassCardProps> = ({
           intensity={intensity}
           tint="dark"
           style={[
-            styles.blurContainer,
-            gradient && styles.withGradientBorder,
+            dynamicStyles.blurContainer,
+            gradient && dynamicStyles.withGradientBorder,
           ]}
         >
           {/* Inner surface with glass effect */}
           <View
             style={[
-              styles.glassInner,
+              dynamicStyles.glassInner,
               {
                 backgroundColor: t.colors.surfaceGlass,
                 borderColor: gradient ? 'transparent' : t.colors.border,
-                borderWidth: gradient ? 0 : 1,
+                borderWidth: gradient ? 0 : t.borderWidth.thin,
               },
             ]}
           >
@@ -122,21 +166,21 @@ export const GlassCard: React.FC<GlassCardProps> = ({
                 colors={t.gradients.primary as [string, string, ...string[]]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
-                style={styles.accent}
+                style={dynamicStyles.accent}
               />
             )}
-            <View style={[styles.inner, { padding }]}>{children}</View>
+            <View style={{ padding }}>{children}</View>
           </View>
         </BlurView>
       ) : (
         <View
           style={[
-            styles.lightContainer,
-            gradient && styles.withGradientBorder,
+            dynamicStyles.lightContainer,
+            gradient && dynamicStyles.withGradientBorder,
             {
               backgroundColor: t.colors.surface,
               borderColor: gradient ? 'transparent' : t.colors.border,
-              borderWidth: gradient ? 0 : 1,
+              borderWidth: gradient ? 0 : t.borderWidth.thin,
             },
           ]}
         >
@@ -145,10 +189,10 @@ export const GlassCard: React.FC<GlassCardProps> = ({
               colors={t.gradients.primary as [string, string, ...string[]]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
-              style={styles.accent}
+              style={dynamicStyles.accent}
             />
           )}
-          <View style={[styles.inner, { padding }]}>{children}</View>
+          <View style={{ padding }}>{children}</View>
         </View>
       )}
     </>
@@ -162,7 +206,7 @@ export const GlassCard: React.FC<GlassCardProps> = ({
         onPressOut={handlePressOut}
         disabled={disabled}
         style={[
-          styles.card,
+          dynamicStyles.card,
           shadowStyle,
           { minHeight: getFlexibleMinHeight(60) },
           animatedStyle,
@@ -177,7 +221,7 @@ export const GlassCard: React.FC<GlassCardProps> = ({
   return (
     <Animated.View
       style={[
-        styles.card,
+        dynamicStyles.card,
         shadowStyle,
         { minHeight: getFlexibleMinHeight(60) },
         style,
@@ -187,42 +231,3 @@ export const GlassCard: React.FC<GlassCardProps> = ({
     </Animated.View>
   );
 };
-
-const styles = StyleSheet.create({
-  card: {
-    borderRadius: 16,
-    overflow: 'hidden',
-  },
-  gradientBorder: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    borderRadius: 16,
-  },
-  blurContainer: {
-    flex: 1,
-    borderRadius: 16,
-    overflow: 'hidden',
-  },
-  lightContainer: {
-    flex: 1,
-    borderRadius: 16,
-    overflow: 'hidden',
-  },
-  withGradientBorder: {
-    margin: 1.5, // Creates the gradient border effect
-    borderRadius: 14.5,
-  },
-  glassInner: {
-    flex: 1,
-    borderRadius: 14.5,
-    overflow: 'hidden',
-  },
-  accent: {
-    height: 3,
-    width: '100%',
-  },
-  inner: {},
-});

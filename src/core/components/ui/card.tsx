@@ -1,6 +1,6 @@
 import { useThemeMode } from '@/src/theme/ThemeProvider';
 import { useTokens } from '@/src/theme/useTokens';
-import { 
+import {
   safeScaledFontSize,
   getOptimalNumberOfLines,
   getScrollPadding,
@@ -27,11 +27,17 @@ interface CardTextProps {
 export const Card = ({ children, style }: CardProps) => {
   const t = useTokens();
   const { mode } = useThemeMode();
+
+  // Use same border radius as GlassCard for consistency
+  const cardBorderRadius = t.borderRadius.xl; // 16
+
   return (
     <View
       style={[
-        styles.card,
         {
+          borderRadius: cardBorderRadius,
+          borderWidth: t.borderWidth.thin,
+          overflow: 'hidden',
           backgroundColor: mode === 'dark' ? t.colors.surface : t.colors.surfaceAlt,
           borderColor: t.colors.border,
           shadowColor: t.colors.shadow,
@@ -39,7 +45,7 @@ export const Card = ({ children, style }: CardProps) => {
           shadowOpacity: t.shadow.card.shadowOpacity,
           shadowRadius: t.shadow.card.shadowRadius,
           elevation: t.shadow.card.elevation,
-          marginVertical: getResponsiveSpacing(8, 'vertical'),
+          marginVertical: getResponsiveSpacing(t.spacing.sm, 'vertical'),
         },
         style,
       ]}
@@ -51,16 +57,16 @@ export const Card = ({ children, style }: CardProps) => {
 
 export const CardHeader = ({ children, style }: CardViewProps) => {
   const t = useTokens();
-  const padding = getScrollPadding(16, { minPadding: 12, maxPadding: 20 });
-  
+  const padding = getScrollPadding(t.spacing.md, { minPadding: t.spacing.base, maxPadding: 20 });
+
   return (
-    <View 
+    <View
       style={[
-        styles.header, 
-        { 
+        styles.header,
+        {
           borderBottomColor: t.colors.border,
           padding: padding,
-        }, 
+        },
         style
       ]}
     >
@@ -77,7 +83,7 @@ export const CardTitle = ({ children, style }: CardTextProps) => {
         styles.title,
         {
           color: t.colors.textPrimary,
-          fontSize: safeScaledFontSize(22, { maxScale: 1.25 }),
+          fontSize: safeScaledFontSize(t.fontSize.xl, { maxScale: 1.25 }),
         },
         style,
       ]}
@@ -98,8 +104,8 @@ export const CardDescription = ({ children, style }: CardTextProps) => {
         styles.description,
         {
           color: t.colors.textMuted,
-          fontSize: safeScaledFontSize(14),
-          marginTop: getResponsiveSpacing(4, 'vertical'),
+          fontSize: safeScaledFontSize(t.fontSize.sm),
+          marginTop: getResponsiveSpacing(t.spacing.xs, 'vertical'),
         },
         style,
       ]}
@@ -113,8 +119,9 @@ export const CardDescription = ({ children, style }: CardTextProps) => {
 };
 
 export const CardContent = ({ children, style }: CardViewProps) => {
-  const padding = getScrollPadding(16, { minPadding: 12, maxPadding: 20 });
-  
+  const t = useTokens();
+  const padding = getScrollPadding(t.spacing.md, { minPadding: t.spacing.base, maxPadding: 20 });
+
   return (
     <View style={[styles.content, { padding: padding }, style]}>
       {children}
@@ -124,18 +131,18 @@ export const CardContent = ({ children, style }: CardViewProps) => {
 
 export const CardFooter = ({ children, style }: CardViewProps) => {
   const t = useTokens();
-  const padding = getScrollPadding(16, { minPadding: 12, maxPadding: 20 });
-  const gap = getResponsiveSpacing(8, 'horizontal');
-  
+  const padding = getScrollPadding(t.spacing.md, { minPadding: t.spacing.base, maxPadding: 20 });
+  const gap = getResponsiveSpacing(t.spacing.sm, 'horizontal');
+
   return (
-    <View 
+    <View
       style={[
-        styles.footer, 
-        { 
+        styles.footer,
+        {
           borderTopColor: t.colors.border,
           padding: padding,
           gap: gap,
-        }, 
+        },
         style
       ]}
     >
@@ -145,14 +152,7 @@ export const CardFooter = ({ children, style }: CardViewProps) => {
 };
 
 const styles = StyleSheet.create({
-  card: {
-    borderRadius: 16,
-    borderWidth: 1,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 3,
-  },
+  // Note: Card styles are now applied inline using token values for consistency with GlassCard
   header: {
     borderBottomWidth: 1,
   },
