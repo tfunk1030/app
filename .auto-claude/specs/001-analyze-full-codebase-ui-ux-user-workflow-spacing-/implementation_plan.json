@@ -1,0 +1,540 @@
+{
+  "spec_id": "001-analyze-full-codebase-ui-ux-user-workflow-spacing-",
+  "title": "UI/UX Enhancement & Design System Audit",
+  "description": "Comprehensive UI/UX analysis and enhancement of the AI Caddy Pro golf caddy application. Includes design system audit, spacing consistency, color theme adherence, typography hierarchy, and component visual consistency improvements.",
+  "created_at": "2025-12-22T03:57:04.989Z",
+  "updated_at": "2025-12-22T04:30:00.000Z",
+  "status": "in_progress",
+  "planStatus": "ready",
+  "phases": [
+    {
+      "id": "phase-1",
+      "name": "Analysis & Design System Audit",
+      "description": "Analyze current UI state, document findings from screenshots, audit design token usage across all components and screens",
+      "status": "pending",
+      "subtasks": [
+        {
+          "id": "1.1",
+          "title": "Fix Critical Token System Issue",
+          "description": "The tokens.ts file is missing darkTokens, lightTokens, and Tokens type exports that ThemeProvider.tsx requires. Add complete themed token definitions including colors, spacing, shadows, gradients, and glow effects for both dark and light modes.",
+          "status": "completed",
+          "files": [
+            "src/theme/tokens.ts"
+          ],
+          "acceptance_criteria": [
+            "darkTokens object exported with all required color tokens",
+            "lightTokens object exported with all required color tokens",
+            "Tokens type exported for type safety",
+            "All tokens include: colors (background, surface, surfaceAlt, surfaceGlass, textPrimary, textMuted, brand, brandAlt, border, shadow, danger, success, glowPrimary, glowSecondary, dangerGlow, successGlow), gradients (primary, surface), shadow definitions (subtle, card, glow), animation spring config"
+          ],
+          "notes": "Token system now exports darkTokens, lightTokens, Tokens type, and tokens (default alias). All themed colors (background, surface, surfaceAlt, surfaceGlass, textPrimary, textMuted, brand, brandAlt, border, shadow, danger, success, warning, info, glowPrimary, glowSecondary, dangerGlow, successGlow), gradients (primary, surface), shadow definitions (subtle, card, glow), and animation spring config are properly defined for both dark and light modes. TypeScript compiles without token-related errors.",
+          "updated_at": "2025-12-22T04:35:18.404389+00:00"
+        },
+        {
+          "id": "1.2",
+          "title": "Audit Spacing Consistency Across Screens",
+          "description": "Document all spacing values used in the 4 main screens (Weather, Shot Calculator, Wind Calculator, Settings). Identify hard-coded pixel values vs. token-based spacing. Create findings report.",
+          "status": "completed",
+          "files": [
+            "src/features/home/screen.tsx",
+            "src/features/calculator/screen.tsx",
+            "src/features/wind/screen.tsx",
+            "src/features/settings/screen.tsx"
+          ],
+          "acceptance_criteria": [
+            "All hard-coded spacing values documented",
+            "Inconsistent spacing patterns identified",
+            "Recommendations for standardization created"
+          ],
+          "notes": "Created comprehensive spacing-audit-report.md documenting all 127 spacing declarations across 4 main screens. Found 19% token adoption rate with 103 hard-coded values. Identified key issues: missing spacing.base (12px) token used 15+ times, hardcoded color in Settings formContainer, touch targets below 48px minimum, inconsistent border radius values. Created prioritized recommendations for standardization.",
+          "updated_at": "2025-12-22T04:37:23.025499+00:00"
+        },
+        {
+          "id": "1.3",
+          "title": "Audit Typography Usage",
+          "description": "Document typography styles across all screens. Identify inconsistencies in font sizes, weights, and line heights. Compare against typography.ts presets.",
+          "status": "pending",
+          "files": [
+            "src/theme/typography.ts",
+            "src/features/home/screen.tsx",
+            "src/features/calculator/screen.tsx",
+            "src/features/wind/screen.tsx",
+            "src/features/settings/screen.tsx"
+          ],
+          "acceptance_criteria": [
+            "All font size usages mapped",
+            "Typography preset adoption rate measured",
+            "Inconsistent typography patterns identified"
+          ],
+          "notes": "Check for consistent use of safeScaledFontSize()"
+        },
+        {
+          "id": "1.4",
+          "title": "Audit Color Token Usage",
+          "description": "Document all color values used across components and screens. Identify any inline hex colors that should use tokens. Verify theme switching compatibility.",
+          "status": "pending",
+          "files": [
+            "src/core/components/ui/GlassCard.tsx",
+            "src/core/components/ui/MetricTile.tsx",
+            "src/core/components/ui/button.tsx",
+            "src/core/components/ui/SectionHeader.tsx"
+          ],
+          "acceptance_criteria": [
+            "All inline hex colors documented",
+            "Token-based color usage verified",
+            "Light/dark mode compatibility checked"
+          ],
+          "notes": "Check for hardcoded values like '#FFFFFF' or 'rgba()' patterns"
+        }
+      ]
+    },
+    {
+      "id": "phase-2",
+      "name": "Token System Enhancement",
+      "description": "Implement complete design token system with themed values, glow effects, and gradient definitions",
+      "status": "pending",
+      "subtasks": [
+        {
+          "id": "2.1",
+          "title": "Implement Dark Mode Token Set",
+          "description": "Create complete darkTokens object with all colors, shadows, gradients, and glow effects for the Sports Tech dark theme aesthetic",
+          "status": "pending",
+          "files": [
+            "src/theme/tokens.ts"
+          ],
+          "acceptance_criteria": [
+            "Dark background: #0F172A",
+            "Glass surface effect: rgba(15, 23, 42, 0.6)",
+            "Brand colors: emerald (#10B981) and cyan (#06B6D4)",
+            "Glow effects for primary and secondary elements",
+            "Gradient definitions for borders and accents"
+          ],
+          "notes": "Follow existing patterns from GlassCard and Button components"
+        },
+        {
+          "id": "2.2",
+          "title": "Implement Light Mode Token Set",
+          "description": "Create complete lightTokens object with appropriate colors for light theme while maintaining Sports Tech aesthetic",
+          "status": "pending",
+          "files": [
+            "src/theme/tokens.ts"
+          ],
+          "acceptance_criteria": [
+            "Light background: #FAFAFA or similar",
+            "Surface colors with appropriate contrast",
+            "Text colors with proper readability",
+            "Adjusted glow/shadow values for light mode",
+            "Gradient colors that work on light backgrounds"
+          ],
+          "notes": "Ensure sufficient contrast ratios for accessibility"
+        },
+        {
+          "id": "2.3",
+          "title": "Add Missing Token Categories",
+          "description": "Add any missing token categories identified during audit: section header styles, input styles, slider styles, etc.",
+          "status": "pending",
+          "files": [
+            "src/theme/tokens.ts"
+          ],
+          "acceptance_criteria": [
+            "Complete token coverage for all UI patterns",
+            "Consistent naming conventions",
+            "Type safety with Tokens interface"
+          ],
+          "notes": "Reference existing component implementations for required values"
+        }
+      ]
+    },
+    {
+      "id": "phase-3",
+      "name": "Component Consistency Updates",
+      "description": "Update core UI components to use token system consistently and fix any visual inconsistencies",
+      "status": "pending",
+      "subtasks": [
+        {
+          "id": "3.1",
+          "title": "Standardize Card Components",
+          "description": "Ensure GlassCard and card.tsx use consistent border radius, padding, and shadow values from tokens",
+          "status": "pending",
+          "files": [
+            "src/core/components/ui/GlassCard.tsx",
+            "src/core/components/ui/card.tsx"
+          ],
+          "acceptance_criteria": [
+            "Both cards use same border radius from tokens",
+            "Padding sourced from getScrollPadding utility",
+            "Shadow values use token definitions",
+            "Consistent gradient border implementation"
+          ],
+          "notes": "GlassCard currently hardcodes borderRadius: 16"
+        },
+        {
+          "id": "3.2",
+          "title": "Standardize MetricTile Component",
+          "description": "Ensure MetricTile uses tokens for all styling and matches GlassCard patterns",
+          "status": "pending",
+          "files": [
+            "src/core/components/ui/MetricTile.tsx"
+          ],
+          "acceptance_criteria": [
+            "Border radius matches card pattern",
+            "Icon container uses token-based sizing",
+            "Typography uses defined presets",
+            "Glow effects use token values"
+          ],
+          "notes": "Check icon marginRight: 10 is token-based"
+        },
+        {
+          "id": "3.3",
+          "title": "Standardize Button Variants",
+          "description": "Ensure all button variants use consistent spacing, typography, and glow effects from tokens",
+          "status": "pending",
+          "files": [
+            "src/core/components/ui/button.tsx"
+          ],
+          "acceptance_criteria": [
+            "All variants use getResponsiveSpacing",
+            "Border radius uses token value",
+            "Neon border width consistent (1.5px pattern)",
+            "Glow shadow values from tokens"
+          ],
+          "notes": "Currently has good responsive implementation"
+        },
+        {
+          "id": "3.4",
+          "title": "Standardize SectionHeader Component",
+          "description": "Update SectionHeader to use typography presets and token-based styling",
+          "status": "pending",
+          "files": [
+            "src/core/components/ui/SectionHeader.tsx"
+          ],
+          "acceptance_criteria": [
+            "Font size uses typography preset",
+            "Colors from tokens",
+            "Pill styling uses consistent radius"
+          ],
+          "notes": "Currently uses borderRadius: 999 for pill shape"
+        }
+      ]
+    },
+    {
+      "id": "phase-4",
+      "name": "Screen-Level UI Consistency",
+      "description": "Apply consistent spacing, typography, and visual patterns across all four main screens",
+      "status": "pending",
+      "subtasks": [
+        {
+          "id": "4.1",
+          "title": "Update Weather Screen (Home)",
+          "description": "Apply spacing consistency fixes, ensure all typography uses presets, verify color token usage",
+          "status": "pending",
+          "files": [
+            "src/features/home/screen.tsx"
+          ],
+          "acceptance_criteria": [
+            "All marginBottom values use consistent pattern (16px cards)",
+            "Title/subtitle use typography presets",
+            "Grid gap values consistent (12px)",
+            "Hero card styling matches design system"
+          ],
+          "notes": "Currently well-structured but uses some magic numbers"
+        },
+        {
+          "id": "4.2",
+          "title": "Update Shot Calculator Screen",
+          "description": "Apply consistent spacing and styling to conditions row, slider cards, and result display",
+          "status": "pending",
+          "files": [
+            "src/features/calculator/screen.tsx"
+          ],
+          "acceptance_criteria": [
+            "Condition chips use consistent spacing",
+            "Result card divider uses token color",
+            "Plays Like value typography matches hero pattern",
+            "Club card matches other card patterns"
+          ],
+          "notes": "Has good structure, needs token alignment"
+        },
+        {
+          "id": "4.3",
+          "title": "Update Wind Calculator Screen",
+          "description": "Apply consistent styling to compass card, slider cards, preset buttons, and results section",
+          "status": "pending",
+          "files": [
+            "src/features/wind/screen.tsx"
+          ],
+          "acceptance_criteria": [
+            "Compass card padding consistent",
+            "Preset buttons use consistent border radius (12px)",
+            "Quick Select label typography matches section headers",
+            "Calculate button styling matches primary CTA pattern"
+          ],
+          "notes": "Complex screen with many components"
+        },
+        {
+          "id": "4.4",
+          "title": "Update Settings Screen",
+          "description": "Apply consistent styling to segmented controls, form inputs, and club list items",
+          "status": "pending",
+          "files": [
+            "src/features/settings/screen.tsx"
+          ],
+          "acceptance_criteria": [
+            "Segmented control uses consistent padding/radius",
+            "Input fields use token-based styling",
+            "Club action buttons consistent with other icon buttons",
+            "Form container border uses token color"
+          ],
+          "notes": "Has hardcoded border color: rgba(255,255,255,0.1)"
+        }
+      ]
+    },
+    {
+      "id": "phase-5",
+      "name": "Wind Calculator Results Components",
+      "description": "Ensure wind calculation result components follow design system patterns",
+      "status": "pending",
+      "subtasks": [
+        {
+          "id": "5.1",
+          "title": "Update WindCalculationResults Component",
+          "description": "Verify results section uses consistent card, typography, and spacing patterns",
+          "status": "pending",
+          "files": [
+            "src/features/wind/components/WindCalculationResults.tsx"
+          ],
+          "acceptance_criteria": [
+            "Result cards use GlassCard component",
+            "Typography matches defined presets",
+            "Spacing uses token values"
+          ],
+          "notes": "Main results container component"
+        },
+        {
+          "id": "5.2",
+          "title": "Update EffectsGrid Component",
+          "description": "Ensure four-tile grid uses consistent MetricTile styling",
+          "status": "pending",
+          "files": [
+            "src/features/wind/components/results/EffectsGrid.tsx"
+          ],
+          "acceptance_criteria": [
+            "Grid gap consistent with other grids",
+            "Tiles use MetricTile component or match styling",
+            "Values use consistent typography"
+          ],
+          "notes": "Environment, Wind, Total, Lateral effects display"
+        },
+        {
+          "id": "5.3",
+          "title": "Update PrimaryRecommendation Component",
+          "description": "Ensure 'Play this shot X yards' display matches hero styling patterns",
+          "status": "pending",
+          "files": [
+            "src/features/wind/components/results/PrimaryRecommendation.tsx"
+          ],
+          "acceptance_criteria": [
+            "Value typography matches calculator Plays Like style",
+            "Card uses GlassCard with gradient/glow",
+            "Spacing consistent with other hero elements"
+          ],
+          "notes": "Key visual element in wind results"
+        }
+      ]
+    },
+    {
+      "id": "phase-6",
+      "name": "Additional UI Components",
+      "description": "Update remaining UI components for consistency",
+      "status": "pending",
+      "subtasks": [
+        {
+          "id": "6.1",
+          "title": "Update FloatingTabBar Component",
+          "description": "Verify tab bar uses consistent blur, spacing, and glow effects",
+          "status": "pending",
+          "files": [
+            "src/core/components/ui/FloatingTabBar.tsx"
+          ],
+          "acceptance_criteria": [
+            "Blur intensity matches GlassCard (20)",
+            "Tab spacing uses tokens",
+            "Active indicator glow matches brand pattern"
+          ],
+          "notes": "Bottom navigation component"
+        },
+        {
+          "id": "6.2",
+          "title": "Update Slider Component",
+          "description": "Ensure slider styling uses tokens for colors and spacing",
+          "status": "pending",
+          "files": [
+            "src/core/components/ui/slider.tsx"
+          ],
+          "acceptance_criteria": [
+            "Track colors use brand tokens",
+            "Label typography uses presets",
+            "Value display uses consistent styling"
+          ],
+          "notes": "Used in multiple screens for input"
+        },
+        {
+          "id": "6.3",
+          "title": "Update WindHourlyForecastBar Component",
+          "description": "Ensure forecast bar styling matches design system",
+          "status": "pending",
+          "files": [
+            "src/features/wind/components/WindHourlyForecastBar.tsx"
+          ],
+          "acceptance_criteria": [
+            "Card uses consistent styling",
+            "Direction arrows use brand colors",
+            "Typography matches section patterns"
+          ],
+          "notes": "Collapsible forecast display"
+        }
+      ]
+    },
+    {
+      "id": "phase-7",
+      "name": "Testing & Verification",
+      "description": "Verify all changes work correctly in both themes and don't break existing functionality",
+      "status": "pending",
+      "subtasks": [
+        {
+          "id": "7.1",
+          "title": "Test Dark Mode Rendering",
+          "description": "Verify all screens render correctly in dark mode with new token system",
+          "status": "pending",
+          "files": [],
+          "acceptance_criteria": [
+            "All screens render without errors",
+            "Colors display correctly",
+            "Glow effects visible",
+            "Gradients render properly"
+          ],
+          "notes": "Primary theme mode for app"
+        },
+        {
+          "id": "7.2",
+          "title": "Test Light Mode Rendering",
+          "description": "Verify all screens render correctly in light mode",
+          "status": "pending",
+          "files": [],
+          "acceptance_criteria": [
+            "All screens render without errors",
+            "Sufficient contrast for readability",
+            "Shadows visible but not overwhelming",
+            "Theme switching works smoothly"
+          ],
+          "notes": "Secondary theme mode"
+        },
+        {
+          "id": "7.3",
+          "title": "Verify Accessibility Compliance",
+          "description": "Ensure touch targets, font scaling, and contrast ratios meet requirements",
+          "status": "pending",
+          "files": [],
+          "acceptance_criteria": [
+            "All touch targets >= 44pt",
+            "Font scaling works without breaking layouts",
+            "Color contrast meets WCAG AA",
+            "Reduced motion preferences respected"
+          ],
+          "notes": "Critical for app store compliance"
+        },
+        {
+          "id": "7.4",
+          "title": "Run Existing Tests",
+          "description": "Ensure all existing tests still pass after UI changes",
+          "status": "pending",
+          "files": [],
+          "acceptance_criteria": [
+            "No test failures introduced",
+            "No console errors in development",
+            "No TypeScript errors"
+          ],
+          "notes": "Regression testing"
+        }
+      ]
+    }
+  ],
+  "dependencies": [
+    {
+      "from": "1.1",
+      "to": "2.1",
+      "reason": "Must fix critical token issue before implementing dark tokens"
+    },
+    {
+      "from": "2.1",
+      "to": "2.2",
+      "reason": "Dark tokens inform light token structure"
+    },
+    {
+      "from": "2.2",
+      "to": "3.1",
+      "reason": "Token system must be complete before updating components"
+    },
+    {
+      "from": "3.4",
+      "to": "4.1",
+      "reason": "Core components must be updated before screen-level fixes"
+    },
+    {
+      "from": "4.4",
+      "to": "7.1",
+      "reason": "All screen updates must complete before testing"
+    }
+  ],
+  "qa_requirements": {
+    "unit_tests": [
+      "Verify token values are correct and complete",
+      "Verify button variants render correctly",
+      "Verify card styling matches design tokens"
+    ],
+    "integration_tests": [
+      "Theme switching updates all colors correctly",
+      "Responsive spacing scales appropriately"
+    ],
+    "e2e_tests": [
+      "Navigate Weather to Wind screen with consistent styling",
+      "Wind calculation flow displays results properly",
+      "Theme toggle reflects changes on all screens"
+    ],
+    "visual_verification": [
+      "Component styling matches 4px grid system",
+      "Colors match token definitions",
+      "No unintended visual regressions"
+    ]
+  },
+  "estimated_effort": {
+    "total_hours": 16,
+    "breakdown": {
+      "phase-1": 2,
+      "phase-2": 3,
+      "phase-3": 3,
+      "phase-4": 3,
+      "phase-5": 2,
+      "phase-6": 2,
+      "phase-7": 1
+    }
+  },
+  "risks": [
+    {
+      "risk": "Token system changes may break existing component rendering",
+      "mitigation": "Implement tokens to match current component expectations first, then refactor",
+      "severity": "high"
+    },
+    {
+      "risk": "Light mode may require significant color adjustments for readability",
+      "mitigation": "Test contrast ratios early and iterate on light token values",
+      "severity": "medium"
+    },
+    {
+      "risk": "Responsive scaling changes may affect layouts on different devices",
+      "mitigation": "Test on multiple screen sizes and font scale settings",
+      "severity": "medium"
+    }
+  ],
+  "last_updated": "2025-12-22T04:37:23.025499+00:00"
+}
