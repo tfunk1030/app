@@ -110,6 +110,9 @@ export interface Tokens {
     glow: ShadowConfig;
     glowSecondary: ShadowConfig;
     dangerGlow: ShadowConfig;
+    successGlow: ShadowConfig;
+    warningGlow: ShadowConfig;
+    infoGlow: ShadowConfig;
   };
 
   animation: {
@@ -119,12 +122,16 @@ export interface Tokens {
     spring: SpringConfig;
   };
 
-  // Additional base tokens
+  // Base tokens (shared across themes)
   spacing: typeof spacing;
   borderRadius: typeof borderRadius;
   fontSize: typeof fontSize;
   fontWeight: typeof fontWeight;
   touchTarget: typeof touchTarget;
+  letterSpacing: typeof letterSpacing;
+  containerSize: typeof containerSize;
+  borderWidth: typeof borderWidth;
+  opacity: typeof opacity;
 }
 
 // =============================================================================
@@ -134,11 +141,14 @@ export interface Tokens {
 export const spacing = {
   xs: 4,
   sm: 8,
+  base: 12, // Common 12px gap pattern - used in grids, form layouts, etc.
   md: 16,
   lg: 24,
   xl: 32,
   '2xl': 48,
   '3xl': 64,
+  '4xl': 96, // Large containers (premium icon, etc.)
+  '5xl': 120, // Scroll bottom padding
 } as const;
 
 export const borderRadius = {
@@ -147,7 +157,9 @@ export const borderRadius = {
   md: 8,
   lg: 12,
   xl: 16,
-  full: 9999,
+  '2xl': 20, // Hero icon containers
+  '3xl': 24, // Premium/large containers
+  full: 9999, // Pills and circular elements
 } as const;
 
 export const fontSize = {
@@ -166,11 +178,71 @@ export const fontWeight = {
   medium: '500',
   semibold: '600',
   bold: '700',
+  extrabold: '800', // Used for hero values and emphasis
 } as const;
 
 export const touchTarget = {
   minimum: 48,
   recommended: 56,
+} as const;
+
+/**
+ * Letter spacing values for typography
+ * Used for headings, labels, and section headers
+ */
+export const letterSpacing = {
+  tighter: -1, // Hero values, large numbers
+  tight: -0.5, // Screen titles
+  normal: 0, // Body text
+  wide: 0.6, // Section headers, labels
+  wider: 1, // Emphasis labels (e.g., "PLAYS LIKE")
+} as const;
+
+/**
+ * Container size tokens for consistent icon and element sizing
+ * Based on common patterns across the app
+ */
+export const containerSize = {
+  icon: {
+    xs: 24, // Small icons in lists
+    sm: 32, // Settings icons, small buttons
+    md: 44, // Minimum touch target icons
+    lg: 48, // Recommended touch target icons
+    xl: 64, // Hero icons
+    '2xl': 96, // Premium/feature icons
+  },
+  input: {
+    sm: 36, // Dense input height
+    md: 40, // Default input height
+    lg: 48, // Large input height (touch target compliant)
+  },
+  slider: {
+    track: 8, // Default track height
+    trackDense: 6, // Dense track height
+    thumb: 26, // Default thumb diameter
+    thumbDense: 22, // Dense thumb diameter
+  },
+} as const;
+
+/**
+ * Border width values for consistent borders
+ */
+export const borderWidth = {
+  none: 0,
+  hairline: 0.5, // StyleSheet.hairlineWidth equivalent
+  thin: 1, // Default borders
+  medium: 1.5, // Neon button borders
+  thick: 2, // Emphasis borders
+} as const;
+
+/**
+ * Opacity values for consistent transparency
+ */
+export const opacity = {
+  disabled: 0.5,
+  muted: 0.6,
+  subtle: 0.8,
+  full: 1,
 } as const;
 
 // Base animation values (shared across themes)
@@ -303,6 +375,27 @@ export const darkTokens: Tokens = {
       shadowRadius: 10,
       elevation: 6,
     },
+    successGlow: {
+      shadowColor: '#10B981',
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0.5,
+      shadowRadius: 10,
+      elevation: 6,
+    },
+    warningGlow: {
+      shadowColor: '#F59E0B',
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0.5,
+      shadowRadius: 10,
+      elevation: 6,
+    },
+    infoGlow: {
+      shadowColor: '#3B82F6',
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0.5,
+      shadowRadius: 10,
+      elevation: 6,
+    },
   },
 
   animation: baseAnimation,
@@ -311,6 +404,10 @@ export const darkTokens: Tokens = {
   fontSize,
   fontWeight,
   touchTarget,
+  letterSpacing,
+  containerSize,
+  borderWidth,
+  opacity,
 };
 
 // =============================================================================
@@ -431,6 +528,27 @@ export const lightTokens: Tokens = {
       shadowRadius: 8,
       elevation: 4,
     },
+    successGlow: {
+      shadowColor: '#16A34A',
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0.25,
+      shadowRadius: 8,
+      elevation: 4,
+    },
+    warningGlow: {
+      shadowColor: '#D97706',
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0.25,
+      shadowRadius: 8,
+      elevation: 4,
+    },
+    infoGlow: {
+      shadowColor: '#2563EB',
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0.25,
+      shadowRadius: 8,
+      elevation: 4,
+    },
   },
 
   animation: baseAnimation,
@@ -439,6 +557,10 @@ export const lightTokens: Tokens = {
   fontSize,
   fontWeight,
   touchTarget,
+  letterSpacing,
+  containerSize,
+  borderWidth,
+  opacity,
 };
 
 // =============================================================================
