@@ -13,13 +13,14 @@ import { useSensorData } from '@/src/features/wind/context/sensor-data';
 import { useWindCalculator } from '@/src/features/wind/hooks/useWindCalculator';
 import { useEnhancedEnvironmental } from '@/src/providers/EnhancedEnvironmentalProvider';
 import { useThemeMode } from '@/src/theme/ThemeProvider';
+import type { Tokens } from '@/src/theme/tokens';
 import { useTokens } from '@/src/theme/useTokens';
 import { LogManager } from '@/src/utils/LogManager';
 import { safeScaledFontSize, getScrollPadding } from '@/src/utils/responsive';
 import { useAccessibleAnimations } from '@/src/hooks/useAccessibility';
 import { Crown, Wind } from 'lucide-react-native';
-import React, { useEffect, useState } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Platform, Pressable, ScrollView, Text, View, ViewStyle, TextStyle } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -33,37 +34,45 @@ interface YardagePresetButtonProps {
   value: number;
   isSelected: boolean;
   onPress: () => void;
-  tokens: ReturnType<typeof useTokens>;
+  tokens: Tokens;
 }
 
 const YardagePresetButton = React.memo<YardagePresetButtonProps>(({
   value,
   isSelected,
   onPress,
-  tokens,
-}) => (
-  <Pressable
-    onPress={onPress}
-    style={[
-      styles.presetButton,
-      {
-        backgroundColor: isSelected ? `${tokens.colors.brand}20` : tokens.colors.surfaceAlt,
-        borderColor: isSelected ? tokens.colors.brand : tokens.colors.border,
-      },
-    ]}
-  >
-    <Text
-      style={[
-        styles.presetButtonText,
-        {
-          color: isSelected ? tokens.colors.brand : tokens.colors.textMuted,
-        },
-      ]}
-    >
-      {value}
-    </Text>
-  </Pressable>
-));
+  tokens: t,
+}) => {
+  // Memoized styles for preset button
+  const buttonStyle = useMemo((): ViewStyle => ({
+    flex: 1,
+    minHeight: t.touchTarget.minimum,
+    paddingVertical: t.spacing.base,
+    paddingHorizontal: t.spacing.sm,
+    borderRadius: t.borderRadius.lg,
+    borderWidth: t.borderWidth.thin,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: isSelected ? t.colors.brandBackgroundAlpha : t.colors.surfaceAlt,
+    borderColor: isSelected ? t.colors.brand : t.colors.border,
+  }), [t, isSelected]);
+
+  const textStyle = useMemo((): TextStyle => ({
+    fontSize: safeScaledFontSize(t.fontSize.sm),
+    fontWeight: t.fontWeight.semibold as TextStyle['fontWeight'],
+    color: isSelected ? t.colors.brand : t.colors.textMuted,
+    ...Platform.select({
+      ios: { fontFamily: 'Menlo' },
+      android: { fontFamily: 'monospace' },
+    }),
+  }), [t, isSelected]);
+
+  return (
+    <Pressable onPress={onPress} style={buttonStyle}>
+      <Text style={textStyle}>{value}</Text>
+    </Pressable>
+  );
+});
 
 // Wind calculation component
 function WindCalculatorComponent() {
@@ -73,13 +82,15 @@ function WindCalculatorComponent() {
   const { relativeWindAngle } = useCompassLock();
   const { isLoading, windSpeed, setWindSpeed, targetYardage, setTargetYardage, result, calculate } =
     useWindCalculator();
-  const tokens = useTokens();
+  const t = useTokens();
   const { mode } = useThemeMode();
   const isDark = mode === 'dark' || mode === 'system';
   const insets = useSafeAreaInsets();
   const { headerEntering, cardEntering } = useAccessibleAnimations();
 
-  const padding = getScrollPadding(16, { minPadding: 12, maxPadding: 20 });
+  // Memoized styles
+  const styles = useMemo(() => createStyles(t), [t]);
+  const padding = getScrollPadding(t.spacing.md, { minPadding: t.spacing.base, maxPadding: t.spacing.xl });
 
   // Handle calculation button press
   const handleCalculate = () => {
@@ -94,15 +105,15 @@ function WindCalculatorComponent() {
   // Premium check
   if (!isPremium) {
     return (
-      <View style={[styles.container, styles.centerContent, { backgroundColor: tokens.colors.background }]}>
+      <View style={[styles.container, styles.centerContent, { backgroundColor: t.colors.background }]}>
         <Animated.View entering={headerEntering} style={styles.premiumContainer}>
-          <View style={[styles.premiumIconContainer, { backgroundColor: `${tokens.colors.brand}20` }]}>
-            <Crown size={48} color={tokens.colors.brand} />
+          <View style={[styles.premiumIconContainer, { backgroundColor: t.colors.brandBackgroundAlpha }]}>
+            <Crown size={t.containerSize.icon.lg} color={t.colors.brand} />
           </View>
-          <Text style={[styles.premiumTitle, { color: tokens.colors.textPrimary }]}>
+          <Text style={[styles.premiumTitle, { color: t.colors.textPrimary }]}>
             Premium Feature
           </Text>
-          <Text style={[styles.premiumText, { color: tokens.colors.textMuted }]}>
+          <Text style={[styles.premiumText, { color: t.colors.textMuted }]}>
             Wind calculator is available with premium
           </Text>
           <Button
@@ -121,9 +132,9 @@ function WindCalculatorComponent() {
   // Loading state
   if (isLoading) {
     return (
-      <View style={[styles.container, styles.centerContent, { backgroundColor: tokens.colors.background }]}>
-        <View style={[styles.loadingPulse, { backgroundColor: tokens.colors.surfaceAlt }]} />
-        <View style={[styles.loadingPulse, { backgroundColor: tokens.colors.surfaceAlt, width: '60%' }]} />
+      <View style={[styles.container, styles.centerContent, { backgroundColor: t.colors.background }]}>
+        <View style={[styles.loadingPulse, { backgroundColor: t.colors.surfaceAlt }]} />
+        <View style={[styles.loadingPulse, { backgroundColor: t.colors.surfaceAlt, width: '60%' }]} />
       </View>
     );
   }
@@ -131,9 +142,9 @@ function WindCalculatorComponent() {
   // Error state
   if (!conditions) {
     return (
-      <View style={[styles.container, styles.centerContent, { backgroundColor: tokens.colors.background }]}>
-        <Wind size={48} color={tokens.colors.textMuted} />
-        <Text style={[styles.errorText, { color: tokens.colors.textMuted }]}>
+      <View style={[styles.container, styles.centerContent, { backgroundColor: t.colors.background }]}>
+        <Wind size={t.containerSize.icon.lg} color={t.colors.textMuted} />
+        <Text style={[styles.errorText, { color: t.colors.textMuted }]}>
           Unable to load conditions
         </Text>
       </View>
@@ -142,17 +153,17 @@ function WindCalculatorComponent() {
 
   return (
     <ScrollView
-      style={[styles.container, { backgroundColor: tokens.colors.background }]}
+      style={[styles.container, { backgroundColor: t.colors.background }]}
       contentContainerStyle={[
         styles.contentContainer,
-        { paddingTop: insets.top + 16, paddingHorizontal: padding },
+        { paddingTop: insets.top + t.spacing.md, paddingHorizontal: padding },
       ]}
       showsVerticalScrollIndicator={false}
     >
       {/* Header */}
       <Animated.View entering={headerEntering}>
-        <Text style={[styles.title, { color: tokens.colors.textPrimary }]}>Wind Calculator</Text>
-        <Text style={[styles.subtitle, { color: tokens.colors.textMuted }]}>
+        <Text style={[styles.title, { color: t.colors.textPrimary }]}>Wind Calculator</Text>
+        <Text style={[styles.subtitle, { color: t.colors.textMuted }]}>
           Calculate wind effect on your shot
         </Text>
       </Animated.View>
@@ -169,7 +180,7 @@ function WindCalculatorComponent() {
       {/* Compass Card */}
       <Animated.View entering={cardEntering(2)}>
         <GlassCard gradient glow style={styles.compassCard}>
-          <Text style={[styles.compassHint, { color: tokens.colors.textMuted }]}>
+          <Text style={[styles.compassHint, { color: t.colors.textMuted }]}>
             Point phone in shot direction and tap lock
           </Text>
           <View style={styles.compassWrapper}>
@@ -207,8 +218,8 @@ function WindCalculatorComponent() {
           />
 
           {/* Quick Presets */}
-          <View style={[styles.presetsContainer, { borderTopColor: tokens.colors.border }]}>
-            <Text style={[styles.presetsLabel, { color: tokens.colors.textMuted }]}>
+          <View style={[styles.presetsContainer, { borderTopColor: t.colors.border }]}>
+            <Text style={[styles.presetsLabel, { color: t.colors.textMuted }]}>
               Quick Select
             </Text>
             <View style={styles.presetsRow}>
@@ -218,7 +229,7 @@ function WindCalculatorComponent() {
                   value={preset}
                   isSelected={targetYardage === preset}
                   onPress={() => setTargetYardage(preset)}
-                  tokens={tokens}
+                  tokens={t}
                 />
               ))}
             </View>
@@ -254,9 +265,12 @@ function WindCalculatorScreen() {
   const [error, setError] = useState<Error | null>(null);
   const { conditions } = useEnhancedEnvironmental();
   const { heading } = useSensorData();
-  const tokens = useTokens();
+  const t = useTokens();
   const insets = useSafeAreaInsets();
   const { headerEntering } = useAccessibleAnimations();
+
+  // Memoized styles
+  const styles = useMemo(() => createStyles(t), [t]);
 
   // Error state
   if (error) {
@@ -265,14 +279,14 @@ function WindCalculatorScreen() {
         style={[
           styles.container,
           styles.centerContent,
-          { backgroundColor: tokens.colors.background, paddingTop: insets.top },
+          { backgroundColor: t.colors.background, paddingTop: insets.top },
         ]}
       >
         <Animated.View entering={headerEntering} style={styles.errorContainer}>
-          <Text style={[styles.errorTitle, { color: tokens.colors.danger }]}>
+          <Text style={[styles.errorTitle, { color: t.colors.danger }]}>
             Something went wrong
           </Text>
-          <Text style={[styles.errorMessage, { color: tokens.colors.textMuted }]}>
+          <Text style={[styles.errorMessage, { color: t.colors.textMuted }]}>
             {error?.message || 'Unknown error'}
           </Text>
           <Button
@@ -302,8 +316,11 @@ function WindCalculatorScreen() {
 // Main screen wrapper with initialization
 export default function WindScreen() {
   const [initialized, setInitialized] = useState(false);
-  const tokens = useTokens();
+  const t = useTokens();
   const { headerEntering } = useAccessibleAnimations();
+
+  // Memoized styles
+  const styles = useMemo(() => createStyles(t), [t]);
 
   // Handle initialization
   useEffect(() => {
@@ -316,9 +333,9 @@ export default function WindScreen() {
 
   if (!initialized) {
     return (
-      <View style={[styles.container, styles.centerContent, { backgroundColor: tokens.colors.background }]}>
+      <View style={[styles.container, styles.centerContent, { backgroundColor: t.colors.background }]}>
         <Animated.View entering={headerEntering}>
-          <Wind size={32} color={tokens.colors.textMuted} />
+          <Wind size={t.containerSize.icon.sm} color={t.colors.textMuted} />
         </Animated.View>
       </View>
     );
@@ -327,137 +344,122 @@ export default function WindScreen() {
   return <WindCalculatorScreen />;
 }
 
-const styles = StyleSheet.create({
+/**
+ * Creates token-based styles for Wind Calculator screen
+ * Uses memoized dynamic styles pattern for consistent theming
+ */
+const createStyles = (t: Tokens) => ({
   container: {
     flex: 1,
-  },
+  } as ViewStyle,
   contentContainer: {
-    paddingBottom: 120,
-  },
+    paddingBottom: t.spacing['5xl'], // 120px scroll bottom padding
+  } as ViewStyle,
   centerContent: {
     justifyContent: 'center',
     alignItems: 'center',
-  },
+  } as ViewStyle,
   title: {
-    fontSize: safeScaledFontSize(32),
-    fontWeight: '700',
-    letterSpacing: -0.5,
-    marginBottom: 4,
-  },
+    fontSize: safeScaledFontSize(t.fontSize['4xl'] - 4), // 32px hero title
+    fontWeight: t.fontWeight.bold,
+    letterSpacing: t.letterSpacing.tight,
+    marginBottom: t.spacing.xs,
+  } as TextStyle,
   subtitle: {
-    fontSize: safeScaledFontSize(15),
-    fontWeight: '500',
-    marginBottom: 24,
-  },
+    fontSize: safeScaledFontSize(t.fontSize.sm + 1), // 15px subtitle
+    fontWeight: t.fontWeight.medium,
+    marginBottom: t.spacing.lg,
+  } as TextStyle,
   compassCard: {
-    marginBottom: 16,
+    marginBottom: t.spacing.md,
     alignItems: 'center',
-  },
+  } as ViewStyle,
   compassHint: {
-    fontSize: safeScaledFontSize(12),
-    fontWeight: '500',
+    fontSize: safeScaledFontSize(t.fontSize.xs),
+    fontWeight: t.fontWeight.medium,
     textAlign: 'center',
-    marginBottom: 16,
-    opacity: 0.8,
-  },
+    marginBottom: t.spacing.md,
+    opacity: t.opacity.subtle,
+  } as TextStyle,
   compassWrapper: {
     alignItems: 'center',
     justifyContent: 'center',
-  },
+  } as ViewStyle,
   sliderCard: {
-    marginBottom: 16,
-  },
+    marginBottom: t.spacing.md,
+  } as ViewStyle,
   yardageCard: {
-    marginBottom: 16,
-  },
+    marginBottom: t.spacing.md,
+  } as ViewStyle,
   presetsContainer: {
-    marginTop: 20,
-    paddingTop: 16,
-    borderTopWidth: 1,
-    // Note: borderTopColor is set dynamically in component via tokens.colors.border
-  },
+    marginTop: t.spacing.md + t.spacing.xs, // 20px
+    paddingTop: t.spacing.md,
+    borderTopWidth: t.borderWidth.thin,
+  } as ViewStyle,
   presetsLabel: {
-    fontSize: safeScaledFontSize(12),
-    fontWeight: '500',
-    marginBottom: 12,
+    fontSize: safeScaledFontSize(t.fontSize.xs),
+    fontWeight: t.fontWeight.medium,
+    marginBottom: t.spacing.base,
     textAlign: 'center',
-  },
+  } as TextStyle,
   presetsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: 8,
-  },
-  presetButton: {
-    flex: 1,
-    minHeight: 44,
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-    borderRadius: 12,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  presetButtonText: {
-    fontSize: safeScaledFontSize(14),
-    fontWeight: '600',
-    ...Platform.select({
-      ios: { fontFamily: 'Menlo' },
-      android: { fontFamily: 'monospace' },
-    }),
-  },
+    gap: t.spacing.sm,
+  } as ViewStyle,
   calculateButton: {
-    marginBottom: 16,
-  },
+    marginBottom: t.spacing.md,
+  } as ViewStyle,
   loadingPulse: {
-    borderRadius: 12,
-    marginBottom: 16,
-    height: 32,
+    borderRadius: t.borderRadius.lg,
+    marginBottom: t.spacing.md,
+    height: t.containerSize.icon.sm,
     width: '80%',
-  },
+  } as ViewStyle,
   errorContainer: {
     alignItems: 'center',
-    padding: 24,
-  },
+    padding: t.spacing.lg,
+  } as ViewStyle,
   errorTitle: {
-    fontSize: safeScaledFontSize(20),
-    fontWeight: '700',
-    marginBottom: 8,
-  },
+    fontSize: safeScaledFontSize(t.fontSize.xl),
+    fontWeight: t.fontWeight.bold,
+    marginBottom: t.spacing.sm,
+  } as TextStyle,
   errorMessage: {
-    fontSize: safeScaledFontSize(14),
+    fontSize: safeScaledFontSize(t.fontSize.sm),
     textAlign: 'center',
-    marginBottom: 24,
-  },
+    marginBottom: t.spacing.lg,
+  } as TextStyle,
   errorText: {
-    fontSize: safeScaledFontSize(16),
-    marginTop: 16,
-  },
+    fontSize: safeScaledFontSize(t.fontSize.base),
+    marginTop: t.spacing.md,
+  } as TextStyle,
   retryButton: {
-    minWidth: 160,
-  },
+    minWidth: t.spacing['4xl'] + t.spacing['3xl'] + t.spacing.xs, // ~160px
+  } as ViewStyle,
   premiumContainer: {
     alignItems: 'center',
-    padding: 32,
-  },
+    padding: t.spacing.xl,
+  } as ViewStyle,
   premiumIconContainer: {
-    width: 96,
-    height: 96,
-    borderRadius: 24,
+    width: t.containerSize.icon['2xl'],
+    height: t.containerSize.icon['2xl'],
+    borderRadius: t.borderRadius['3xl'],
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 24,
-  },
+    marginBottom: t.spacing.lg,
+  } as ViewStyle,
   premiumTitle: {
-    fontSize: safeScaledFontSize(24),
-    fontWeight: '700',
-    marginBottom: 8,
-  },
+    fontSize: safeScaledFontSize(t.fontSize['2xl']),
+    fontWeight: t.fontWeight.bold,
+    marginBottom: t.spacing.sm,
+  } as TextStyle,
   premiumText: {
-    fontSize: safeScaledFontSize(16),
+    fontSize: safeScaledFontSize(t.fontSize.base),
     textAlign: 'center',
-    marginBottom: 24,
-  },
+    marginBottom: t.spacing.lg,
+  } as TextStyle,
   premiumButton: {
-    minWidth: 200,
-  },
+    minWidth: t.spacing['4xl'] + t.spacing['3xl'] + t.spacing['2xl'] - t.spacing.sm, // ~200px
+  } as ViewStyle,
 });
