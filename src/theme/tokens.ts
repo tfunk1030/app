@@ -64,17 +64,52 @@ export interface Tokens {
     glowSecondary: string;
     dangerGlow: string;
     successGlow: string;
+    warningGlow: string;
+    infoGlow: string;
+
+    // Fixed contrast colors (for text on colored backgrounds)
+    onBrand: string;
+    onDanger: string;
+    onSuccess: string;
+
+    // Overlay colors
+    overlay: string;
+    overlayLight: string;
+
+    // Ripple effect for touch feedback
+    ripple: string;
+
+    // Offline/error state backgrounds
+    offlineBackground: string;
+    offlineBorder: string;
+    offlineText: string;
+
+    // Semantic background variants (alpha)
+    dangerBackgroundAlpha: string;
+    successBackgroundAlpha: string;
+    warningBackgroundAlpha: string;
+    infoBackgroundAlpha: string;
+    brandBackgroundAlpha: string;
+
+    // Icon gradient colors (for light mode icon backgrounds)
+    iconGradientStart: string;
+    iconGradientEnd: string;
   };
 
   gradients: {
     primary: readonly string[];
     surface: readonly string[];
+    iconBackground: readonly string[];
+    dangerGradient: readonly string[];
+    successGradient: readonly string[];
   };
 
   shadow: {
     subtle: ShadowConfig;
     card: ShadowConfig;
     glow: ShadowConfig;
+    glowSecondary: ShadowConfig;
+    dangerGlow: ShadowConfig;
   };
 
   animation: {
@@ -186,6 +221,37 @@ export const darkTokens: Tokens = {
     glowSecondary: '#06B6D4',
     dangerGlow: '#EF4444',
     successGlow: '#10B981',
+    warningGlow: '#F59E0B',
+    infoGlow: '#3B82F6',
+
+    // Fixed contrast colors (for text on colored backgrounds)
+    // These remain white in dark mode for proper contrast on brand buttons
+    onBrand: '#FFFFFF',
+    onDanger: '#FFFFFF',
+    onSuccess: '#FFFFFF',
+
+    // Overlay colors for modals and backdrop
+    overlay: 'rgba(0, 0, 0, 0.5)',
+    overlayLight: 'rgba(0, 0, 0, 0.3)',
+
+    // Ripple effect for touch feedback (Android)
+    ripple: 'rgba(255, 255, 255, 0.12)',
+
+    // Offline/error state backgrounds (e.g., ConnectivityBanner)
+    offlineBackground: 'rgba(239, 68, 68, 0.15)',
+    offlineBorder: 'rgba(239, 68, 68, 0.3)',
+    offlineText: '#F87171',
+
+    // Semantic background variants (alpha) for subtle tinted backgrounds
+    dangerBackgroundAlpha: 'rgba(239, 68, 68, 0.15)',
+    successBackgroundAlpha: 'rgba(16, 185, 129, 0.15)',
+    warningBackgroundAlpha: 'rgba(245, 158, 11, 0.15)',
+    infoBackgroundAlpha: 'rgba(59, 130, 246, 0.15)',
+    brandBackgroundAlpha: 'rgba(16, 185, 129, 0.15)',
+
+    // Icon gradient colors (for icon backgrounds in MetricTile, etc.)
+    iconGradientStart: 'rgba(16, 185, 129, 0.2)',
+    iconGradientEnd: 'rgba(6, 182, 212, 0.2)',
   },
 
   gradients: {
@@ -193,6 +259,12 @@ export const darkTokens: Tokens = {
     primary: ['#10B981', '#06B6D4'] as const,
     // Surface gradient for subtle backgrounds
     surface: ['rgba(30, 41, 59, 0.8)', 'rgba(15, 23, 42, 0.9)'] as const,
+    // Icon background gradient
+    iconBackground: ['rgba(30, 41, 59, 0.8)', 'rgba(15, 23, 42, 0.9)'] as const,
+    // Danger gradient for error states
+    dangerGradient: ['#EF4444', '#DC2626'] as const,
+    // Success gradient for positive states
+    successGradient: ['#10B981', '#059669'] as const,
   },
 
   shadow: {
@@ -216,6 +288,20 @@ export const darkTokens: Tokens = {
       shadowOpacity: 0.6,
       shadowRadius: 12,
       elevation: 8,
+    },
+    glowSecondary: {
+      shadowColor: '#06B6D4',
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0.5,
+      shadowRadius: 10,
+      elevation: 6,
+    },
+    dangerGlow: {
+      shadowColor: '#EF4444',
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0.5,
+      shadowRadius: 10,
+      elevation: 6,
     },
   },
 
@@ -252,7 +338,7 @@ export const lightTokens: Tokens = {
     border: 'rgba(15, 23, 42, 0.1)',
     shadow: '#64748B',
 
-    // Semantic colors
+    // Semantic colors - Slightly darker for light backgrounds
     danger: '#DC2626',
     success: '#16A34A',
     warning: '#D97706',
@@ -263,6 +349,37 @@ export const lightTokens: Tokens = {
     glowSecondary: '#06B6D4',
     dangerGlow: '#DC2626',
     successGlow: '#16A34A',
+    warningGlow: '#D97706',
+    infoGlow: '#2563EB',
+
+    // Fixed contrast colors (for text on colored backgrounds)
+    // White text on brand buttons for proper contrast
+    onBrand: '#FFFFFF',
+    onDanger: '#FFFFFF',
+    onSuccess: '#FFFFFF',
+
+    // Overlay colors for modals and backdrop
+    overlay: 'rgba(0, 0, 0, 0.5)',
+    overlayLight: 'rgba(0, 0, 0, 0.3)',
+
+    // Ripple effect for touch feedback (Android) - darker for light mode
+    ripple: 'rgba(0, 0, 0, 0.08)',
+
+    // Offline/error state backgrounds (lighter variants for light mode)
+    offlineBackground: '#FEE2E2',
+    offlineBorder: '#FCA5A5',
+    offlineText: '#7F1D1D',
+
+    // Semantic background variants (alpha) for subtle tinted backgrounds
+    dangerBackgroundAlpha: 'rgba(220, 38, 38, 0.1)',
+    successBackgroundAlpha: 'rgba(22, 163, 74, 0.1)',
+    warningBackgroundAlpha: 'rgba(217, 119, 6, 0.1)',
+    infoBackgroundAlpha: 'rgba(37, 99, 235, 0.1)',
+    brandBackgroundAlpha: 'rgba(16, 185, 129, 0.1)',
+
+    // Icon gradient colors (for icon backgrounds in MetricTile, etc.)
+    iconGradientStart: 'rgba(16, 185, 129, 0.1)',
+    iconGradientEnd: 'rgba(6, 182, 212, 0.1)',
   },
 
   gradients: {
@@ -270,6 +387,12 @@ export const lightTokens: Tokens = {
     primary: ['#10B981', '#06B6D4'] as const,
     // Surface gradient for subtle backgrounds
     surface: ['rgba(241, 245, 249, 0.9)', 'rgba(255, 255, 255, 0.95)'] as const,
+    // Icon background gradient (lighter for light mode)
+    iconBackground: ['rgba(16, 185, 129, 0.1)', 'rgba(6, 182, 212, 0.1)'] as const,
+    // Danger gradient for error states
+    dangerGradient: ['#DC2626', '#B91C1C'] as const,
+    // Success gradient for positive states
+    successGradient: ['#16A34A', '#15803D'] as const,
   },
 
   shadow: {
@@ -293,6 +416,20 @@ export const lightTokens: Tokens = {
       shadowOpacity: 0.3,
       shadowRadius: 10,
       elevation: 6,
+    },
+    glowSecondary: {
+      shadowColor: '#06B6D4',
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0.25,
+      shadowRadius: 8,
+      elevation: 4,
+    },
+    dangerGlow: {
+      shadowColor: '#DC2626',
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0.25,
+      shadowRadius: 8,
+      elevation: 4,
     },
   },
 
