@@ -7,7 +7,9 @@
 
 import { GlassCard } from '@/src/core/components/ui/GlassCard';
 import { SectionHeader } from '@/src/core/components/ui/SectionHeader';
-import React from 'react';
+import { useTokens } from '@/src/theme/useTokens';
+import type { Tokens } from '@/src/theme/tokens';
+import React, { useMemo } from 'react';
 import { StyleSheet, View, ViewStyle } from 'react-native';
 
 interface ResultCardProps {
@@ -17,12 +19,31 @@ interface ResultCardProps {
   showHeader?: boolean;
 }
 
+/**
+ * Creates memoized token-based styles for ResultCard
+ * Follows same pattern as GlassCard, MetricTile, Button components
+ */
+function createStyles(t: Tokens) {
+  return {
+    resultsCard: {
+      marginTop: t.spacing.md, // 16 - consistent card margin
+    },
+    resultsContent: {
+      paddingHorizontal: t.spacing.xs, // 4 - minimal horizontal padding
+      paddingBottom: t.spacing.xs, // 4 - minimal bottom padding
+    },
+  } as const;
+}
+
 export function ResultCard({
   children,
   style,
   title = 'Results',
   showHeader = true,
 }: ResultCardProps) {
+  const t = useTokens();
+  const styles = useMemo(() => createStyles(t), [t]);
+
   return (
     <GlassCard style={StyleSheet.flatten([styles.resultsCard, style])}>
       {showHeader && <SectionHeader title={title} />}
@@ -30,13 +51,3 @@ export function ResultCard({
     </GlassCard>
   );
 }
-
-const styles = StyleSheet.create({
-  resultsCard: {
-    marginTop: 16,
-  },
-  resultsContent: {
-    paddingHorizontal: 4,
-    paddingBottom: 4,
-  },
-});

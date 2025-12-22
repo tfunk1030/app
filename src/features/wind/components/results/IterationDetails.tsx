@@ -5,25 +5,67 @@
  * with a collapsible interface for progressive disclosure.
  */
 
-import { useTokens as useThemeTokens } from '@/src/theme/useTokens';
-import { scaledFontSize } from '@/src/utils/responsive';
+import { useTokens } from '@/src/theme/useTokens';
+import type { Tokens } from '@/src/theme/tokens';
+import { safeScaledFontSize } from '@/src/utils/responsive';
 import React, { memo, useCallback, useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
 interface IterationDetailsProps {
   iterationSummary?: string;
 }
 
+/**
+ * Creates memoized token-based styles for IterationDetails
+ * Follows same pattern as GlassCard, MetricTile, Button components
+ */
+function createStyles(t: Tokens) {
+  return {
+    detailsButton: {
+      backgroundColor: t.colors.surfaceAlt,
+      borderRadius: t.borderRadius.lg, // 12
+      padding: t.spacing.sm + 2, // 10 - slightly larger than sm(8) for touch target
+      marginTop: t.spacing.md, // 16
+      alignItems: 'center' as const,
+      borderWidth: t.borderWidth.thin, // 1
+      borderColor: t.colors.border,
+      minHeight: t.touchTarget.minimum, // 48 - touch target compliance
+      justifyContent: 'center' as const,
+    },
+    detailsButtonText: {
+      color: t.colors.brand,
+      fontSize: safeScaledFontSize(t.fontSize.sm, { maxScale: 1.25 }), // 14
+      fontWeight: t.fontWeight.semibold, // '600'
+    },
+    iterationDetails: {
+      backgroundColor: t.colors.surface,
+      borderRadius: t.borderRadius.lg, // 12
+      padding: t.spacing.base, // 12
+      marginTop: t.spacing.base, // 12
+      borderWidth: t.borderWidth.thin, // 1
+      borderColor: t.colors.border,
+    },
+    iterationDetailsTitle: {
+      fontSize: safeScaledFontSize(t.fontSize.sm, { maxScale: 1.2 }), // 14
+      color: t.colors.textMuted,
+      marginBottom: t.spacing.sm, // 8
+      fontWeight: t.fontWeight.semibold, // '600'
+    },
+    iterationDetailsText: {
+      fontSize: safeScaledFontSize(t.fontSize.xs, { maxScale: 1.2 }), // 12
+      color: t.colors.textPrimary,
+      lineHeight: 18, // Comfortable line height for monospace
+      fontFamily: 'monospace',
+    },
+  } as const;
+}
+
 export const IterationDetails = memo(function IterationDetails({
   iterationSummary,
 }: IterationDetailsProps) {
-  const palette = useThemeTokens();
-  const styles = React.useMemo(() => getThemedStyles(palette), [palette]);
+  const t = useTokens();
+  const styles = useMemo(() => createStyles(t), [t]);
   const [showDetails, setShowDetails] = useState(false);
-
-  if (!iterationSummary) {
-    return null;
-  }
 
   const toggleDetails = useCallback(() => {
     setShowDetails(prev => !prev);
@@ -33,6 +75,10 @@ export const IterationDetails = memo(function IterationDetails({
     if (!iterationSummary) return '';
     return `Iteration details: ${iterationSummary.replace(/\n/g, ', ')}`;
   }, [iterationSummary]);
+
+  if (!iterationSummary) {
+    return null;
+  }
 
   return (
     <>
@@ -68,42 +114,3 @@ export const IterationDetails = memo(function IterationDetails({
 });
 
 IterationDetails.displayName = 'IterationDetails';
-
-function getThemedStyles(palette: ReturnType<typeof useThemeTokens>) {
-  return StyleSheet.create({
-    detailsButton: {
-      backgroundColor: palette.colors.surfaceAlt,
-      borderRadius: 12,
-      padding: 10,
-      marginTop: 16,
-      alignItems: 'center',
-      borderWidth: 1,
-      borderColor: palette.colors.border,
-    },
-    detailsButtonText: {
-      color: palette.colors.brand,
-      fontSize: scaledFontSize(14),
-      fontWeight: '600',
-    },
-    iterationDetails: {
-      backgroundColor: palette.colors.surface,
-      borderRadius: 12,
-      padding: 12,
-      marginTop: 12,
-      borderWidth: 1,
-      borderColor: palette.colors.border,
-    },
-    iterationDetailsTitle: {
-      fontSize: scaledFontSize(14),
-      color: palette.colors.textMuted,
-      marginBottom: 8,
-      fontWeight: '600',
-    },
-    iterationDetailsText: {
-      fontSize: scaledFontSize(12),
-      color: palette.colors.textPrimary,
-      lineHeight: 18,
-      fontFamily: 'monospace',
-    },
-  });
-}

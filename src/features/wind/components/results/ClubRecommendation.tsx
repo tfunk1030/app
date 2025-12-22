@@ -5,10 +5,11 @@
  * including club changes and convergence details.
  */
 
-import { useTokens as useThemeTokens } from '@/src/theme/useTokens';
-import { scaledFontSize } from '@/src/utils/responsive';
+import { useTokens } from '@/src/theme/useTokens';
+import type { Tokens } from '@/src/theme/tokens';
+import { safeScaledFontSize } from '@/src/utils/responsive';
 import React, { memo, useMemo } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 
 interface ClubRecommendationProps {
   recommendedClub: string;
@@ -18,6 +19,53 @@ interface ClubRecommendationProps {
   convergedReason: string;
 }
 
+/**
+ * Creates memoized token-based styles for ClubRecommendation
+ * Follows same pattern as GlassCard, MetricTile, Button components
+ */
+function createStyles(t: Tokens) {
+  return {
+    clubRecommendation: {
+      backgroundColor: t.colors.surface,
+      borderRadius: t.borderRadius.lg, // 12
+      padding: t.spacing.base, // 12
+      marginVertical: t.spacing.base, // 12
+      borderWidth: t.borderWidth.thin, // 1
+      borderColor: t.colors.border,
+    },
+    recommendationText: {
+      fontSize: safeScaledFontSize(t.fontSize.base, { maxScale: 1.25 }), // 16
+      color: t.colors.textPrimary,
+      marginBottom: t.spacing.xs, // 4
+      textAlign: 'center' as const,
+    },
+    clubName: {
+      fontWeight: t.fontWeight.bold, // '700'
+      color: t.colors.brand,
+    },
+    clubChangeText: {
+      fontSize: safeScaledFontSize(t.fontSize.xs + 1, { maxScale: 1.2 }), // 13
+      color: t.colors.textMuted,
+      marginTop: t.spacing.xs, // 4
+      fontStyle: 'italic' as const,
+      textAlign: 'center' as const,
+    },
+    iterationText: {
+      fontSize: safeScaledFontSize(t.fontSize.xs, { maxScale: 1.2 }), // 12
+      color: t.colors.textMuted,
+      marginTop: t.spacing.sm, // 8
+      textAlign: 'center' as const,
+    },
+    convergenceText: {
+      fontSize: safeScaledFontSize(t.fontSize.xs, { maxScale: 1.2 }), // 12
+      color: t.colors.textMuted,
+      marginTop: 2, // Small gap between related text items
+      fontStyle: 'italic' as const,
+      textAlign: 'center' as const,
+    },
+  } as const;
+}
+
 export const ClubRecommendation = memo(function ClubRecommendation({
   recommendedClub,
   initialClub,
@@ -25,8 +73,9 @@ export const ClubRecommendation = memo(function ClubRecommendation({
   iterations,
   convergedReason,
 }: ClubRecommendationProps) {
-  const palette = useThemeTokens();
-  const styles = React.useMemo(() => getThemedStyles(palette), [palette]);
+  const t = useTokens();
+  const styles = useMemo(() => createStyles(t), [t]);
+
   const readableConvergenceReason = useMemo(() => {
     switch (convergedReason) {
       case 'distance_threshold':
@@ -83,46 +132,3 @@ export const ClubRecommendation = memo(function ClubRecommendation({
 });
 
 ClubRecommendation.displayName = 'ClubRecommendation';
-
-function getThemedStyles(palette: ReturnType<typeof useThemeTokens>) {
-  return StyleSheet.create({
-    clubRecommendation: {
-      backgroundColor: palette.colors.surface,
-      borderRadius: 12,
-      padding: 12,
-      marginVertical: 12,
-      borderWidth: 1,
-      borderColor: palette.colors.border,
-    },
-    recommendationText: {
-      fontSize: scaledFontSize(16),
-      color: palette.colors.textPrimary,
-      marginBottom: 4,
-      textAlign: 'center',
-    },
-    clubName: {
-      fontWeight: '700',
-      color: palette.colors.brand,
-    },
-    clubChangeText: {
-      fontSize: scaledFontSize(13),
-      color: palette.colors.textMuted,
-      marginTop: 4,
-      fontStyle: 'italic',
-      textAlign: 'center',
-    },
-    iterationText: {
-      fontSize: scaledFontSize(12),
-      color: palette.colors.textMuted,
-      marginTop: 8,
-      textAlign: 'center',
-    },
-    convergenceText: {
-      fontSize: scaledFontSize(12),
-      color: palette.colors.textMuted,
-      marginTop: 2,
-      fontStyle: 'italic',
-      textAlign: 'center',
-    },
-  });
-}

@@ -5,18 +5,40 @@
  * based on wind calculation results.
  */
 
-import { useTokens as useThemeTokens } from '@/src/theme/useTokens';
-import { scaledFontSize } from '@/src/utils/responsive';
-import React from 'react';
-import { StyleSheet, Text } from 'react-native';
+import { useTokens } from '@/src/theme/useTokens';
+import type { Tokens } from '@/src/theme/tokens';
+import { safeScaledFontSize } from '@/src/utils/responsive';
+import React, { useMemo } from 'react';
+import { Text } from 'react-native';
 
 interface LateralAdjustmentProps {
   lateralEffect: number;
 }
 
+/**
+ * Creates memoized token-based styles for LateralAdjustment
+ * Follows same pattern as GlassCard, MetricTile, Button components
+ */
+function createStyles(t: Tokens) {
+  return {
+    resultTitle: {
+      fontSize: safeScaledFontSize(t.fontSize.lg, { maxScale: 1.25 }), // 18
+      color: t.colors.textMuted,
+      marginBottom: t.spacing.sm, // 8
+      textAlign: 'center' as const,
+    },
+    resultHighlight: {
+      fontSize: safeScaledFontSize(t.fontSize.xl, { maxScale: 1.25 }), // 20
+      fontWeight: t.fontWeight.semibold, // '600'
+      color: t.colors.brand,
+    },
+  } as const;
+}
+
 export function LateralAdjustment({ lateralEffect }: LateralAdjustmentProps) {
-  const palette = useThemeTokens();
-  const styles = React.useMemo(() => getThemedStyles(palette), [palette]);
+  const t = useTokens();
+  const styles = useMemo(() => createStyles(t), [t]);
+
   // Only show if there's a lateral effect
   if (lateralEffect === 0) {
     return null;
@@ -41,20 +63,4 @@ export function LateralAdjustment({ lateralEffect }: LateralAdjustmentProps) {
       </Text>
     </Text>
   );
-}
-
-function getThemedStyles(palette: ReturnType<typeof useThemeTokens>) {
-  return StyleSheet.create({
-    resultTitle: {
-      fontSize: scaledFontSize(18),
-      color: palette.colors.textMuted,
-      marginBottom: 8,
-      textAlign: 'center',
-    },
-    resultHighlight: {
-      fontSize: scaledFontSize(20),
-      fontWeight: '600',
-      color: palette.colors.brand,
-    },
-  });
 }
