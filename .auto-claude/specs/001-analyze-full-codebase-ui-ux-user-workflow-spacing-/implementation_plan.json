@@ -328,7 +328,7 @@
           "id": "5.2",
           "title": "Update EffectsGrid Component",
           "description": "Ensure four-tile grid uses consistent MetricTile styling",
-          "status": "pending",
+          "status": "completed",
           "files": [
             "src/features/wind/components/results/EffectsGrid.tsx"
           ],
@@ -337,7 +337,8 @@
             "Tiles use MetricTile component or match styling",
             "Values use consistent typography"
           ],
-          "notes": "Environment, Wind, Total, Lateral effects display"
+          "notes": "EffectsGrid component updated to use consistent MetricTile styling pattern:\n\n**Token-based styling implemented:**\n- Grid gap: t.spacing.base (12px) - consistent with other grids\n- Margin top: t.spacing.md (16px)\n- Tile padding: getScrollPadding(t.spacing.md, { minPadding: t.spacing.base, maxPadding: 20 })\n- Border radius: t.borderRadius.lg (12px) - matches MetricTile inner radius\n- Border width: t.borderWidth.thin (1px)\n- Label margin: t.spacing.xs (4px)\n\n**Typography tokens:**\n- Replaced deprecated scaledFontSize with safeScaledFontSize (with maxScale: 1.2 safety limit)\n- Label: t.fontSize.xs (12px), t.fontWeight.medium ('500')\n- Values: t.fontSize.base (16px), t.fontWeight.semibold ('600')\n- Added letterSpacing: t.letterSpacing.tight for values, t.letterSpacing.normal + 0.3 for labels\n\n**Architecture:**\n- Converted from StyleSheet.create to memoized createStyles(t: Tokens) function\n- Removed unused StyleSheet import\n- Follows same pattern as MetricTile, GlassCard, Button, SectionHeader components\n\n**Acceptance Criteria Met:**\n\u2713 Grid gap consistent with other grids (12px via t.spacing.base)\n\u2713 Tiles use MetricTile-matching styling (border radius, padding, typography)\n\u2713 Values use consistent typography (safeScaledFontSize with token-based sizes and weights)\n\nTypeScript compilation verified. Commit: a4d0922",
+          "updated_at": "2025-12-22T05:53:47.141979+00:00"
         },
         {
           "id": "5.3",
@@ -550,5 +551,5 @@
       "severity": "medium"
     }
   ],
-  "last_updated": "2025-12-22T05:50:43.449307+00:00"
+  "last_updated": "2025-12-22T05:53:47.141979+00:00"
 }
