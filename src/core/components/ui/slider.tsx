@@ -1,4 +1,5 @@
 import { useThemeMode } from '@/src/theme/ThemeProvider';
+import { type Tokens } from '@/src/theme/tokens';
 import { useTokens } from '@/src/theme/useTokens';
 import {
   safeScaledFontSize,
@@ -10,7 +11,7 @@ import {
 import { Slider as NativeSlider } from '@miblanchard/react-native-slider';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import Animated, {
   useAnimatedStyle,
@@ -22,6 +23,97 @@ import Animated, {
 } from 'react-native-reanimated';
 
 const AnimatedView = Animated.View;
+
+// =============================================================================
+// Dynamic styles factory (memoized per token set)
+// =============================================================================
+const createStyles = (t: Tokens) => ({
+  container: {
+    width: '100%' as const,
+  },
+  labelContainer: {
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between' as const,
+    alignItems: 'center' as const,
+  },
+  label: {
+    fontWeight: t.fontWeight.medium,
+  },
+  unit: {
+    marginLeft: t.spacing.xs / 2, // 2px small adjustment
+  },
+  sliderOuterContainer: {
+    position: 'relative' as const,
+  },
+  sliderContainer: {
+    justifyContent: 'center' as const,
+    flexDirection: 'row' as const,
+  },
+  sliderPadding: {
+    width: '12%' as const,
+  },
+  sliderTrackContainer: {
+    flex: 1,
+    position: 'relative' as const,
+  },
+  gradientTrackWrapper: {
+    position: 'absolute' as const,
+    top: '50%' as const,
+    left: 0,
+    right: 0,
+    zIndex: 1,
+    transform: [{ translateY: -3 }],
+  },
+  gradientTrack: {
+    position: 'absolute' as const,
+    left: 0,
+  },
+  track: {},
+  inputContainer: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'space-between' as const,
+  },
+  textInputContainer: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    borderRadius: t.borderRadius.lg, // 12px
+    borderWidth: t.borderWidth.thin, // 1px
+    flex: 1,
+    marginHorizontal: t.spacing.sm, // 8px
+  },
+  numericInput: {
+    fontWeight: t.fontWeight.semibold,
+    textAlign: 'center' as const,
+    minWidth: t.touchTarget.minimum, // 48px
+    paddingVertical: t.spacing.xs / 2, // 2px small adjustment
+  },
+  button: {
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
+    borderWidth: t.borderWidth.thin, // 1px
+  },
+  buttonText: {
+    fontWeight: t.fontWeight.bold,
+  },
+  tooltip: {
+    position: 'absolute' as const,
+    top: -28,
+    // Transform is now applied dynamically based on edge position
+    paddingHorizontal: t.spacing.sm, // 8px
+    paddingVertical: t.spacing.xs, // 4px
+    borderRadius: t.borderRadius.md, // 8px
+    borderWidth: t.borderWidth.thin, // 1px
+    zIndex: 10,
+    minWidth: t.containerSize.input.sm, // 36px - slightly smaller than touch target
+    alignItems: 'center' as const,
+  },
+  tooltipText: {
+    fontWeight: t.fontWeight.semibold,
+    textAlign: 'center' as const,
+  },
+});
 
 interface SliderProps {
   value: number;
@@ -49,7 +141,12 @@ export function Slider({
   const t = useTokens();
   const { mode } = useThemeMode();
   const isDark = mode === 'dark' || mode === 'system';
-  const rippleColor = isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)';
+
+  // Memoize styles based on token set
+  const styles = useMemo(() => createStyles(t), [t]);
+
+  // Use token-based ripple color instead of hardcoded values
+  const rippleColor = t.colors.ripple;
   const [inputValue, setInputValue] = useState(String(value));
   const [sliderValue, setSliderValue] = useState(value);
   const [isDragging, setIsDragging] = useState(false);
@@ -179,16 +276,29 @@ export function Slider({
       : -20;
 
   // Ensure touch targets meet 44pt minimum for accessibility
-  const buttonSize = getTouchTargetSize(44);
-  const inputMinHeight = getFlexibleMinHeight(dense ? 36 : 40);
-  const containerPadding = getScrollPadding(dense ? 2 : 4, {
-    minPadding: 2,
-    maxPadding: 8,
-  });
+  // Use token-based sizes for consistency
+  const buttonSize = getTouchTargetSize(t.containerSize.icon.md); // 44px minimum touch target
+  const inputMinHeight = getFlexibleMinHeight(
+    dense ? t.containerSize.input.sm : t.containerSize.input.md // 36px / 40px
+  );
+  const containerPadding = getScrollPadding(
+    dense ? t.spacing.xs / 2 : t.spacing.xs, // 2px / 4px
+    {
+      minPadding: t.spacing.xs / 2, // 2px
+      maxPadding: t.spacing.sm, // 8px
+    }
+  );
 
   // Custom thumb component with glow effect
+  // Use token-based sizes for slider thumb
   const renderThumb = useCallback(() => {
-    const thumbSize = dense ? 22 : 26;
+    const thumbSize = dense
+      ? t.containerSize.slider.thumbDense // 22px
+      : t.containerSize.slider.thumb; // 26px
+
+    // Use token-based shadow configuration
+    const shadowConfig = glow && isDark ? t.shadow.glowSecondary : t.shadow.subtle;
+
     return (
       <AnimatedView
         style={[
@@ -197,16 +307,16 @@ export function Slider({
             height: thumbSize,
             borderRadius: thumbSize / 2,
             backgroundColor: t.colors.brandAlt,
-            shadowColor: glow && isDark ? t.colors.glowSecondary : t.colors.shadow,
-            shadowOffset: { width: 0, height: 0 },
-            shadowRadius: glow && isDark ? 10 : 3,
-            elevation: 4,
+            shadowColor: shadowConfig.shadowColor,
+            shadowOffset: shadowConfig.shadowOffset,
+            shadowRadius: shadowConfig.shadowRadius,
+            elevation: shadowConfig.elevation,
           },
           thumbAnimatedStyle,
         ]}
       />
     );
-  }, [dense, t.colors, glow, isDark, thumbAnimatedStyle]);
+  }, [dense, t, glow, isDark, thumbAnimatedStyle]);
 
   // Custom track with gradient
   const renderTrackMarkComponent = useCallback(() => null, []);
@@ -225,7 +335,10 @@ export function Slider({
               styles.label,
               {
                 color: t.colors.textMuted,
-                fontSize: safeScaledFontSize(dense ? 12 : 14),
+                fontSize: safeScaledFontSize(
+                  dense ? t.fontSize.xs : t.fontSize.sm, // 12px / 14px
+                  { maxScale: 1.2 }
+                ),
               },
             ]}
           >
@@ -256,7 +369,10 @@ export function Slider({
               styles.buttonText,
               {
                 color: t.colors.textPrimary,
-                fontSize: safeScaledFontSize(dense ? 16 : 18),
+                fontSize: safeScaledFontSize(
+                  dense ? t.fontSize.base : t.fontSize.lg, // 16px / 18px
+                  { maxScale: 1.15 }
+                ),
               },
             ]}
           >
@@ -271,8 +387,11 @@ export function Slider({
               backgroundColor: t.colors.surface,
               borderColor: t.colors.border,
               minHeight: inputMinHeight,
-              paddingHorizontal: getResponsiveSpacing(12, 'horizontal'),
-              paddingVertical: getResponsiveSpacing(dense ? 4 : 6, 'vertical'),
+              paddingHorizontal: getResponsiveSpacing(t.spacing.base, 'horizontal'), // 12px
+              paddingVertical: getResponsiveSpacing(
+                dense ? t.spacing.xs : t.spacing.xs + 2, // 4px / 6px
+                'vertical'
+              ),
             },
           ]}
         >
@@ -281,7 +400,10 @@ export function Slider({
               styles.numericInput,
               {
                 color: t.colors.textPrimary,
-                fontSize: safeScaledFontSize(dense ? 14 : 16),
+                fontSize: safeScaledFontSize(
+                  dense ? t.fontSize.sm : t.fontSize.base, // 14px / 16px
+                  { maxScale: 1.2 }
+                ),
               },
             ]}
             value={inputValue}
@@ -297,7 +419,10 @@ export function Slider({
                 styles.unit,
                 {
                   color: t.colors.textMuted,
-                  fontSize: safeScaledFontSize(dense ? 12 : 14),
+                  fontSize: safeScaledFontSize(
+                    dense ? t.fontSize.xs : t.fontSize.sm, // 12px / 14px
+                    { maxScale: 1.2 }
+                  ),
                 },
               ]}
             >
@@ -327,7 +452,10 @@ export function Slider({
               styles.buttonText,
               {
                 color: t.colors.textPrimary,
-                fontSize: safeScaledFontSize(dense ? 16 : 18),
+                fontSize: safeScaledFontSize(
+                  dense ? t.fontSize.base : t.fontSize.lg, // 16px / 18px
+                  { maxScale: 1.15 }
+                ),
               },
             ]}
           >
@@ -340,8 +468,14 @@ export function Slider({
         style={[
           styles.sliderOuterContainer,
           {
-            paddingVertical: getResponsiveSpacing(dense ? 2 : 4, 'vertical'),
-            marginTop: getResponsiveSpacing(dense ? 1 : 2, 'vertical'),
+            paddingVertical: getResponsiveSpacing(
+              dense ? t.spacing.xs / 2 : t.spacing.xs, // 2px / 4px
+              'vertical'
+            ),
+            marginTop: getResponsiveSpacing(
+              dense ? 1 : t.spacing.xs / 2, // 1px / 2px
+              'vertical'
+            ),
           },
         ]}
       >
@@ -364,7 +498,7 @@ export function Slider({
               styles.tooltipText,
               {
                 color: t.colors.brand,
-                fontSize: safeScaledFontSize(12),
+                fontSize: safeScaledFontSize(t.fontSize.xs, { maxScale: 1.2 }), // 12px
               },
             ]}
           >
@@ -377,7 +511,12 @@ export function Slider({
           style={[
             styles.sliderContainer,
             {
-              minHeight: getFlexibleMinHeight(dense ? 28 : 36),
+              // 28px dense / 36px normal - calculated from slider components
+              minHeight: getFlexibleMinHeight(
+                dense
+                  ? t.containerSize.slider.thumbDense + 6 // 22 + 6 = 28px
+                  : t.containerSize.input.sm // 36px
+              ),
             },
           ]}
         >
@@ -394,12 +533,17 @@ export function Slider({
                     styles.gradientTrack,
                     {
                       width: `${((sliderValue - min) / (max - min)) * 100}%`,
-                      height: dense ? 6 : 8,
-                      borderRadius: dense ? 3 : 4,
-                      shadowColor: t.colors.glowPrimary,
-                      shadowOffset: { width: 0, height: 0 },
-                      shadowOpacity: 0.5,
-                      shadowRadius: 6,
+                      height: dense
+                        ? t.containerSize.slider.trackDense // 6px
+                        : t.containerSize.slider.track, // 8px
+                      borderRadius: dense
+                        ? t.containerSize.slider.trackDense / 2 // 3px
+                        : t.containerSize.slider.track / 2, // 4px
+                      // Use token-based glow shadow
+                      shadowColor: t.shadow.glow.shadowColor,
+                      shadowOffset: t.shadow.glow.shadowOffset,
+                      shadowOpacity: t.shadow.glow.shadowOpacity * 0.8, // Slightly reduced for track
+                      shadowRadius: t.shadow.glow.shadowRadius / 2, // 6px
                     },
                   ]}
                 />
@@ -421,8 +565,12 @@ export function Slider({
               trackStyle={StyleSheet.flatten([
                 styles.track,
                 {
-                  height: dense ? 6 : 8,
-                  borderRadius: dense ? 3 : 4,
+                  height: dense
+                    ? t.containerSize.slider.trackDense // 6px
+                    : t.containerSize.slider.track, // 8px
+                  borderRadius: dense
+                    ? t.containerSize.slider.trackDense / 2 // 3px
+                    : t.containerSize.slider.track / 2, // 4px
                 },
               ])}
             />
@@ -434,90 +582,3 @@ export function Slider({
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    width: '100%',
-  },
-  labelContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  label: {
-    fontWeight: '500',
-  },
-  unit: {
-    marginLeft: 2,
-  },
-  sliderOuterContainer: {
-    position: 'relative',
-  },
-  sliderContainer: {
-    justifyContent: 'center',
-    flexDirection: 'row',
-  },
-  sliderPadding: {
-    width: '12%',
-  },
-  sliderTrackContainer: {
-    flex: 1,
-    position: 'relative',
-  },
-  gradientTrackWrapper: {
-    position: 'absolute',
-    top: '50%',
-    left: 0,
-    right: 0,
-    zIndex: 1,
-    transform: [{ translateY: -3 }],
-  },
-  gradientTrack: {
-    position: 'absolute',
-    left: 0,
-  },
-  track: {},
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  textInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 12,
-    borderWidth: 1,
-    flex: 1,
-    marginHorizontal: 8,
-  },
-  numericInput: {
-    fontWeight: '600',
-    textAlign: 'center',
-    minWidth: 48,
-    paddingVertical: 2,
-  },
-  button: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-  },
-  buttonText: {
-    fontWeight: '700',
-  },
-  tooltip: {
-    position: 'absolute',
-    top: -28,
-    // Transform is now applied dynamically based on edge position
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    borderWidth: 1,
-    zIndex: 10,
-    minWidth: 40,
-    alignItems: 'center',
-  },
-  tooltipText: {
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-});
