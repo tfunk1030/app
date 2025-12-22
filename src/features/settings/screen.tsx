@@ -7,6 +7,7 @@ import { useClubSettings } from '@/src/features/settings/context/clubs';
 import { usePremium } from '@/src/features/settings/context/premium';
 import { useAccessibleAnimations } from '@/src/hooks/useAccessibility';
 import { useThemeMode } from '@/src/theme/ThemeProvider';
+import { Tokens } from '@/src/theme/tokens';
 import { useTokens } from '@/src/theme/useTokens';
 import { safeScaledFontSize, getScrollPadding } from '@/src/utils/responsive';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -21,7 +22,7 @@ import {
   Trash2,
 } from 'lucide-react-native';
 import * as React from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Platform, Pressable, ScrollView, Text, TextInput, View, ViewStyle, TextStyle } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -36,17 +37,47 @@ interface SegmentedControlProps {
   options: { label: string; value: string; icon?: React.ReactNode }[];
   value: string;
   onChange: (value: string) => void;
-  tokens: ReturnType<typeof useTokens>;
+  tokens: Tokens;
 }
 
 const SegmentedControl = React.memo<SegmentedControlProps>(({
   options,
   value,
   onChange,
-  tokens,
+  tokens: t,
 }) => {
+  const segmentStyles = React.useMemo(() => ({
+    container: {
+      flexDirection: 'row' as const,
+      borderRadius: t.borderRadius.lg,
+      padding: t.spacing.xs,
+      gap: t.spacing.xs,
+      backgroundColor: t.colors.surfaceAlt,
+    },
+    option: {
+      flex: 1,
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+      gap: t.spacing.sm - 2, // 6px for icon-text gap
+      paddingVertical: t.spacing.sm + 2, // 10px
+      paddingHorizontal: t.spacing.base,
+      borderRadius: t.borderRadius.md + 2, // 10px for inner segments
+      borderWidth: t.borderWidth.thin,
+      borderColor: 'transparent',
+    },
+    optionSelected: {
+      backgroundColor: t.colors.surface,
+      borderColor: t.colors.brand,
+    },
+    text: {
+      fontSize: safeScaledFontSize(t.fontSize.sm),
+      fontWeight: t.fontWeight.semibold,
+    },
+  }), [t]);
+
   return (
-    <View style={[styles.segmentedControl, { backgroundColor: tokens.colors.surfaceAlt }]}>
+    <View style={segmentStyles.container}>
       {options.map((option) => {
         const isSelected = option.value === value;
         return (
@@ -54,20 +85,15 @@ const SegmentedControl = React.memo<SegmentedControlProps>(({
             key={option.value}
             onPress={() => onChange(option.value)}
             style={[
-              styles.segmentOption,
-              isSelected && {
-                backgroundColor: tokens.colors.surface,
-                borderColor: tokens.colors.brand,
-              },
+              segmentStyles.option,
+              isSelected && segmentStyles.optionSelected,
             ]}
           >
             {option.icon}
             <Text
               style={[
-                styles.segmentText,
-                {
-                  color: isSelected ? tokens.colors.textPrimary : tokens.colors.textMuted,
-                },
+                segmentStyles.text,
+                { color: isSelected ? t.colors.textPrimary : t.colors.textMuted },
               ]}
             >
               {option.label}
@@ -85,7 +111,7 @@ interface SettingsRowProps {
   label: string;
   value?: string;
   onPress?: () => void;
-  tokens: ReturnType<typeof useTokens>;
+  tokens: Tokens;
   showChevron?: boolean;
 }
 
@@ -94,30 +120,68 @@ const SettingsRow: React.FC<SettingsRowProps> = ({
   label,
   value,
   onPress,
-  tokens,
+  tokens: t,
   showChevron = true,
-}) => (
-  <Pressable
-    onPress={onPress}
-    style={({ pressed }) => [
-      styles.settingsRow,
-      { backgroundColor: pressed ? tokens.colors.surfaceAlt : 'transparent' },
-    ]}
-  >
-    <View style={styles.settingsRowLeft}>
-      <View style={[styles.settingsRowIcon, { backgroundColor: `${tokens.colors.brand}15` }]}>
-        {icon}
+}) => {
+  const rowStyles = React.useMemo(() => ({
+    container: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      justifyContent: 'space-between' as const,
+      paddingVertical: t.spacing.base,
+      paddingHorizontal: t.spacing.xs,
+      borderRadius: t.borderRadius.md,
+    },
+    left: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: t.spacing.base,
+    },
+    iconContainer: {
+      width: t.containerSize.icon.md, // 44px
+      height: t.containerSize.icon.md,
+      borderRadius: t.borderRadius.lg,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+      backgroundColor: t.colors.brandBackgroundAlpha,
+    },
+    label: {
+      fontSize: safeScaledFontSize(t.fontSize.sm + 1), // 15px
+      fontWeight: t.fontWeight.medium,
+    },
+    right: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: t.spacing.sm,
+    },
+    value: {
+      fontSize: safeScaledFontSize(t.fontSize.sm),
+    },
+  }), [t]);
+
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [
+        rowStyles.container,
+        { backgroundColor: pressed ? t.colors.surfaceAlt : 'transparent' },
+      ]}
+    >
+      <View style={rowStyles.left}>
+        <View style={rowStyles.iconContainer}>
+          {icon}
+        </View>
+        <Text style={[rowStyles.label, { color: t.colors.textPrimary }]}>{label}</Text>
       </View>
-      <Text style={[styles.settingsRowLabel, { color: tokens.colors.textPrimary }]}>{label}</Text>
-    </View>
-    <View style={styles.settingsRowRight}>
-      {value && (
-        <Text style={[styles.settingsRowValue, { color: tokens.colors.textMuted }]}>{value}</Text>
-      )}
-      {showChevron && <ChevronRight size={18} color={tokens.colors.textMuted} />}
-    </View>
-  </Pressable>
-);
+      <View style={rowStyles.right}>
+        {value && (
+          <Text style={[rowStyles.value, { color: t.colors.textMuted }]}>{value}</Text>
+        )}
+        {showChevron && <ChevronRight size={18} color={t.colors.textMuted} />}
+      </View>
+    </Pressable>
+  );
+};
 
 // Club Item Component
 interface ClubItemProps {
@@ -126,7 +190,7 @@ interface ClubItemProps {
   unit: string;
   onEdit: () => void;
   onDelete: () => void;
-  tokens: ReturnType<typeof useTokens>;
+  tokens: Tokens;
 }
 
 const ClubItem = React.memo<ClubItemProps>(({
@@ -135,7 +199,7 @@ const ClubItem = React.memo<ClubItemProps>(({
   unit,
   onEdit,
   onDelete,
-  tokens,
+  tokens: t,
 }) => {
   const scale = useSharedValue(1);
 
@@ -151,40 +215,183 @@ const ClubItem = React.memo<ClubItemProps>(({
     scale.value = withSpring(1);
   }, [scale]);
 
+  const clubStyles = React.useMemo(() => ({
+    item: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      justifyContent: 'space-between' as const,
+      paddingVertical: t.spacing.base + 2, // 14px
+      borderBottomWidth: t.borderWidth.thin,
+      borderBottomColor: t.colors.border,
+    },
+    info: {
+      flex: 1,
+    },
+    name: {
+      fontSize: safeScaledFontSize(t.fontSize.base),
+      fontWeight: t.fontWeight.semibold,
+      marginBottom: 2,
+    },
+    distance: {
+      fontSize: safeScaledFontSize(t.fontSize.xs + 1), // 13px
+    },
+    distanceValue: {
+      fontWeight: t.fontWeight.semibold,
+      ...Platform.select({
+        ios: { fontFamily: 'Menlo' },
+        android: { fontFamily: 'monospace' },
+      }),
+    },
+    actions: {
+      flexDirection: 'row' as const,
+      gap: t.spacing.sm,
+    },
+    actionButton: {
+      width: t.containerSize.icon.md, // 44px
+      height: t.containerSize.icon.md,
+      borderRadius: t.borderRadius.lg,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+    },
+  }), [t]);
+
   return (
     <AnimatedPressable
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
-      style={[styles.clubItem, { borderBottomColor: tokens.colors.border }, animatedStyle]}
+      style={[clubStyles.item, animatedStyle]}
     >
-      <View style={styles.clubInfo}>
-        <Text style={[styles.clubName, { color: tokens.colors.textPrimary }]}>{club.name}</Text>
-        <Text style={[styles.clubDistance, { color: tokens.colors.textMuted }]}>
-          <Text style={styles.clubDistanceValue}>{Math.round(displayYardage)}</Text> {unit}
+      <View style={clubStyles.info}>
+        <Text style={[clubStyles.name, { color: t.colors.textPrimary }]}>{club.name}</Text>
+        <Text style={[clubStyles.distance, { color: t.colors.textMuted }]}>
+          <Text style={clubStyles.distanceValue}>{Math.round(displayYardage)}</Text> {unit}
         </Text>
       </View>
-      <View style={styles.clubActions}>
+      <View style={clubStyles.actions}>
         <Pressable
           onPress={onEdit}
-          style={[styles.clubActionButton, { backgroundColor: `${tokens.colors.brand}15` }]}
+          style={[clubStyles.actionButton, { backgroundColor: t.colors.brandBackgroundAlpha }]}
         >
-          <Pencil size={16} color={tokens.colors.brand} />
+          <Pencil size={16} color={t.colors.brand} />
         </Pressable>
         <Pressable
           onPress={onDelete}
-          style={[styles.clubActionButton, { backgroundColor: `${tokens.colors.danger}15` }]}
+          style={[clubStyles.actionButton, { backgroundColor: t.colors.dangerBackgroundAlpha }]}
         >
-          <Trash2 size={16} color={tokens.colors.danger} />
+          <Trash2 size={16} color={t.colors.danger} />
         </Pressable>
       </View>
     </AnimatedPressable>
   );
 });
 
+// Create memoized styles function
+const createStyles = (t: Tokens) => ({
+  container: {
+    flex: 1,
+    backgroundColor: t.colors.background,
+  } as ViewStyle,
+  contentContainer: {
+    paddingBottom: t.spacing['5xl'],
+  } as ViewStyle,
+  title: {
+    fontSize: safeScaledFontSize(t.fontSize['4xl'] - 4), // 32px
+    fontWeight: t.fontWeight.bold,
+    letterSpacing: t.letterSpacing.tight,
+    marginBottom: t.spacing.xs,
+  } as TextStyle,
+  subtitle: {
+    fontSize: safeScaledFontSize(t.fontSize.sm + 1), // 15px
+    fontWeight: t.fontWeight.medium,
+    marginBottom: t.spacing.lg,
+  } as TextStyle,
+  sectionCard: {
+    marginBottom: t.spacing.md,
+  } as ViewStyle,
+  sectionHeader: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: t.spacing.sm + 2, // 10px
+    marginBottom: t.spacing.md,
+  } as ViewStyle,
+  sectionHeaderRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'space-between' as const,
+  } as ViewStyle,
+  sectionTitle: {
+    fontSize: safeScaledFontSize(t.fontSize.lg - 1), // 17px
+    fontWeight: t.fontWeight.semibold,
+  } as TextStyle,
+  iconContainer: {
+    width: t.containerSize.icon.sm,
+    height: t.containerSize.icon.sm,
+    borderRadius: t.borderRadius.md,
+    overflow: 'hidden' as const,
+  } as ViewStyle,
+  iconGradient: {
+    flex: 1,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+  } as ViewStyle,
+  clubIconText: {
+    color: t.colors.onBrand, // Fix: was hardcoded #fff
+    fontSize: safeScaledFontSize(t.fontSize.base),
+    fontWeight: t.fontWeight.bold,
+  } as TextStyle,
+  unitHint: {
+    fontSize: safeScaledFontSize(t.fontSize.xs),
+    textAlign: 'center' as const,
+    marginTop: t.spacing.base,
+  } as TextStyle,
+  addButton: {
+    width: t.containerSize.icon.md,
+    height: t.containerSize.icon.md,
+    borderRadius: t.borderRadius.lg,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    backgroundColor: t.colors.brandBackgroundAlpha,
+  } as ViewStyle,
+  formContainer: {
+    marginTop: t.spacing.md,
+    paddingTop: t.spacing.md,
+    borderTopWidth: t.borderWidth.thin,
+    borderTopColor: t.colors.border, // Fix: was hardcoded rgba(255,255,255,0.1)
+    gap: t.spacing.base,
+  } as ViewStyle,
+  input: {
+    height: t.containerSize.input.lg,
+    borderWidth: t.borderWidth.thin,
+    borderRadius: t.borderRadius.lg,
+    paddingHorizontal: t.spacing.md,
+    fontSize: safeScaledFontSize(t.fontSize.sm + 1), // 15px
+  } as TextStyle,
+  formButtons: {
+    flexDirection: 'row' as const,
+    gap: t.spacing.base,
+    marginTop: t.spacing.xs,
+  } as ViewStyle,
+  formButton: {
+    flex: 1,
+  } as ViewStyle,
+  clubList: {
+    marginTop: t.spacing.sm,
+  } as ViewStyle,
+  emptyText: {
+    fontSize: safeScaledFontSize(t.fontSize.sm),
+    textAlign: 'center' as const,
+    paddingVertical: t.spacing.lg,
+  } as TextStyle,
+  versionText: {
+    fontSize: safeScaledFontSize(t.fontSize.xs),
+    textAlign: 'center' as const,
+    marginTop: t.spacing.sm,
+  } as TextStyle,
+});
+
 export default function SettingsScreen() {
   const tokens = useTokens();
   const { mode, setMode } = useThemeMode();
-  const isDark = mode === 'dark' || mode === 'system';
   const { settings, updateSettings, convertDistance } = useSettings();
   const { clubs, addClub, updateClub, removeClub } = useClubSettings();
   const { isPremium, setShowUpgradeModal } = usePremium();
@@ -194,7 +401,9 @@ export default function SettingsScreen() {
   const [newClub, setNewClub] = React.useState({ name: '', normalYardage: '', loft: '' });
   const [showAddForm, setShowAddForm] = React.useState(false);
 
-  const padding = getScrollPadding(16, { minPadding: 12, maxPadding: 20 });
+  // Memoized styles
+  const styles = React.useMemo(() => createStyles(tokens), [tokens]);
+  const padding = getScrollPadding(tokens.spacing.md, { minPadding: tokens.spacing.base, maxPadding: 20 });
 
   const handleSave = () => {
     const numericYardage = parseInt(newClub.normalYardage) || 0;
@@ -256,10 +465,10 @@ export default function SettingsScreen() {
 
   return (
     <ScrollView
-      style={[styles.container, { backgroundColor: tokens.colors.background }]}
+      style={styles.container}
       contentContainerStyle={[
         styles.contentContainer,
-        { paddingTop: insets.top + 16, paddingHorizontal: padding },
+        { paddingTop: insets.top + tokens.spacing.md, paddingHorizontal: padding },
       ]}
       showsVerticalScrollIndicator={false}
     >
@@ -338,7 +547,7 @@ export default function SettingsScreen() {
         <GlassCard style={styles.sectionCard}>
           <View style={styles.sectionHeaderRow}>
             <View style={styles.sectionHeader}>
-              <View style={[styles.iconContainer, { backgroundColor: `${tokens.colors.brandAlt}15` }]}>
+              <View style={[styles.iconContainer, { backgroundColor: tokens.colors.brandBackgroundAlpha }]}>
                 <LinearGradient
                   colors={tokens.gradients.primary as [string, string, ...string[]]}
                   style={styles.iconGradient}
@@ -353,7 +562,7 @@ export default function SettingsScreen() {
             {!showAddForm && (
               <Pressable
                 onPress={() => setShowAddForm(true)}
-                style={[styles.addButton, { backgroundColor: `${tokens.colors.brand}15` }]}
+                style={styles.addButton}
               >
                 <Plus size={20} color={tokens.colors.brand} />
               </Pressable>
@@ -454,193 +663,3 @@ export default function SettingsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  contentContainer: {
-    paddingBottom: 120,
-  },
-  title: {
-    fontSize: safeScaledFontSize(32),
-    fontWeight: '700',
-    letterSpacing: -0.5,
-    marginBottom: 4,
-  },
-  subtitle: {
-    fontSize: safeScaledFontSize(15),
-    fontWeight: '500',
-    marginBottom: 24,
-  },
-  sectionCard: {
-    marginBottom: 16,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginBottom: 16,
-  },
-  sectionHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  sectionTitle: {
-    fontSize: safeScaledFontSize(17),
-    fontWeight: '600',
-  },
-  iconContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    overflow: 'hidden',
-  },
-  iconGradient: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  clubIconText: {
-    color: '#fff',
-    fontSize: safeScaledFontSize(16),
-    fontWeight: '700',
-  },
-  segmentedControl: {
-    flexDirection: 'row',
-    borderRadius: 12,
-    padding: 4,
-    gap: 4,
-  },
-  segmentOption: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: 'transparent',
-  },
-  segmentText: {
-    fontSize: safeScaledFontSize(14),
-    fontWeight: '600',
-  },
-  unitHint: {
-    fontSize: safeScaledFontSize(12),
-    textAlign: 'center',
-    marginTop: 12,
-  },
-  addButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  formContainer: {
-    marginTop: 16,
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.1)',
-    gap: 12,
-  },
-  input: {
-    height: 48,
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    fontSize: safeScaledFontSize(15),
-  },
-  formButtons: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 4,
-  },
-  formButton: {
-    flex: 1,
-  },
-  clubList: {
-    marginTop: 8,
-  },
-  clubItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-  },
-  clubInfo: {
-    flex: 1,
-  },
-  clubName: {
-    fontSize: safeScaledFontSize(16),
-    fontWeight: '600',
-    marginBottom: 2,
-  },
-  clubDistance: {
-    fontSize: safeScaledFontSize(13),
-  },
-  clubDistanceValue: {
-    fontWeight: '600',
-    ...Platform.select({
-      ios: { fontFamily: 'Menlo' },
-      android: { fontFamily: 'monospace' },
-    }),
-  },
-  clubActions: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  clubActionButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  emptyText: {
-    fontSize: safeScaledFontSize(14),
-    textAlign: 'center',
-    paddingVertical: 24,
-  },
-  settingsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 12,
-    paddingHorizontal: 4,
-    borderRadius: 8,
-  },
-  settingsRowLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  settingsRowIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  settingsRowLabel: {
-    fontSize: safeScaledFontSize(15),
-    fontWeight: '500',
-  },
-  settingsRowRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  settingsRowValue: {
-    fontSize: safeScaledFontSize(14),
-  },
-  versionText: {
-    fontSize: safeScaledFontSize(12),
-    textAlign: 'center',
-    marginTop: 8,
-  },
-});
