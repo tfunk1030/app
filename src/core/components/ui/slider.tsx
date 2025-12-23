@@ -1,19 +1,23 @@
+import { useReduceMotionValue } from '@/src/hooks/useReduceMotion';
+import { springConfigs } from '@/src/theme/animations';
+import { gradients } from '@/src/theme/gradients';
 import { useThemeMode } from '@/src/theme/ThemeProvider';
 import { type Tokens } from '@/src/theme/tokens';
 import { useTokens } from '@/src/theme/useTokens';
 import {
-  safeScaledFontSize,
-  getTouchTargetSize,
   getFlexibleMinHeight,
-  getScrollPadding,
   getResponsiveSpacing,
+  getScrollPadding,
+  getTouchTargetSize,
+  safeScaledFontSize,
 } from '@/src/utils/responsive';
 import { Slider as NativeSlider } from '@miblanchard/react-native-slider';
-import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { LinearGradient } from 'expo-linear-gradient';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import Animated, {
+  cancelAnimation,
   useAnimatedStyle,
   useSharedValue,
   withRepeat,
@@ -145,11 +149,15 @@ export function Slider({
   // Memoize styles based on token set
   const styles = useMemo(() => createStyles(t), [t]);
 
-  // Use token-based ripple color instead of hardcoded values
-  const rippleColor = t.colors.ripple;
+  // Use token-based ripple color - fallback to semi-transparent if not defined
+  const rippleColor = isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.08)';
+  const reduceMotion = useReduceMotionValue();
   const [inputValue, setInputValue] = useState(String(value));
   const [sliderValue, setSliderValue] = useState(value);
   const [isDragging, setIsDragging] = useState(false);
+
+  // Track last stepped value for haptic feedback during dragging
+  const lastSteppedValue = useRef(Math.round(value / step) * step);
 
   // Animation values
   const thumbScale = useSharedValue(1);
@@ -157,19 +165,27 @@ export function Slider({
   const tooltipOpacity = useSharedValue(0);
   const tooltipScale = useSharedValue(0.8);
 
-  // Pulse animation for thumb glow
+  // Pulse animation for thumb glow - skip if reduce motion is enabled
   useEffect(() => {
+    // Don't run continuous animations if reduce motion is enabled
+    if (reduceMotion) {
+      thumbGlow.value = 0.3;
+      return;
+    }
+
     if (glow && isDark) {
       thumbGlow.value = withRepeat(
-        withSequence(
-          withTiming(0.6, { duration: 1500 }),
-          withTiming(0.3, { duration: 1500 })
-        ),
+        withSequence(withTiming(0.6, { duration: 1500 }), withTiming(0.3, { duration: 1500 })),
         -1,
         true
       );
     }
-  }, [glow, isDark, thumbGlow]);
+
+    // Cleanup: cancel animation on unmount to prevent memory leaks
+    return () => {
+      cancelAnimation(thumbGlow);
+    };
+  }, [glow, isDark, thumbGlow, reduceMotion]);
 
   const thumbAnimatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: thumbScale.value }],
@@ -231,36 +247,37 @@ export function Slider({
   const handleSliderChange = useCallback(
     (values: number[]) => {
       const newValue = values[0];
+      const currentSteppedValue = Math.round(newValue / step) * step;
+
+      // Trigger selection haptic when crossing step boundaries
+      if (currentSteppedValue !== lastSteppedValue.current) {
+        lastSteppedValue.current = currentSteppedValue;
+        Haptics.selectionAsync();
+      }
+
       setSliderValue(newValue);
       setInputValue(String(Math.round(newValue)));
       onValueChange(newValue);
     },
-    [onValueChange]
+    [onValueChange, step]
   );
 
   const handleSlidingStart = useCallback(() => {
     setIsDragging(true);
-    thumbScale.value = withSpring(1.2, {
-      damping: t.animation.spring.damping,
-      stiffness: t.animation.spring.stiffness,
-    });
-    tooltipOpacity.value = withTiming(1, { duration: 150 });
-    tooltipScale.value = withSpring(1, {
-      damping: t.animation.spring.damping,
-      stiffness: t.animation.spring.stiffness,
-    });
+    // Use stiff spring config for snappy response without excessive bouncing
+    thumbScale.value = reduceMotion ? 1.2 : withSpring(1.2, springConfigs.stiff);
+    tooltipOpacity.value = reduceMotion ? 1 : withTiming(1, { duration: 150 });
+    tooltipScale.value = reduceMotion ? 1 : withSpring(1, springConfigs.stiff);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-  }, [thumbScale, tooltipOpacity, tooltipScale, t.animation.spring]);
+  }, [thumbScale, tooltipOpacity, tooltipScale, reduceMotion]);
 
   const handleSlidingComplete = useCallback(() => {
     setIsDragging(false);
-    thumbScale.value = withSpring(1, {
-      damping: t.animation.spring.damping,
-      stiffness: t.animation.spring.stiffness,
-    });
-    tooltipOpacity.value = withTiming(0, { duration: 200 });
-    tooltipScale.value = withTiming(0.8, { duration: 200 });
-  }, [thumbScale, tooltipOpacity, tooltipScale, t.animation.spring]);
+    // Use stiff spring config for quick settling without prolonged animation
+    thumbScale.value = reduceMotion ? 1 : withSpring(1, springConfigs.stiff);
+    tooltipOpacity.value = reduceMotion ? 0 : withTiming(0, { duration: 200 });
+    tooltipScale.value = reduceMotion ? 0.8 : withTiming(0.8, { duration: 200 });
+  }, [thumbScale, tooltipOpacity, tooltipScale, reduceMotion]);
 
   // Calculate tooltip position based on slider value with edge clamping
   // This ensures the tooltip doesn't clip off the edges of the screen
@@ -269,11 +286,7 @@ export function Slider({
   const tooltipPosition = Math.max(8, Math.min(92, rawTooltipPosition));
 
   // Calculate dynamic transform based on position to prevent edge clipping
-  const tooltipTransformX = rawTooltipPosition < 15
-    ? -8
-    : rawTooltipPosition > 85
-      ? -32
-      : -20;
+  const tooltipTransformX = rawTooltipPosition < 15 ? -8 : rawTooltipPosition > 85 ? -32 : -20;
 
   // Ensure touch targets meet 44pt minimum for accessibility
   // Use token-based sizes for consistency
@@ -292,12 +305,26 @@ export function Slider({
   // Custom thumb component with glow effect
   // Use token-based sizes for slider thumb
   const renderThumb = useCallback(() => {
+    // Guard against undefined tokens during initial render
+    if (!t?.shadow?.subtle || !t?.containerSize?.slider) {
+      return (
+        <View style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: '#06B6D4' }} />
+      );
+    }
+
     const thumbSize = dense
       ? t.containerSize.slider.thumbDense // 22px
       : t.containerSize.slider.thumb; // 26px
 
-    // Use token-based shadow configuration
-    const shadowConfig = glow && isDark ? t.shadow.glowSecondary : t.shadow.subtle;
+    // Use token-based shadow configuration with fallback
+    // Use 'glow' instead of 'glowSecondary' as per current Tokens interface
+    const shadowConfig = (glow && isDark ? t.shadow?.glow : t.shadow?.subtle) ?? {
+      shadowColor: '#000000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.1,
+      shadowRadius: 2,
+      elevation: 1,
+    };
 
     return (
       <AnimatedView
@@ -306,7 +333,7 @@ export function Slider({
             width: thumbSize,
             height: thumbSize,
             borderRadius: thumbSize / 2,
-            backgroundColor: t.colors.brandAlt,
+            backgroundColor: t.colors?.brandAlt ?? '#06B6D4',
             shadowColor: shadowConfig.shadowColor,
             shadowOffset: shadowConfig.shadowOffset,
             shadowRadius: shadowConfig.shadowRadius,
@@ -511,39 +538,29 @@ export function Slider({
           style={[
             styles.sliderContainer,
             {
-              // 28px dense / 36px normal - calculated from slider components
-              minHeight: getFlexibleMinHeight(
-                dense
-                  ? t.containerSize.slider.thumbDense + 6 // 22 + 6 = 28px
-                  : t.containerSize.input.sm // 36px
-              ),
+              minHeight: getFlexibleMinHeight(dense ? 28 : 36),
             },
           ]}
         >
           <View style={styles.sliderPadding} />
           <View style={styles.sliderTrackContainer}>
-            {/* Gradient track background */}
+            {/* Gradient track background - modernized with bold gradients */}
             {glow && isDark && (
               <View style={styles.gradientTrackWrapper}>
                 <LinearGradient
-                  colors={t.gradients.primary as [string, string, ...string[]]}
+                  colors={gradients.primary}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
                   style={[
                     styles.gradientTrack,
                     {
                       width: `${((sliderValue - min) / (max - min)) * 100}%`,
-                      height: dense
-                        ? t.containerSize.slider.trackDense // 6px
-                        : t.containerSize.slider.track, // 8px
-                      borderRadius: dense
-                        ? t.containerSize.slider.trackDense / 2 // 3px
-                        : t.containerSize.slider.track / 2, // 4px
-                      // Use token-based glow shadow
-                      shadowColor: t.shadow.glow.shadowColor,
-                      shadowOffset: t.shadow.glow.shadowOffset,
-                      shadowOpacity: t.shadow.glow.shadowOpacity * 0.8, // Slightly reduced for track
-                      shadowRadius: t.shadow.glow.shadowRadius / 2, // 6px
+                      height: dense ? 6 : 8,
+                      borderRadius: dense ? 3 : 4,
+                      shadowColor: t.colors.glowPrimary,
+                      shadowOffset: { width: 0, height: 0 },
+                      shadowOpacity: 0.6,
+                      shadowRadius: 8,
                     },
                   ]}
                 />
@@ -557,20 +574,14 @@ export function Slider({
               minimumValue={min}
               maximumValue={max}
               step={step}
-              minimumTrackTintColor={
-                glow && isDark ? 'transparent' : t.colors.brand
-              }
+              minimumTrackTintColor={glow && isDark ? 'transparent' : t.colors.brand}
               maximumTrackTintColor={t.colors.border}
               renderThumbComponent={renderThumb}
               trackStyle={StyleSheet.flatten([
                 styles.track,
                 {
-                  height: dense
-                    ? t.containerSize.slider.trackDense // 6px
-                    : t.containerSize.slider.track, // 8px
-                  borderRadius: dense
-                    ? t.containerSize.slider.trackDense / 2 // 3px
-                    : t.containerSize.slider.track / 2, // 4px
+                  height: dense ? 6 : 8,
+                  borderRadius: dense ? 3 : 4,
                 },
               ])}
             />
@@ -581,4 +592,3 @@ export function Slider({
     </View>
   );
 }
-

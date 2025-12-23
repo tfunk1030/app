@@ -25,7 +25,7 @@ import { useClubSettings } from '@/src/features/settings/context/clubs';
 import { normalizeClubName } from '@/src/features/settings/utils/club-mapping';
 import { useEnhancedEnvironmental } from '@/src/providers/EnhancedEnvironmentalProvider';
 import { useTokens as useThemeTokens } from '@/src/theme/useTokens';
-import { moderateScale, scaledFontSize, getScrollPadding } from '@/src/utils/responsive';
+import { moderateScale, scaledFontSize, getScrollPadding, getBottomPadding } from '@/src/utils/responsive';
 import { Droplets, Gauge, Mountain, Thermometer } from 'lucide-react-native';
 import React, { memo, useCallback, useEffect, useState } from 'react';
 import {
@@ -36,7 +36,7 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Themed styles factory
 function getThemedStyles(palette: ReturnType<typeof useThemeTokens>) {
@@ -452,6 +452,7 @@ export default function ShotCalculatorScreen() {
   const { settings, formatTemperature, formatAltitude, convertDistance } = useSettings();
   const { setShotCalcData } = useShotCalc();
   const palette = useThemeTokens();
+  const insets = useSafeAreaInsets();
   const styles = React.useMemo(() => getThemedStyles(palette), [palette]);
   const [targetYardage, setTargetYardage] = useState(150);
   const [lastUpdate, setLastUpdate] = useState(Date.now());
@@ -460,6 +461,9 @@ export default function ShotCalculatorScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const { width, fontScale } = useWindowDimensions();
   const compactLayout = width < 380 || fontScale > 1.15;
+
+  // Calculate bottom padding to account for FloatingTabBar and safe area
+  const bottomPadding = getBottomPadding(insets.bottom);
 
   // Handle user-triggered refresh
   const onRefresh = useCallback(async () => {
@@ -554,7 +558,7 @@ export default function ShotCalculatorScreen() {
     <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right']}>
       <ScrollView
         style={[styles.container, { backgroundColor: palette.colors.background }]}
-        contentContainerStyle={styles.contentContainer}
+        contentContainerStyle={[styles.contentContainer, { paddingBottom: bottomPadding }]}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}

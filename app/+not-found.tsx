@@ -1,18 +1,20 @@
-import { tokens } from '@/src/theme/tokens';
+import { useTokens } from '@/src/theme/useTokens';
 import { Link, Stack } from 'expo-router';
-import { StyleSheet } from 'react-native';
-
-import { Text, View } from '@/components/Themed';
+import { StyleSheet, Text, View } from 'react-native';
 
 export default function NotFoundScreen() {
+  const t = useTokens();
+
   return (
     <>
       <Stack.Screen options={{ title: 'Oops!' }} />
-      <View style={styles.container}>
-        <Text style={styles.title}>This screen doesn't exist.</Text>
+      <View style={[styles.container, { backgroundColor: t.colors.background }]}>
+        <Text style={[styles.title, { color: t.colors.textPrimary }]}>
+          This screen doesn't exist.
+        </Text>
 
         <Link href="/" style={styles.link}>
-          <Text style={styles.linkText}>Go to home screen!</Text>
+          <Text style={[styles.linkText, { color: t.colors.brand }]}>Go to home screen!</Text>
         </Link>
       </View>
     </>
@@ -25,12 +27,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: 20,
-    backgroundColor: tokens.colors.background,
   },
   title: {
     fontSize: 22,
     fontWeight: '700',
-    color: tokens.colors.textPrimary,
     textAlign: 'center',
   },
   link: {
@@ -39,7 +39,6 @@ const styles = StyleSheet.create({
   },
   linkText: {
     fontSize: 14,
-    color: tokens.colors.brand,
     fontWeight: '600',
     textDecorationLine: 'underline',
   },

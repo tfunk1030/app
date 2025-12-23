@@ -10,6 +10,10 @@ const MAX_FONT_SCALE = 1.35; // Maximum font scale to prevent layout breaking
 const MIN_FONT_SCALE = 0.85; // Minimum font scale for readability
 const SAFE_FONT_SCALE_FACTOR = 0.3; // How much to respect system font scale (0-1)
 
+// FloatingTabBar constants
+const FLOATING_TAB_BAR_HEIGHT = 64; // minHeight of the FloatingTabBar component
+const DEFAULT_BOTTOM_BUFFER = 16; // Additional buffer space below tab bar
+
 function getScreen() {
   const { width, height, scale, fontScale } = Dimensions.get('window');
   return { width, height, scale, fontScale };
@@ -176,8 +180,8 @@ export function getScrollPadding(
     maxPadding = 32,
   } = options || {};
 
-  const { width, fontScale } = getScreen();
-  
+  const { fontScale } = getScreen();
+
   // Scale padding based on screen width
   let padding = scale(basePadding);
   
@@ -188,6 +192,46 @@ export function getScrollPadding(
   }
   
   return clamp(PixelRatio.roundToNearestPixel(padding), minPadding, maxPadding);
+}
+
+/**
+ * Calculates bottom padding for ScrollView content containers to ensure content
+ * is fully visible above the FloatingTabBar.
+ *
+ * This accounts for:
+ * - FloatingTabBar height (64pt)
+ * - Device safe area bottom inset (for notch devices/home indicator)
+ * - Additional buffer for visual breathing room
+ *
+ * @param safeAreaBottom - The device's safe area bottom inset from useSafeAreaInsets()
+ * @param options - Optional configuration for customizing the calculation
+ * @returns The total bottom padding in pixels, rounded to nearest pixel
+ */
+export function getBottomPadding(
+  safeAreaBottom: number = 0,
+  options?: {
+    tabBarHeight?: number;
+    buffer?: number;
+    includeTabBar?: boolean;
+  }
+): number {
+  const {
+    tabBarHeight = FLOATING_TAB_BAR_HEIGHT,
+    buffer = DEFAULT_BOTTOM_BUFFER,
+    includeTabBar = true,
+  } = options || {};
+
+  // Calculate total padding:
+  // - Tab bar height (if included)
+  // - Safe area bottom inset (accounts for home indicator on newer iPhones)
+  // - Buffer for visual spacing
+  let padding = safeAreaBottom + moderateScale(buffer);
+
+  if (includeTabBar) {
+    padding += tabBarHeight;
+  }
+
+  return PixelRatio.roundToNearestPixel(padding);
 }
 
 /**

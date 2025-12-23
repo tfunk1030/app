@@ -1,5 +1,6 @@
 import { useThemeMode } from '@/src/theme/ThemeProvider';
 import { useTokens } from '@/src/theme/useTokens';
+import { gradients, boldColors } from '@/src/theme/gradients';
 import {
   safeScaledFontSize,
   getScrollPadding,
@@ -88,15 +89,15 @@ export const MetricTile: React.FC<MetricTileProps> = ({
     }
   };
 
-  // Shadow style for highlight effect (using token values)
+  // Shadow style for highlight effect - using Bold & Colorful glow
   const getShadowStyle = (): ViewStyle => {
     if (highlight && isDark) {
       return {
-        shadowColor: t.shadow.glow.shadowColor,
-        shadowOffset: t.shadow.glow.shadowOffset,
-        shadowOpacity: t.shadow.glow.shadowOpacity * 0.65, // Slightly reduced for tiles
-        shadowRadius: t.shadow.glow.shadowRadius,
-        elevation: t.shadow.glow.elevation,
+        shadowColor: boldColors.glowEmerald,
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.5,
+        shadowRadius: 16,
+        elevation: 8,
       };
     }
     return {
@@ -179,10 +180,10 @@ export const MetricTile: React.FC<MetricTileProps> = ({
 
   const content = (
     <>
-      {/* Gradient border for highlight */}
+      {/* Gradient border for highlight - Bold & Colorful primary gradient */}
       {highlight && isDark && (
         <LinearGradient
-          colors={t.gradients.primary as [string, string, ...string[]]}
+          colors={gradients.primary as [string, string, ...string[]]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={dynamicStyles.gradientBorder}
@@ -207,7 +208,7 @@ export const MetricTile: React.FC<MetricTileProps> = ({
             { marginBottom: getScrollPadding(t.spacing.sm, { minPadding: 6, maxPadding: 10 }) },
           ]}
         >
-          {/* Icon with gradient background */}
+          {/* Icon with gradient background - Bold & Colorful surface gradient */}
           <View
             style={[
               dynamicStyles.iconContainer,
@@ -221,8 +222,8 @@ export const MetricTile: React.FC<MetricTileProps> = ({
             <LinearGradient
               colors={
                 isDark
-                  ? (t.gradients.surface as [string, string, ...string[]])
-                  : (t.gradients.iconBackground as [string, string, ...string[]])
+                  ? (gradients.surface.elevated as [string, string, ...string[]])
+                  : (gradients.surface.highlight as [string, string, ...string[]])
               }
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}

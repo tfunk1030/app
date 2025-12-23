@@ -5,17 +5,17 @@
  * to provide optimized environmental data access with throttling and
  * background mode support.
  *
- * Features a floating tab bar with glassmorphism and glow effects.
+ * Features a bold gradient tab bar with haptic feedback.
  */
 
 import { useColorScheme } from '@/components/useColorScheme';
-import { FloatingTabBar } from '@/src/core/components/ui/FloatingTabBar';
+import { BoldTabBar } from '@/src/core/components/ui/BoldTabBar';
 import { EnhancedEnvironmentalProvider } from '@/src/providers/EnhancedEnvironmentalProvider';
 import { useThemeMode } from '@/src/theme/ThemeProvider';
 import { useTokens } from '@/src/theme/useTokens';
 import { LogManager } from '@/src/utils/LogManager';
 import { Tabs } from 'expo-router';
-import { Settings as SettingsIcon, Target, Thermometer, Wind } from 'lucide-react-native';
+import { Settings as SettingsIcon, Target, Thermometer, Wind, Package } from 'lucide-react-native';
 import React, { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
@@ -54,12 +54,12 @@ export default function TabLayout() {
     <EnhancedEnvironmentalProvider refreshTrigger={refreshTrigger}>
       <View style={[styles.container, { backgroundColor: t.colors.background }]}>
         <Tabs
-          tabBar={(props) => <FloatingTabBar {...props} />}
+          tabBar={(props) => <BoldTabBar {...props} />}
           screenOptions={{
             headerShown: false,
             lazy: true,
             freezeOnBlur: true,
-            // Hide default tab bar since we're using custom FloatingTabBar
+            // Hide default tab bar since we're using custom BoldTabBar
             tabBarStyle: { display: 'none' },
           }}
         >
@@ -85,6 +85,14 @@ export default function TabLayout() {
               title: 'Wind',
               tabBarIcon: ({ color, size }) => <Wind size={size} color={color} />,
               tabBarAccessibilityLabel: 'Wind tab',
+            }}
+          />
+          <Tabs.Screen
+            name="clubs"
+            options={{
+              title: 'Clubs',
+              tabBarIcon: ({ color, size }) => <Package size={size} color={color} />,
+              tabBarAccessibilityLabel: 'Club Library tab',
             }}
           />
           <Tabs.Screen

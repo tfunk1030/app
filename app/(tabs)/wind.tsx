@@ -25,7 +25,7 @@ import { useWindCalculator } from '@/src/features/wind/hooks/useWindCalculator';
 import { useEnhancedEnvironmental } from '@/src/providers/EnhancedEnvironmentalProvider';
 import { useTokens as useThemeTokens } from '@/src/theme/useTokens';
 import { LogManager } from '@/src/utils/LogManager';
-import { getScrollPadding, moderateScale, scaledFontSize } from '@/src/utils/responsive';
+import { getScrollPadding, moderateScale, scaledFontSize, getBottomPadding } from '@/src/utils/responsive';
 import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -368,6 +368,10 @@ function WindCalculatorScreen() {
   const { heading } = useSensorData();
   const { calculate, result, setWindSpeed, setTargetYardage } = useWindCalculator();
   const [refreshing, setRefreshing] = useState(false);
+  const insets = useSafeAreaInsets();
+
+  // Calculate bottom padding to account for FloatingTabBar and safe area
+  const bottomPadding = getBottomPadding(insets.bottom);
   const [showResults, setShowResults] = useState(false);
   const inputOpacity = useRef(new Animated.Value(1)).current;
   const inputTranslateY = useRef(new Animated.Value(0)).current;
@@ -515,7 +519,7 @@ function WindCalculatorScreen() {
     <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right']}>
       <ScrollView
         style={[styles.container, { backgroundColor: palette.colors.background }]}
-        contentContainerStyle={styles.contentContainer}
+        contentContainerStyle={[styles.contentContainer, { paddingBottom: bottomPadding }]}
         scrollEnabled={true}
         refreshControl={
           <RefreshControl

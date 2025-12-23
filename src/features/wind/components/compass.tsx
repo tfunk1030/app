@@ -506,7 +506,7 @@ const WindDirectionCompass = ({
 
   return (
     <View style={styles.wrapper}>
-      <View style={[styles.headingDisplay, { marginBottom: Math.max(56, Math.round(size * 0.14)) }]}>
+      <View style={[styles.headingDisplay, { marginBottom: Math.max(16, Math.round(size * 0.05)) }]}>
         <Text style={styles.headingText}>
           <Text style={{ color: tokens.colors.success }}>Shot: {displayHeadings.shot}°</Text>
           <Text style={{ color: tokens.colors.textMuted }}> | </Text>
@@ -764,7 +764,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     width: '100%',
     paddingHorizontal: 5,
-    marginBottom: 40,  // Increased spacing below shot/wind text
+    marginBottom: 16,  // Reduced to prevent overlap with adjacent content
   },
   headingText: {
     fontSize: scaledFontSize(14),

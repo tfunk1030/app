@@ -9,7 +9,7 @@ import { useTokens } from '@/src/theme/useTokens';
 import { LogManager } from '@/src/utils/LogManager';
 import { scaledFontSize } from '@/src/utils/responsive';
 import React, { ReactNode, useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Animated, Easing, StyleSheet, Text, View } from 'react-native';
+import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
 import { SkeletonLoader } from './SkeletonLoader';
 
 // Priority levels for loading content
@@ -205,9 +205,16 @@ export function ProgressiveLoader({
       <View style={styles.container}>
         {skeleton || (
           <View style={styles.defaultSkeletonContainer}>
-            <SkeletonLoader type="rectangle" count={2} />
+            <SkeletonLoader type="rectangle" count={2} spacing={12} />
+            {/* Additional skeleton element instead of spinner */}
             {showLoadingIndicator && (
-              <ActivityIndicator style={styles.loader} color={t.colors.brandAlt} />
+              <SkeletonLoader
+                type="rectangle"
+                width="60%"
+                height={16}
+                borderRadius={4}
+                style={styles.loader}
+              />
             )}
           </View>
         )}

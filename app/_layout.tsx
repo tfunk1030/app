@@ -24,6 +24,9 @@ import { useColorScheme } from '@/components/useColorScheme';
 import { AppProvider } from '@/src/core/context/AppProvider';
 import { AppThemeProvider } from '@/src/theme/ThemeProvider';
 
+// Import onboarding components for first-run experience
+import { OnboardingFlow, hasCompletedOnboarding } from '@/src/components/onboarding/OnboardingFlow';
+
 // Import the bridge since it's needed for native error events
 // Import our new cross-platform error bridge
 import errorBridge from '../src/modules/CrossPlatformErrorBridge';
@@ -146,6 +149,27 @@ export { ErrorBoundary };
 const RootLayoutNav = () => {
   const colorScheme = useColorScheme();
   const [permissionGranted, setPermissionGranted] = useState<boolean | null>(null);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [onboardingChecked, setOnboardingChecked] = useState(false);
+
+  // Check if onboarding has been completed on first launch
+  useEffect(() => {
+    async function checkOnboardingStatus() {
+      try {
+        const completed = await hasCompletedOnboarding();
+        if (!completed) {
+          setShowOnboarding(true);
+        }
+      } catch (error) {
+        // If there's an error checking, don't show onboarding to avoid blocking
+        console.error('Error checking onboarding status:', error);
+      } finally {
+        setOnboardingChecked(true);
+      }
+    }
+
+    checkOnboardingStatus();
+  }, []);
 
   // Check and request permissions on mount
   useEffect(() => {
@@ -169,6 +193,11 @@ const RootLayoutNav = () => {
     checkAndRequestPermissions();
   }, []);
 
+  // Handle onboarding completion
+  const handleOnboardingComplete = () => {
+    setShowOnboarding(false);
+  };
+
   return (
     // Wrap with theme + app providers
     <AppThemeProvider>
@@ -191,6 +220,13 @@ const RootLayoutNav = () => {
             - aicaddypro/app/settings.tsx
           */}
           </Stack>
+          {/* Onboarding flow - shows on first app launch only */}
+          {onboardingChecked && (
+            <OnboardingFlow
+              visible={showOnboarding}
+              onComplete={handleOnboardingComplete}
+            />
+          )}
         </ThemeProvider>
       </AppProvider>
     </AppThemeProvider>

@@ -18,7 +18,7 @@ import { useSettings } from '@/src/core/context/settings';
 import { useCompactLayout } from '@/src/hooks/useCompactLayout';
 import { useEnhancedEnvironmental } from '@/src/providers/EnhancedEnvironmentalProvider';
 import { useTokens as useThemeTokens } from '@/src/theme/useTokens';
-import { moderateScale, scaledFontSize, getScrollPadding } from '@/src/utils/responsive';
+import { moderateScale, scaledFontSize, getScrollPadding, getBottomPadding } from '@/src/utils/responsive';
 import {
   Compass,
   Droplets,
@@ -30,7 +30,7 @@ import {
 } from 'lucide-react-native';
 import React, { memo, useCallback, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ConnectivityBanner } from '@/src/core/components/ui/ConnectivityBanner';
 import { RetryCard } from '@/src/core/components/ui/RetryCard';
 
@@ -294,6 +294,10 @@ export default function WeatherScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const { isCompact: compactLayout } = useCompactLayout();
   const palette = useThemeTokens();
+  const insets = useSafeAreaInsets();
+
+  // Calculate bottom padding to account for FloatingTabBar and safe area
+  const bottomPadding = getBottomPadding(insets.bottom);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -310,7 +314,7 @@ export default function WeatherScreen() {
     <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right']}>
       <ScrollView
         style={[styles.container, { backgroundColor: palette.colors.background }]}
-        contentContainerStyle={styles.contentContainer}
+        contentContainerStyle={[styles.contentContainer, { paddingBottom: bottomPadding }]}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -420,7 +424,6 @@ const styles = StyleSheet.create({
   contentContainer: {
     paddingHorizontal: scrollPadding,
     paddingTop: 16,
-    paddingBottom: moderateScale(32),
   },
   centerContent: {
     justifyContent: 'center',

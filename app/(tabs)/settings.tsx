@@ -18,10 +18,10 @@ import { ClubData } from '@/src/core/models/YardageModel';
 import { useClubSettings } from '@/src/features/settings/context/clubs';
 import { usePremium } from '@/src/features/settings/context/premium';
 import { useThemeMode, useThemeTokens } from '@/src/theme/ThemeProvider';
-import { moderateScale, scaledFontSize, getScrollPadding } from '@/src/utils/responsive';
+import { moderateScale, scaledFontSize, getScrollPadding, getBottomPadding } from '@/src/utils/responsive';
 import React, { memo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Notifications from 'expo-notifications';
 // Memoized unit preferences component (Imperial vs Metric)
 const UnitPreferences = memo(
@@ -399,11 +399,15 @@ export default function SettingsScreen() {
   const { isPremium, setShowUpgradeModal } = usePremium();
   const palette = useThemeTokens();
   const { mode, setMode } = useThemeMode();
+  const insets = useSafeAreaInsets();
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [newClub, setNewClub] = useState({ name: '', normalYardage: '' });
   const [editingValues, setEditingValues] = useState({ name: '', normalYardage: '' });
   const [isLoading, setIsLoading] = useState(false);
   const styles = React.useMemo(() => getThemedStyles(palette), [palette]);
+
+  // Calculate bottom padding to account for FloatingTabBar and safe area
+  const bottomPadding = getBottomPadding(insets.bottom);
 
   // Default club yardages from clubs.tsx
   const defaultYardages: Record<string, number> = {
@@ -544,7 +548,7 @@ export default function SettingsScreen() {
   return (
     <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right']}>
       <ScrollView
-        contentContainerStyle={[styles.container, { backgroundColor: palette.colors.background }]}
+        contentContainerStyle={[styles.container, { backgroundColor: palette.colors.background, paddingBottom: bottomPadding }]}
       >
         <PageTitle title="Settings" showGlow={true} showGradient={true} />
 
@@ -652,7 +656,6 @@ function getThemedStyles(palette: ReturnType<typeof useThemeTokens>) {
     container: {
       paddingHorizontal: scrollPadding,
       paddingTop: 16,
-      paddingBottom: moderateScale(32),
       backgroundColor: 'transparent',
       minHeight: '100%',
       alignItems: 'stretch',

@@ -8,7 +8,7 @@
  */
 
 import { useWindData } from '@/src/components/diagnostics/DiagnosticOverlayAdapter';
-import { tokens } from '@/src/theme/tokens';
+import { darkTokens as tokens } from '@/src/theme/tokens';
 import { FeatureFlags } from '@/src/utils/FeatureFlags';
 import { LogManager } from '@/src/utils/LogManager';
 import { scaledFontSize } from '@/src/utils/responsive';
