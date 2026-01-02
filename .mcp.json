@@ -1,11 +1,13 @@
-﻿{
+{
   "mcpServers": {
-    "react-native": {
+    "spawner": {
       "command": "npx",
-      "args": ["run", "cali-mcp-server@latest"],
-      "env": {
-        "FILESYSTEM_ROOT": "C:\\\\dev\\\\aicaddypro"
-      }
+      "args": [
+        "-y",
+        "mcp-remote",
+        "https://mcp.vibeship.co"
+      ],
+      "description": "Spawner V2 - Project memory, validation, skills, sharp edges"
     }
   }
 }

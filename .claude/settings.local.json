@@ -6,7 +6,13 @@
       "Skill(frontend-design)",
       "Skill(ui-design-system)",
       "Skill(code-reviewer)",
-      "Skill(remembering-conversations)"
+      "Skill(remembering-conversations)",
+      "mcp__mind__mind_recall",
+      "mcp__spawner__spawner_analyze",
+      "mcp__spawner__spawner_skills",
+      "Skill(commit)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ]
   }
 }
