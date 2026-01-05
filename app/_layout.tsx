@@ -5,7 +5,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import { useFonts } from 'expo-font';
 import * as Location from 'expo-location';
 import * as Notifications from 'expo-notifications';
-import { Stack } from 'expo-router';
+import { Stack, Redirect } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useState } from 'react';
 import { LogBox, Platform, Text as RNText } from 'react-native';
@@ -13,6 +13,7 @@ import 'react-native-reanimated';
 import SegmentedCacheManager from '../src/utils/SegmentedCacheManager';
 import CacheManager from '../src/utils/cacheManager';
 import { runCacheValidation } from '@/src/startup/cacheValidation';
+import { useNavigationPreference } from '@/src/stores/navigationPreference';
 
 // TypeScript doesn't know about React Native's global ErrorUtils
 const globalAny = global as any;
@@ -152,6 +153,14 @@ const RootLayoutNav = () => {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [onboardingChecked, setOnboardingChecked] = useState(false);
 
+  // Navigation preference for classic vs redesign
+  const { style: navStyle, isLoaded: navLoaded, loadPreference } = useNavigationPreference();
+
+  // Load navigation preference on mount
+  useEffect(() => {
+    loadPreference();
+  }, [loadPreference]);
+
   // Check if onboarding has been completed on first launch
   useEffect(() => {
     async function checkOnboardingStatus() {
@@ -198,6 +207,11 @@ const RootLayoutNav = () => {
     setShowOnboarding(false);
   };
 
+  // Wait for navigation preference to load before rendering
+  if (!navLoaded) {
+    return null;
+  }
+
   return (
     // Wrap with theme + app providers
     <AppThemeProvider>
@@ -205,20 +219,9 @@ const RootLayoutNav = () => {
         <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
           <Stack>
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="(tabs-redesign)" options={{ headerShown: false }} />
             <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
-            {/*
-            Removed non-existent routes that were causing warnings:
-            - "home"
-            - "shot"
-            - "wind"
-            - "settings"
-
-            If these screens are needed, create the corresponding files:
-            - aicaddypro/app/home.tsx
-            - aicaddypro/app/shot.tsx
-            - aicaddypro/app/wind.tsx
-            - aicaddypro/app/settings.tsx
-          */}
+            <Stack.Screen name="index" options={{ headerShown: false }} />
           </Stack>
           {/* Onboarding flow - shows on first app launch only */}
           {onboardingChecked && (
@@ -234,8 +237,8 @@ const RootLayoutNav = () => {
 };
 
 export const unstable_settings = {
-  // Ensure that reloading on `/modal` keeps a back button present.
-  initialRouteName: '(tabs)',
+  // Use index as initial route to allow navigation preference redirect
+  initialRouteName: 'index',
 };
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.

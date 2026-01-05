@@ -18,11 +18,13 @@ import { ClubData } from '@/src/core/models/YardageModel';
 import { useClubSettings } from '@/src/features/settings/context/clubs';
 import { usePremium } from '@/src/features/settings/context/premium';
 import { useThemeMode, useThemeTokens } from '@/src/theme/ThemeProvider';
+import { useNavigationPreference } from '@/src/stores/navigationPreference';
 import { moderateScale, scaledFontSize, getScrollPadding, getBottomPadding } from '@/src/utils/responsive';
 import React, { memo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Notifications from 'expo-notifications';
+import * as Updates from 'expo-updates';
 // Memoized unit preferences component (Imperial vs Metric)
 const UnitPreferences = memo(
   ({ settings, updateSettings }: { settings: any; updateSettings: (settings: any) => void }) => {
@@ -392,6 +394,67 @@ const PremiumUpgrade = memo(
 
 PremiumUpgrade.displayName = 'PremiumUpgrade';
 
+// Memoized navigation style toggle component
+const NavigationStyleToggle = memo(() => {
+  const palette = useThemeTokens();
+  const styles = React.useMemo(() => getThemedStyles(palette), [palette]);
+  const { style: navStyle, setStyle } = useNavigationPreference();
+
+  const handleToggle = async (newStyle: 'classic' | 'redesign') => {
+    await setStyle(newStyle);
+    Alert.alert(
+      'Navigation Changed',
+      `Switched to ${newStyle === 'redesign' ? 'New 3-Tab' : 'Classic 5-Tab'} navigation. The app will reload to apply changes.`,
+      [
+        {
+          text: 'Reload Now',
+          onPress: async () => {
+            try {
+              await Updates.reloadAsync();
+            } catch {
+              // Fallback for development mode where Updates isn't available
+              Alert.alert('Please restart the app to see the changes.');
+            }
+          },
+        },
+        { text: 'Later', style: 'cancel' },
+      ]
+    );
+  };
+
+  return (
+    <GlassCard style={{ ...styles.section, backgroundColor: palette.colors.surfaceAlt }}>
+      <SectionHeader title="Navigation Style" />
+      <View style={[styles.unitGroup, { backgroundColor: palette.colors.surfaceAlt }]}>
+        <Text style={styles.unitLabel}>Choose Layout</Text>
+        <View style={styles.buttonGroup}>
+          <Button
+            variant={navStyle === 'classic' ? 'default' : 'secondary'}
+            onPress={() => handleToggle('classic')}
+            style={{ flex: 1, minWidth: 0 }}
+          >
+            Classic (5 tabs)
+          </Button>
+          <Button
+            variant={navStyle === 'redesign' ? 'default' : 'secondary'}
+            onPress={() => handleToggle('redesign')}
+            style={{ flex: 1, minWidth: 0 }}
+          >
+            New (3 tabs)
+          </Button>
+        </View>
+        <Text style={[styles.clubDetails, { marginTop: 8 }]}>
+          {navStyle === 'redesign'
+            ? 'Streamlined 3-tab layout: Play, Stats, Setup'
+            : 'Classic 5-tab layout: Weather, Shot, Wind, Clubs, Settings'}
+        </Text>
+      </View>
+    </GlassCard>
+  );
+});
+
+NavigationStyleToggle.displayName = 'NavigationStyleToggle';
+
 // Main settings screen component
 export default function SettingsScreen() {
   const { settings, updateSettings, convertDistance } = useSettings();
@@ -579,6 +642,9 @@ export default function SettingsScreen() {
             </View>
           </View>
         </GlassCard>
+
+        {/* Navigation Style Toggle */}
+        <NavigationStyleToggle />
 
         {/* Unit Preferences with Progressive Loading */}
         <ProgressiveLoader
