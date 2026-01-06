@@ -12,7 +12,7 @@ import { FeatureFlags } from '@/src/utils/FeatureFlags';
 import DiagnosticOverlay from './DiagnosticOverlay';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LogManager } from '@/src/utils/LogManager';
-import { DiagnosticContext, DiagnosticContextType } from './DiagnosticContext';
+import { DiagnosticContext, DiagnosticContextType, SensorStatus } from './DiagnosticContext';
 
 // Storage key for diagnostic overlay visibility
 const DIAGNOSTIC_OVERLAY_VISIBLE_KEY = 'diagnostic_overlay_visible';
@@ -104,11 +104,11 @@ export const DiagnosticProvider: React.FC<DiagnosticProviderProps> = ({ children
   };
 
   // Save sensor status to AsyncStorage
-  const saveSensorStatus = async (sensor: string, status: any) => {
+  const saveSensorStatus = async (sensor: string, status: SensorStatus) => {
     try {
       // Get existing sensor status
       const storedStatus = await AsyncStorage.getItem('sensor_status');
-      let sensorStatus: Record<string, any> = {};
+      let sensorStatus: Record<string, SensorStatus> = {};
 
       if (storedStatus) {
         sensorStatus = JSON.parse(storedStatus);

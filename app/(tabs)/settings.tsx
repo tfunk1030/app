@@ -10,10 +10,10 @@
 import { LoadPriority, ProgressiveLoader } from '@/src/components/ui/ProgressiveLoader';
 import { SkeletonLoader } from '@/src/components/ui/SkeletonLoader';
 import { Button } from '@/src/core/components/ui/button';
-import { GlassCard } from '@/src/core/components/ui/GlassCard';
+import { BoldCard } from '@/src/core/components/ui/BoldCard';
 import { PageTitle } from '@/src/core/components/ui/page-title';
 import { SectionHeader } from '@/src/core/components/ui/SectionHeader';
-import { useSettings } from '@/src/core/context/settings';
+import { Settings, useSettings } from '@/src/core/context/settings';
 import { ClubData } from '@/src/core/models/YardageModel';
 import { useClubSettings } from '@/src/features/settings/context/clubs';
 import { usePremium } from '@/src/features/settings/context/premium';
@@ -25,9 +25,15 @@ import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Notifications from 'expo-notifications';
 import * as Updates from 'expo-updates';
+/** Props for settings components */
+interface SettingsComponentProps {
+  settings: Settings;
+  updateSettings: (settings: Partial<Settings>) => void;
+}
+
 // Memoized unit preferences component (Imperial vs Metric)
 const UnitPreferences = memo(
-  ({ settings, updateSettings }: { settings: any; updateSettings: (settings: any) => void }) => {
+  ({ settings, updateSettings }: SettingsComponentProps) => {
     const palette = useThemeTokens();
     const styles = React.useMemo(() => getThemedStyles(palette), [palette]);
     const isMetric =
@@ -58,7 +64,7 @@ const UnitPreferences = memo(
       });
 
     return (
-      <GlassCard style={{ ...styles.section, backgroundColor: palette.colors.surfaceAlt }}>
+      <BoldCard style={styles.section} accent>
         <SectionHeader title="Unit Preferences" />
         <View style={styles.unitGroup}>
           <Text style={styles.unitLabel}>Choose Units</Text>
@@ -79,7 +85,7 @@ const UnitPreferences = memo(
             </Button>
           </View>
         </View>
-      </GlassCard>
+      </BoldCard>
     );
   }
 );
@@ -88,11 +94,11 @@ UnitPreferences.displayName = 'UnitPreferences';
 
 // Memoized app permissions component
 const AppPermissions = memo(
-  ({ settings, updateSettings }: { settings: any; updateSettings: (settings: any) => void }) => {
+  ({ settings, updateSettings }: SettingsComponentProps) => {
     const palette = useThemeTokens();
     const styles = React.useMemo(() => getThemedStyles(palette), [palette]);
     return (
-      <GlassCard style={{ ...styles.section, backgroundColor: palette.colors.surfaceAlt }}>
+      <BoldCard style={styles.section} accent>
         <SectionHeader title="App Permissions" />
 
         <View style={styles.unitGroup}>
@@ -152,7 +158,7 @@ const AppPermissions = memo(
             />
           </View>
         </View>
-      </GlassCard>
+      </BoldCard>
     );
   }
 );
@@ -172,7 +178,7 @@ const AddClubForm = memo(
     handleNameChange: (text: string) => void;
     setNewClub: (club: { name: string; normalYardage: string }) => void;
     handleAddClub: () => void;
-    settings: any;
+    settings: Settings;
   }) => {
     const palette = useThemeTokens();
     const styles = React.useMemo(() => getThemedStyles(palette), [palette]);
@@ -231,7 +237,7 @@ const ClubItem = memo(
     handleEdit: (index: number) => void;
     removeClub: (index: number) => void;
     displayYardage: number;
-    settings: any;
+    settings: Settings;
   }) => {
     const palette = useThemeTokens();
     const styles = React.useMemo(() => getThemedStyles(palette), [palette]);
@@ -326,13 +332,13 @@ const ClubManagement = memo(
     handleCancelEdit: () => void;
     handleEdit: (index: number) => void;
     removeClub: (index: number) => void;
-    settings: any;
+    settings: Settings;
     convertDistance: (value: number, unit: 'meters' | 'yards') => number;
   }) => {
     const palette = useThemeTokens();
     const styles = React.useMemo(() => getThemedStyles(palette), [palette]);
     return (
-      <GlassCard style={{ ...styles.section, backgroundColor: palette.colors.surfaceAlt }}>
+      <BoldCard style={styles.section} accent>
         <SectionHeader title="Club Management" />
 
         {/* Add New Club Form */}
@@ -368,7 +374,7 @@ const ClubManagement = memo(
             />
           );
         })}
-      </GlassCard>
+      </BoldCard>
     );
   }
 );
@@ -381,13 +387,13 @@ const PremiumUpgrade = memo(
     const palette = useThemeTokens();
     const styles = React.useMemo(() => getThemedStyles(palette), [palette]);
     return (
-      <GlassCard style={{ ...styles.premiumCard, backgroundColor: palette.colors.surfaceAlt }}>
+      <BoldCard style={styles.premiumCard} variant="premium" glow glowColor="amber">
         <SectionHeader title="Premium" />
         <Text style={styles.premiumText}>Premium Features Locked</Text>
         <Button variant="default" size="lg" onPress={() => setShowUpgradeModal(true)}>
           Upgrade Now
         </Button>
-      </GlassCard>
+      </BoldCard>
     );
   }
 );
@@ -423,9 +429,9 @@ const NavigationStyleToggle = memo(() => {
   };
 
   return (
-    <GlassCard style={{ ...styles.section, backgroundColor: palette.colors.surfaceAlt }}>
+    <BoldCard style={styles.section} accent>
       <SectionHeader title="Navigation Style" />
-      <View style={[styles.unitGroup, { backgroundColor: palette.colors.surfaceAlt }]}>
+      <View style={styles.unitGroup}>
         <Text style={styles.unitLabel}>Choose Layout</Text>
         <View style={styles.buttonGroup}>
           <Button
@@ -449,7 +455,7 @@ const NavigationStyleToggle = memo(() => {
             : 'Classic 5-tab layout: Weather, Shot, Wind, Clubs, Settings'}
         </Text>
       </View>
-    </GlassCard>
+    </BoldCard>
   );
 });
 
@@ -616,9 +622,9 @@ export default function SettingsScreen() {
         <PageTitle title="Settings" showGlow={true} showGradient={true} />
 
         {/* Theme Toggle */}
-        <GlassCard style={{ ...styles.section, backgroundColor: palette.colors.surfaceAlt }}>
+        <BoldCard style={styles.section} accent>
           <SectionHeader title="Appearance" />
-          <View style={[styles.unitGroup, { backgroundColor: palette.colors.surfaceAlt }]}>
+          <View style={styles.unitGroup}>
             <Text style={styles.unitLabel}>Theme</Text>
             <View style={styles.buttonGroup}>
               <Button
@@ -641,7 +647,7 @@ export default function SettingsScreen() {
               </Button>
             </View>
           </View>
-        </GlassCard>
+        </BoldCard>
 
         {/* Navigation Style Toggle */}
         <NavigationStyleToggle />
@@ -689,7 +695,7 @@ export default function SettingsScreen() {
         </ProgressiveLoader>
 
         {/* Utilities */}
-        <GlassCard style={{ ...styles.section, backgroundColor: palette.colors.surfaceAlt }}>
+        <BoldCard style={styles.section} accent>
           <SectionHeader title="Utilities" />
           <View style={styles.buttonGroup}>
             <Button variant="secondary" onPress={resetToDefaults}>
@@ -699,7 +705,7 @@ export default function SettingsScreen() {
               Test Notification
             </Button>
           </View>
-        </GlassCard>
+        </BoldCard>
 
         {/* Premium Upgrade Card */}
         {!isPremium && (
@@ -716,12 +722,14 @@ export default function SettingsScreen() {
   );
 }
 
+// Spacing values aligned with token system:
+// t.spacing.xs = 4, t.spacing.sm = 8, t.spacing.base = 12, t.spacing.md = 16, t.spacing.lg = 24
 function getThemedStyles(palette: ReturnType<typeof useThemeTokens>) {
   const scrollPadding = getScrollPadding(16);
   return StyleSheet.create({
     container: {
       paddingHorizontal: scrollPadding,
-      paddingTop: 16,
+      paddingTop: 16, // t.spacing.md
       backgroundColor: 'transparent',
       minHeight: '100%',
       alignItems: 'stretch',
@@ -730,71 +738,64 @@ function getThemedStyles(palette: ReturnType<typeof useThemeTokens>) {
       fontSize: scaledFontSize(24),
       fontWeight: '700',
       color: palette.colors.textPrimary,
-      marginBottom: 24,
+      marginBottom: 24, // t.spacing.lg
     },
     section: {
-      marginBottom: 16,
+      marginBottom: 16, // t.spacing.md - section gap
       backgroundColor: 'transparent',
-      borderWidth: 1,
-      borderColor: 'transparent',
       borderRadius: 12,
-      // themed in-card via GlassCard
     },
     sectionTitle: {
       fontSize: scaledFontSize(18),
       fontWeight: '600',
       color: palette.colors.textPrimary,
-      marginBottom: 16,
+      marginBottom: 16, // t.spacing.md
     },
     unitGroup: {
-      marginBottom: 16,
+      marginBottom: 16, // t.spacing.md
       backgroundColor: 'transparent',
-      padding: 12,
+      padding: 12, // t.spacing.base
       borderRadius: 8,
-      borderWidth: 1,
-      borderColor: 'transparent',
     },
     unitLabel: {
       color: palette.colors.textPrimary,
       fontSize: scaledFontSize(16),
-      marginBottom: 8,
+      marginBottom: 8, // t.spacing.sm
       fontWeight: '600',
     },
     buttonGroup: {
       flexDirection: 'row',
-      gap: 8,
+      gap: 8, // t.spacing.sm
       justifyContent: 'space-between',
     },
     formGroup: {
-      gap: 12,
-      marginBottom: 16,
+      gap: 12, // t.spacing.base
+      marginBottom: 16, // t.spacing.md
       backgroundColor: 'transparent',
-      padding: 12,
+      padding: 12, // t.spacing.base
       borderRadius: 8,
-      borderWidth: 1,
-      borderColor: 'transparent',
     },
     input: {
       backgroundColor: palette.colors.surface,
       color: palette.colors.textPrimary,
       borderRadius: 8,
-      padding: 12,
+      padding: 12, // t.spacing.base
       fontSize: scaledFontSize(16),
       borderWidth: 1,
       borderColor: palette.colors.border,
     },
     editInput: {
-      marginBottom: 4,
-      paddingVertical: 8,
+      marginBottom: 4, // t.spacing.xs
+      paddingVertical: 8, // t.spacing.sm
     },
     clubItem: {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
-      padding: 12,
+      padding: 12, // t.spacing.base
       backgroundColor: 'transparent',
       borderRadius: 8,
-      marginBottom: 8,
+      marginBottom: 8, // t.spacing.sm
       borderWidth: 1,
       borderColor: palette.colors.border,
     },
@@ -815,11 +816,11 @@ function getThemedStyles(palette: ReturnType<typeof useThemeTokens>) {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
-      marginBottom: 8,
+      marginBottom: 8, // t.spacing.sm
     },
     clubActions: {
       flexDirection: 'row',
-      gap: 16,
+      gap: 16, // t.spacing.md
       alignItems: 'center',
     },
     actionText: {
@@ -828,7 +829,7 @@ function getThemedStyles(palette: ReturnType<typeof useThemeTokens>) {
       fontWeight: '600',
     },
     dropdown: {
-      marginTop: 8,
+      marginTop: 8, // t.spacing.sm
       backgroundColor: 'transparent',
       borderRadius: 8,
       borderWidth: 1,
@@ -837,7 +838,7 @@ function getThemedStyles(palette: ReturnType<typeof useThemeTokens>) {
     },
     dropdownItem: {
       paddingVertical: 10,
-      paddingHorizontal: 12,
+      paddingHorizontal: 12, // t.spacing.base
       borderBottomWidth: 1,
       borderBottomColor: palette.colors.border,
     },
@@ -850,25 +851,21 @@ function getThemedStyles(palette: ReturnType<typeof useThemeTokens>) {
       fontWeight: '600',
     },
     yardageInput: {
-      marginTop: 4,
-      marginBottom: 4,
-      paddingVertical: 8,
+      marginTop: 4, // t.spacing.xs
+      marginBottom: 4, // t.spacing.xs
+      paddingVertical: 8, // t.spacing.sm
     },
     premiumCard: {
-      marginTop: 24,
-      padding: 16,
+      marginTop: 24, // t.spacing.lg
       alignItems: 'center',
       backgroundColor: 'transparent',
-      borderWidth: 1,
-      borderColor: 'transparent',
       borderRadius: 12,
-      // shadow handled by GlassCard
     },
     premiumText: {
       color: palette.colors.textPrimary,
       fontSize: scaledFontSize(18),
       fontWeight: '700',
-      marginBottom: 16,
+      marginBottom: 16, // t.spacing.md
     },
   });
 }

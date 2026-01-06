@@ -27,6 +27,7 @@ logs/
 *.log
 android/app/build/
 ios/build/
+nul
 
 # Auto Claude data directory
 .auto-claude/

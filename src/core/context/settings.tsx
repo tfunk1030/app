@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as React from 'react';
 
-interface Settings {
+export interface Settings {
   distanceUnit: 'yards' | 'meters';
   temperatureUnit: 'celsius' | 'fahrenheit';
   altitudeUnit: 'feet' | 'meters';

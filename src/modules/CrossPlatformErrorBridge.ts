@@ -10,7 +10,7 @@ export type ErrorDetail = {
   message?: string;
   stack?: string;
   isFatal?: boolean;
-  [key: string]: any;
+  [key: string]: unknown;
 };
 
 export type NativeErrorEvent = {

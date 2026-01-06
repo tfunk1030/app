@@ -47,17 +47,19 @@ import * as Haptics from 'expo-haptics';
 import { gradients, boldColors } from '@/src/theme/gradients';
 
 // Themed styles factory
+// Spacing values aligned with token system:
+// t.spacing.xs = 4, t.spacing.sm = 8, t.spacing.base = 12, t.spacing.md = 16, t.spacing.lg = 24
 function getThemedStyles(palette: ReturnType<typeof useTokens>) {
   const scrollPadding = getScrollPadding(16);
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: palette.colors.background },
     contentContainer: {
       paddingHorizontal: scrollPadding,
-      paddingTop: 16,
+      paddingTop: 16, // t.spacing.md
       paddingBottom: moderateScale(100), // Space for floating tab bar
     },
     clubCard: {
-      marginBottom: 12,
+      marginBottom: 16, // t.spacing.md - card spacing
     },
     clubCardContent: {
       flexDirection: 'row',
@@ -71,7 +73,7 @@ function getThemedStyles(palette: ReturnType<typeof useTokens>) {
       fontSize: scaledFontSize(18),
       fontWeight: '700',
       color: palette.colors.textPrimary,
-      marginBottom: 4,
+      marginBottom: 4, // t.spacing.xs
     },
     clubDistance: {
       fontSize: scaledFontSize(14),
@@ -79,10 +81,10 @@ function getThemedStyles(palette: ReturnType<typeof useTokens>) {
     },
     clubActions: {
       flexDirection: 'row',
-      gap: 12,
+      gap: 12, // t.spacing.base
     },
     actionButton: {
-      padding: 8,
+      padding: 8, // t.spacing.sm
       borderRadius: 8,
       backgroundColor: palette.colors.surfaceAlt,
     },
@@ -96,14 +98,14 @@ function getThemedStyles(palette: ReturnType<typeof useTokens>) {
       backgroundColor: palette.colors.surface,
       borderTopLeftRadius: 24,
       borderTopRightRadius: 24,
-      padding: 24,
+      padding: 24, // t.spacing.lg
       paddingBottom: 40,
     },
     modalHeader: {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
-      marginBottom: 24,
+      marginBottom: 24, // t.spacing.lg
     },
     modalTitle: {
       fontSize: scaledFontSize(20),
@@ -111,36 +113,36 @@ function getThemedStyles(palette: ReturnType<typeof useTokens>) {
       color: palette.colors.textPrimary,
     },
     modalClose: {
-      padding: 8,
+      padding: 8, // t.spacing.sm
     },
     input: {
       backgroundColor: palette.colors.surfaceAlt,
       color: palette.colors.textPrimary,
       borderRadius: 12,
-      padding: 16,
+      padding: 16, // t.spacing.md
       fontSize: scaledFontSize(16),
       borderWidth: 1,
       borderColor: palette.colors.border,
-      marginBottom: 16,
+      marginBottom: 16, // t.spacing.md
     },
     // Quick add section
     quickAddContainer: {
-      marginBottom: 16,
+      marginBottom: 16, // t.spacing.md
     },
     quickAddTitle: {
       fontSize: scaledFontSize(14),
       fontWeight: '600',
       color: palette.colors.textMuted,
-      marginBottom: 12,
+      marginBottom: 12, // t.spacing.base
     },
     quickAddGrid: {
       flexDirection: 'row',
       flexWrap: 'wrap',
-      gap: 8,
+      gap: 8, // t.spacing.sm
     },
     quickAddChip: {
       paddingHorizontal: 14,
-      paddingVertical: 8,
+      paddingVertical: 8, // t.spacing.sm
       borderRadius: 20,
       backgroundColor: palette.colors.surfaceAlt,
       borderWidth: 1,
@@ -155,14 +157,14 @@ function getThemedStyles(palette: ReturnType<typeof useTokens>) {
     headerActions: {
       flexDirection: 'row',
       justifyContent: 'flex-end',
-      marginBottom: 16,
+      marginBottom: 16, // t.spacing.md
     },
     addButton: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 8,
+      gap: 8, // t.spacing.sm
       paddingVertical: 10,
-      paddingHorizontal: 16,
+      paddingHorizontal: 16, // t.spacing.md
       borderRadius: 12,
       overflow: 'hidden',
     },
@@ -175,7 +177,7 @@ function getThemedStyles(palette: ReturnType<typeof useTokens>) {
     statsBar: {
       flexDirection: 'row',
       justifyContent: 'space-around',
-      marginBottom: 16,
+      marginBottom: 16, // t.spacing.md
     },
     statItem: {
       alignItems: 'center',
@@ -188,7 +190,7 @@ function getThemedStyles(palette: ReturnType<typeof useTokens>) {
     statLabel: {
       fontSize: scaledFontSize(12),
       color: palette.colors.textMuted,
-      marginTop: 4,
+      marginTop: 4, // t.spacing.xs
     },
   });
 }
@@ -486,7 +488,7 @@ export default function ClubLibraryScreen() {
           ) : (
             <>
               {/* Stats Bar */}
-              <BoldCard style={{ marginHorizontal: getScrollPadding(16), marginTop: 16, marginBottom: 8 }} variant="highlight">
+              <BoldCard style={{ marginHorizontal: getScrollPadding(16), marginTop: 16, marginBottom: 16 }} variant="highlight">
                 <View style={styles.statsBar}>
                   <View style={styles.statItem}>
                     <Text style={styles.statValue}>{clubs.length}</Text>

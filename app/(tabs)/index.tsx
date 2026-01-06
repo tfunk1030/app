@@ -10,11 +10,12 @@
 
 import { LoadPriority, ProgressiveLoader } from '@/src/components/ui/ProgressiveLoader';
 import { SkeletonLoader } from '@/src/components/ui/SkeletonLoader';
-import { GlassCard } from '@/src/core/components/ui/GlassCard';
+import { BoldCard } from '@/src/core/components/ui/BoldCard';
 import { MetricTile } from '@/src/core/components/ui/MetricTile';
 import { PageTitle } from '@/src/core/components/ui/page-title';
 import { SectionHeader } from '@/src/core/components/ui/SectionHeader';
-import { useSettings } from '@/src/core/context/settings';
+import { Settings, useSettings } from '@/src/core/context/settings';
+import type { EnvironmentalConditions } from '@/src/services/environmental-calculations';
 import { useCompactLayout } from '@/src/hooks/useCompactLayout';
 import { useEnhancedEnvironmental } from '@/src/providers/EnhancedEnvironmentalProvider';
 import { useTokens as useThemeTokens } from '@/src/theme/useTokens';
@@ -69,7 +70,7 @@ ConditionItem.displayName = 'ConditionItem';
 const TemperatureDisplay = memo(({ temperature }: { temperature: string }) => {
   const palette = useThemeTokens();
   return (
-    <GlassCard style={styles.mainCard}>
+    <BoldCard style={styles.mainCard} variant="elevated" accent>
       <View style={styles.temperatureContainer}>
         <View style={styles.iconWrapper}>
           <Thermometer size={32} color={palette.colors.brandAlt} />
@@ -83,13 +84,13 @@ const TemperatureDisplay = memo(({ temperature }: { temperature: string }) => {
           {temperature}
         </Text>
       </View>
-    </GlassCard>
+    </BoldCard>
   );
 });
 
 TemperatureDisplay.displayName = 'TemperatureDisplay';
 
-// Memoized weather column component using GlassCard + SectionHeader
+// Memoized weather column component using BoldCard + SectionHeader
 const WeatherColumn = memo(
   ({
     humidity,
@@ -106,8 +107,8 @@ const WeatherColumn = memo(
   }) => {
     const palette = useThemeTokens();
     return (
-      <GlassCard
-        style={{ marginBottom: moderateScale(8), flex: 1, minWidth: 0, minHeight: cardHeight }}
+      <BoldCard
+        style={{ marginBottom: palette.spacing.sm, flex: 1, minWidth: 0, minHeight: cardHeight }}
         accent
       >
         <SectionHeader title="Weather" />
@@ -131,14 +132,14 @@ const WeatherColumn = memo(
             value={altitude}
           />
         </View>
-      </GlassCard>
+      </BoldCard>
     );
   }
 );
 
 WeatherColumn.displayName = 'WeatherColumn';
 
-// Memoized wind column component using GlassCard + SectionHeader
+// Memoized wind column component using BoldCard + SectionHeader
 const WindColumn = memo(
   ({
     windSpeed,
@@ -155,8 +156,8 @@ const WindColumn = memo(
   }) => {
     const palette = useThemeTokens();
     return (
-      <GlassCard
-        style={{ marginBottom: moderateScale(8), flex: 1, minWidth: 0, minHeight: cardHeight }}
+      <BoldCard
+        style={{ marginBottom: palette.spacing.sm, flex: 1, minWidth: 0, minHeight: cardHeight }}
         accent
       >
         <SectionHeader title="Wind" />
@@ -180,7 +181,7 @@ const WindColumn = memo(
             value={windGust}
           />
         </View>
-      </GlassCard>
+      </BoldCard>
     );
   }
 );
@@ -188,7 +189,7 @@ const WindColumn = memo(
 WindColumn.displayName = 'WindColumn';
 
 // Main weather display component
-const WeatherDisplay = memo(({ conditions, settings }: { conditions: any; settings: any }) => {
+const WeatherDisplay = memo(({ conditions, settings }: { conditions: EnvironmentalConditions; settings: Settings }) => {
   const [weatherHeight, setWeatherHeight] = React.useState<number | undefined>(undefined);
   const [windHeight, setWindHeight] = React.useState<number | undefined>(undefined);
   const syncedHeight =
@@ -417,13 +418,15 @@ export default function WeatherScreen() {
 
 const scrollPadding = getScrollPadding(16);
 
+// Note: Using static values here as StyleSheet.create runs before hooks
+// Dynamic spacing via tokens is applied inline where needed
 const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
   contentContainer: {
     paddingHorizontal: scrollPadding,
-    paddingTop: 16,
+    paddingTop: 16, // t.spacing.md - applied inline with tokens
   },
   centerContent: {
     justifyContent: 'center',
@@ -432,12 +435,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: scaledFontSize(28),
     fontWeight: 'bold',
-    marginBottom: 24,
+    marginBottom: 24, // t.spacing.lg
   },
   mainCard: {
     borderRadius: 16,
-    padding: moderateScale(8),
-    marginBottom: moderateScale(8),
+    padding: moderateScale(8), // t.spacing.sm
+    marginBottom: moderateScale(8), // t.spacing.sm
     alignItems: 'center',
   },
   temperatureContainer: {
@@ -451,7 +454,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 16, // t.spacing.md
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.08,
@@ -464,7 +467,7 @@ const styles = StyleSheet.create({
   },
   columnsContainer: {
     flexDirection: 'row',
-    gap: moderateScale(16),
+    gap: 16, // t.spacing.md - section gap between cards
     alignItems: 'flex-start',
     justifyContent: 'space-between',
   },
@@ -476,7 +479,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   columnsWrapperCompact: {
-    gap: moderateScale(16),
+    gap: 16, // t.spacing.md
   },
   column: {
     flex: 1,
@@ -486,22 +489,22 @@ const styles = StyleSheet.create({
   columnTitle: {
     fontSize: scaledFontSize(20),
     fontWeight: '600',
-    marginBottom: 16,
+    marginBottom: 16, // t.spacing.md
   },
   columnContent: {
-    gap: moderateScale(12),
+    gap: 12, // t.spacing.base - internal card gap
     minWidth: 0,
-    paddingBottom: 4,
+    paddingBottom: 4, // t.spacing.xs
   },
   conditionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 12, // t.spacing.base
     minWidth: 0,
   },
   conditionCard: {
     borderRadius: 16,
-    padding: moderateScale(16),
+    padding: 16, // t.spacing.md
     borderWidth: 1,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
@@ -510,7 +513,7 @@ const styles = StyleSheet.create({
   },
   conditionLabel: {
     fontSize: scaledFontSize(16),
-    marginLeft: 8,
+    marginLeft: 8, // t.spacing.sm
     flexShrink: 1,
   },
   conditionValue: {
@@ -521,7 +524,7 @@ const styles = StyleSheet.create({
   timestampText: {
     fontSize: scaledFontSize(12),
     textAlign: 'center',
-    marginBottom: 12,
+    marginBottom: 12, // t.spacing.base
     opacity: 0.8,
   },
   // Compact freshness/observation/source pill
@@ -529,12 +532,12 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     flexDirection: 'row',
     alignItems: 'center',
-    gap: moderateScale(8),
+    gap: 8, // t.spacing.sm
     borderWidth: 1,
     borderRadius: 999,
     paddingVertical: 6,
     paddingHorizontal: 10,
-    marginBottom: 12,
+    marginBottom: 12, // t.spacing.base
   },
   metaDot: {
     width: 8,

@@ -62,10 +62,10 @@ export class EnhancedEnvironmentalService {
   private lastProviderLatencyMs: number = 0;
   private lastFallbackUsed: boolean = false;
 
-  // Throttle managers
-  private locationThrottler: ThrottleManager<Promise<Location.LocationObject | null>>;
-  private weatherThrottler: ThrottleManager<Promise<EnvironmentalConditions | null>>;
-  private updateThrottler: ThrottleManager<Promise<void>>;
+  // Throttle managers - Args type is inferred from constructor
+  private locationThrottler: ThrottleManager<Promise<Location.LocationObject | null>, []>;
+  private weatherThrottler: ThrottleManager<Promise<EnvironmentalConditions | null>, [lat: number, lon: number, altitude: number]>;
+  private updateThrottler: ThrottleManager<Promise<void>, []>;
 
   private constructor() {
     // Initialize with default values

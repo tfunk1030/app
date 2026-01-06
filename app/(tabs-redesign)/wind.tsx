@@ -10,7 +10,7 @@
  * - QuickAction for presets
  */
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -18,8 +18,11 @@ import {
   ScrollView,
   RefreshControl,
   Pressable,
+  TextInput,
+  Keyboard,
+  useWindowDimensions,
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, {
   FadeIn,
   FadeInDown,
@@ -73,9 +76,15 @@ function degreesToDirection(degrees: number): string {
 function WindCalculatorRedesign() {
   const { colors } = useRedesignTheme();
   const { settings } = useSettings();
-  const insets = useSafeAreaInsets();
   const environmental = useEnhancedEnvironmental();
   const { isLocked, relativeWindAngle } = useCompassLock();
+  const { height: screenHeight } = useWindowDimensions();
+
+  // Adaptive compass sizing (180-260px based on screen height)
+  // Reserve space for: header(60) + conditions(40) + distance(140) + presets(60) + wind(100) + button(80) + result(~150) + padding(100)
+  const reservedSpace = 730;
+  const availableForCompass = Math.max(0, screenHeight - reservedSpace);
+  const compassSize = Math.max(180, Math.min(260, 180 + availableForCompass));
 
   // Wind calculator hook
   const {
@@ -93,6 +102,9 @@ function WindCalculatorRedesign() {
   const [selectedPreset, setSelectedPreset] = useState<string | null>('150');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [hasCalculated, setHasCalculated] = useState(false);
+  const [isEditingDistance, setIsEditingDistance] = useState(false);
+  const [distanceInputValue, setDistanceInputValue] = useState('150');
+  const distanceInputRef = useRef<TextInput>(null);
 
   // Animation
   const resultScale = useSharedValue(1);
@@ -165,6 +177,33 @@ function WindCalculatorRedesign() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }, [currentWindSpeed, setWindSpeed]);
 
+  const handleDistanceTap = useCallback(() => {
+    setDistanceInputValue(targetDistance.toString());
+    setIsEditingDistance(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    // Focus the input after a brief delay to ensure it's mounted
+    setTimeout(() => {
+      distanceInputRef.current?.focus();
+    }, 50);
+  }, [targetDistance]);
+
+  const handleDistanceInputSubmit = useCallback(() => {
+    const parsed = parseInt(distanceInputValue, 10);
+    if (!isNaN(parsed)) {
+      const newValue = Math.max(50, Math.min(350, parsed));
+      setTargetDistance(newValue);
+      setTargetYardage(newValue);
+      setSelectedPreset(null);
+    }
+    setIsEditingDistance(false);
+    Keyboard.dismiss();
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+  }, [distanceInputValue, setTargetYardage]);
+
+  const handleDistanceInputBlur = useCallback(() => {
+    handleDistanceInputSubmit();
+  }, [handleDistanceInputSubmit]);
+
   const handleCalculate = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
 
@@ -208,7 +247,7 @@ function WindCalculatorRedesign() {
       <ScrollView
         contentContainerStyle={[
           styles.scrollContent,
-          { paddingBottom: insets.bottom + 100 },
+          { paddingBottom: 80 }, // 64 (tab bar) + 16 (buffer) - insets already in tab bar
         ]}
         refreshControl={
           <RefreshControl
@@ -260,7 +299,7 @@ function WindCalculatorRedesign() {
             SHOT DIRECTION
           </Text>
           <View style={styles.compassWrapper}>
-            <WindDirectionCompass size={220} />
+            <WindDirectionCompass size={compassSize} />
           </View>
           <Text style={[styles.compassHint, { color: colors.textMuted }]}>
             {isLocked
@@ -287,14 +326,35 @@ function WindCalculatorRedesign() {
               </Text>
             </Pressable>
 
-            <View style={styles.distanceValueContainer}>
-              <Text style={[styles.distanceValue, { color: colors.textPrimary }]}>
-                {targetDistance}
-              </Text>
+            <Pressable
+              onPress={handleDistanceTap}
+              style={styles.distanceValueContainer}
+              accessibilityLabel={`Distance ${targetDistance} ${unit}. Tap to edit`}
+              accessibilityRole="button"
+              accessibilityHint="Double tap to enter exact distance"
+            >
+              {isEditingDistance ? (
+                <TextInput
+                  ref={distanceInputRef}
+                  style={[styles.distanceInput, { color: colors.textPrimary, borderColor: colors.brand }]}
+                  value={distanceInputValue}
+                  onChangeText={setDistanceInputValue}
+                  onSubmitEditing={handleDistanceInputSubmit}
+                  onBlur={handleDistanceInputBlur}
+                  keyboardType="number-pad"
+                  maxLength={3}
+                  selectTextOnFocus
+                  accessibilityLabel="Enter distance"
+                />
+              ) : (
+                <Text style={[styles.distanceValue, { color: colors.textPrimary }]}>
+                  {targetDistance}
+                </Text>
+              )}
               <Text style={[styles.distanceUnit, { color: colors.textMuted }]}>
                 {unit}
               </Text>
-            </View>
+            </Pressable>
 
             <Pressable
               onPress={() => handleDistanceChange(10)}
@@ -305,6 +365,27 @@ function WindCalculatorRedesign() {
               <Text style={[styles.adjustButtonText, { color: colors.textPrimary }]}>
                 +10
               </Text>
+            </Pressable>
+          </View>
+
+          {/* Fine-tune steppers */}
+          <View style={styles.stepperRow}>
+            <Pressable
+              onPress={() => handleDistanceChange(-1)}
+              style={[styles.stepperButton, { backgroundColor: colors.surface }]}
+              accessibilityLabel="Decrease by 1"
+              accessibilityRole="button"
+            >
+              <Text style={[styles.stepperButtonText, { color: colors.textPrimary }]}>-1</Text>
+            </Pressable>
+
+            <Pressable
+              onPress={() => handleDistanceChange(1)}
+              style={[styles.stepperButton, { backgroundColor: colors.surface }]}
+              accessibilityLabel="Increase by 1"
+              accessibilityRole="button"
+            >
+              <Text style={[styles.stepperButtonText, { color: colors.textPrimary }]}>+1</Text>
             </Pressable>
           </View>
         </Animated.View>
@@ -334,15 +415,16 @@ function WindCalculatorRedesign() {
           <Text style={[styles.sectionLabel, { color: colors.textMuted }]}>
             WIND SPEED {windSpeedOverride !== null ? '(OVERRIDE)' : ''}
           </Text>
+          {/* Large wind adjustments */}
           <View style={styles.windSpeedRow}>
             <Pressable
-              onPress={() => handleWindSpeedChange(-1)}
-              style={[styles.smallAdjustButton, { backgroundColor: colors.surface }]}
-              accessibilityLabel="Decrease wind speed"
+              onPress={() => handleWindSpeedChange(-5)}
+              style={[styles.windAdjustButton, { backgroundColor: colors.surface }]}
+              accessibilityLabel="Decrease wind speed by 5"
               accessibilityRole="button"
             >
-              <Text style={[styles.smallAdjustButtonText, { color: colors.textPrimary }]}>
-                -1
+              <Text style={[styles.windAdjustButtonText, { color: colors.textPrimary }]}>
+                -5
               </Text>
             </Pressable>
 
@@ -357,16 +439,38 @@ function WindCalculatorRedesign() {
             </View>
 
             <Pressable
-              onPress={() => handleWindSpeedChange(1)}
-              style={[styles.smallAdjustButton, { backgroundColor: colors.surface }]}
-              accessibilityLabel="Increase wind speed"
+              onPress={() => handleWindSpeedChange(5)}
+              style={[styles.windAdjustButton, { backgroundColor: colors.surface }]}
+              accessibilityLabel="Increase wind speed by 5"
               accessibilityRole="button"
             >
-              <Text style={[styles.smallAdjustButtonText, { color: colors.textPrimary }]}>
-                +1
+              <Text style={[styles.windAdjustButtonText, { color: colors.textPrimary }]}>
+                +5
               </Text>
             </Pressable>
           </View>
+
+          {/* Fine-tune wind steppers */}
+          <View style={styles.windStepperRow}>
+            <Pressable
+              onPress={() => handleWindSpeedChange(-1)}
+              style={[styles.windStepperButton, { backgroundColor: colors.surface }]}
+              accessibilityLabel="Decrease wind speed by 1"
+              accessibilityRole="button"
+            >
+              <Text style={[styles.windStepperButtonText, { color: colors.textPrimary }]}>-1</Text>
+            </Pressable>
+
+            <Pressable
+              onPress={() => handleWindSpeedChange(1)}
+              style={[styles.windStepperButton, { backgroundColor: colors.surface }]}
+              accessibilityLabel="Increase wind speed by 1"
+              accessibilityRole="button"
+            >
+              <Text style={[styles.windStepperButtonText, { color: colors.textPrimary }]}>+1</Text>
+            </Pressable>
+          </View>
+
           {windSpeedOverride !== null && (
             <Pressable
               onPress={() => {
@@ -514,7 +618,6 @@ function WindCalculatorWithCompass() {
 function PremiumUpgradePrompt() {
   const { colors } = useRedesignTheme();
   const { setShowUpgradeModal } = usePremium();
-  const insets = useSafeAreaInsets();
 
   const handleUpgrade = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -523,7 +626,7 @@ function PremiumUpgradePrompt() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-      <View style={[styles.content, { paddingBottom: insets.bottom + 100 }]}>
+      <View style={[styles.content, { paddingBottom: 80 }]}>
         <Animated.View entering={FadeIn} style={styles.upgradeHeader}>
           <View style={[styles.iconContainer, { backgroundColor: colors.brandMuted }]}>
             <Wind size={48} color={colors.brand} />
@@ -713,6 +816,40 @@ const styles = StyleSheet.create({
     marginTop: -4,
   },
 
+  distanceInput: {
+    fontSize: 64,
+    fontWeight: '700',
+    letterSpacing: -2,
+    lineHeight: 72,
+    textAlign: 'center',
+    minWidth: 120,
+    borderWidth: 2,
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+
+  // Distance fine-tune steppers
+  stepperRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 60,
+    marginTop: 12,
+  },
+
+  stepperButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  stepperButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+
   // Presets
   presetsSection: {
     marginBottom: 24,
@@ -739,16 +876,38 @@ const styles = StyleSheet.create({
     gap: 16,
   },
 
-  smallAdjustButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
+  // Wind large adjustment buttons
+  windAdjustButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
   },
 
-  smallAdjustButtonText: {
-    fontSize: 14,
+  windAdjustButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+
+  // Wind fine-tune steppers
+  windStepperRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 80,
+    marginTop: 12,
+  },
+
+  windStepperButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  windStepperButtonText: {
+    fontSize: 13,
     fontWeight: '600',
   },
 

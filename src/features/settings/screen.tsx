@@ -5,6 +5,8 @@ import { useSettings } from '@/src/core/context/settings';
 import { ClubData } from '@/src/core/models/YardageModel';
 import { useClubSettings } from '@/src/features/settings/context/clubs';
 import { usePremium } from '@/src/features/settings/context/premium';
+import { useSubscription } from '@/src/stores/subscription';
+import { useCustomerCenter } from '@/src/core/components/ui/CustomerCenter';
 import { useAccessibleAnimations } from '@/src/hooks/useAccessibility';
 import { useThemeMode } from '@/src/theme/ThemeProvider';
 import { Tokens } from '@/src/theme/tokens';
@@ -13,11 +15,14 @@ import { safeScaledFontSize, getScrollPadding } from '@/src/utils/responsive';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   ChevronRight,
+  Crown,
   Moon,
   Palette,
   Pencil,
   Plus,
+  RefreshCw,
   Ruler,
+  Settings,
   Sun,
   Trash2,
 } from 'lucide-react-native';
@@ -387,6 +392,43 @@ const createStyles = (t: Tokens) => ({
     textAlign: 'center' as const,
     marginTop: t.spacing.sm,
   } as TextStyle,
+  trialBadge: {
+    paddingHorizontal: t.spacing.sm,
+    paddingVertical: t.spacing.xs - 2,
+    borderRadius: t.borderRadius.sm,
+    marginLeft: 'auto' as const,
+  } as ViewStyle,
+  trialBadgeText: {
+    fontSize: safeScaledFontSize(t.fontSize.xs - 1),
+    fontWeight: t.fontWeight.bold,
+    letterSpacing: 0.5,
+  } as TextStyle,
+  subscriptionInfo: {
+    marginTop: t.spacing.xs,
+  } as ViewStyle,
+  subscriptionStatus: {
+    fontSize: safeScaledFontSize(t.fontSize.base),
+    fontWeight: t.fontWeight.semibold,
+  } as TextStyle,
+  subscriptionExpiry: {
+    fontSize: safeScaledFontSize(t.fontSize.sm),
+    marginTop: t.spacing.xs - 2,
+  } as TextStyle,
+  restoreRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'space-between' as const,
+    paddingVertical: t.spacing.sm,
+  } as ViewStyle,
+  restoreContent: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: t.spacing.base,
+  } as ViewStyle,
+  restoreText: {
+    fontSize: safeScaledFontSize(t.fontSize.sm + 1),
+    fontWeight: t.fontWeight.medium,
+  } as TextStyle,
 });
 
 export default function SettingsScreen() {
@@ -394,7 +436,9 @@ export default function SettingsScreen() {
   const { mode, setMode } = useThemeMode();
   const { settings, updateSettings, convertDistance } = useSettings();
   const { clubs, addClub, updateClub, removeClub } = useClubSettings();
-  const { isPremium, setShowUpgradeModal } = usePremium();
+  const { isPremium, isTrialActive, isLifetime, planType, expirationDate, setShowUpgradeModal, setShowRevenueCatPaywall } = usePremium();
+  const { restorePurchases, isLoading: isRestoring } = useSubscription();
+  const { openCustomerCenter } = useCustomerCenter();
   const insets = useSafeAreaInsets();
   const { headerEntering, cardEntering, quickFade } = useAccessibleAnimations();
   const [editingIndex, setEditingIndex] = React.useState<number | null>(null);
@@ -646,15 +690,101 @@ export default function SettingsScreen() {
         </GlassCard>
       </Animated.View>
 
-      {/* Premium Upsell */}
+      {/* Premium Status (for premium users) */}
+      {isPremium && !__DEV__ && (
+        <Animated.View entering={cardEntering(3)}>
+          <GlassCard style={styles.sectionCard}>
+            <View style={styles.sectionHeader}>
+              <Crown size={20} color={tokens.colors.brand} />
+              <Text style={[styles.sectionTitle, { color: tokens.colors.textPrimary }]}>
+                Premium
+              </Text>
+              {isTrialActive && (
+                <View style={[styles.trialBadge, { backgroundColor: `${tokens.colors.success}20` }]}>
+                  <Text style={[styles.trialBadgeText, { color: tokens.colors.success }]}>
+                    FREE TRIAL
+                  </Text>
+                </View>
+              )}
+              {isLifetime && (
+                <View style={[styles.trialBadge, { backgroundColor: `${tokens.colors.brand}20` }]}>
+                  <Text style={[styles.trialBadgeText, { color: tokens.colors.brand }]}>
+                    LIFETIME
+                  </Text>
+                </View>
+              )}
+            </View>
+            <View style={styles.subscriptionInfo}>
+              <Text style={[styles.subscriptionStatus, { color: tokens.colors.textPrimary }]}>
+                {isLifetime ? 'Lifetime Access' : isTrialActive ? 'Trial Active' : `${planType === 'yearly' ? 'Annual' : 'Monthly'} Premium`}
+              </Text>
+              {expirationDate && !isLifetime && (
+                <Text style={[styles.subscriptionExpiry, { color: tokens.colors.textMuted }]}>
+                  {isTrialActive ? 'Trial ends' : 'Renews'}:{' '}
+                  {new Date(expirationDate).toLocaleDateString()}
+                </Text>
+              )}
+            </View>
+
+            {/* Manage Subscription Button */}
+            <Pressable
+              onPress={openCustomerCenter}
+              style={[
+                styles.restoreRow,
+                { marginTop: tokens.spacing.base, borderTopWidth: tokens.borderWidth.thin, borderTopColor: tokens.colors.border },
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel="Manage subscription"
+            >
+              <View style={styles.restoreContent}>
+                <Settings size={20} color={tokens.colors.brand} />
+                <Text style={[styles.restoreText, { color: tokens.colors.textPrimary }]}>
+                  Manage Subscription
+                </Text>
+              </View>
+              <ChevronRight size={18} color={tokens.colors.textMuted} />
+            </Pressable>
+          </GlassCard>
+        </Animated.View>
+      )}
+
+      {/* Premium Upsell (for free users) */}
       {!isPremium && (
         <Animated.View entering={cardEntering(3)}>
           <PremiumCard onUpgrade={() => setShowUpgradeModal(true)} />
         </Animated.View>
       )}
 
-      {/* Version Info */}
+      {/* Restore Purchases */}
       <Animated.View entering={cardEntering(4)}>
+        <GlassCard style={styles.sectionCard}>
+          <Pressable
+            onPress={restorePurchases}
+            disabled={isRestoring}
+            style={[
+              styles.restoreRow,
+              { opacity: isRestoring ? 0.6 : 1 },
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel="Restore purchases"
+          >
+            <View style={styles.restoreContent}>
+              <RefreshCw
+                size={20}
+                color={tokens.colors.brand}
+                style={isRestoring ? { transform: [{ rotate: '45deg' }] } : undefined}
+              />
+              <Text style={[styles.restoreText, { color: tokens.colors.textPrimary }]}>
+                {isRestoring ? 'Restoring...' : 'Restore Purchases'}
+              </Text>
+            </View>
+            <ChevronRight size={18} color={tokens.colors.textMuted} />
+          </Pressable>
+        </GlassCard>
+      </Animated.View>
+
+      {/* Version Info */}
+      <Animated.View entering={cardEntering(5)}>
         <Text style={[styles.versionText, { color: tokens.colors.textMuted }]}>
           AICaddy Pro v1.0.0
         </Text>

@@ -23,16 +23,16 @@ export interface ThrottleOptions {
   trailing?: boolean;
 }
 
-export class ThrottleManager<T> {
+export class ThrottleManager<T, Args extends unknown[] = unknown[]> {
   private lastCallTime: number = 0;
-  private lastArgs: any[] | null = null;
+  private lastArgs: Args | null = null;
   private lastResult: T | null = null;
   private timeoutId: ReturnType<typeof setTimeout> | null = null;
   private isAppActive: boolean = true;
   private appStateSubscription: { remove: () => void } | null = null;
 
   constructor(
-    private readonly func: (...args: any[]) => T,
+    private readonly func: (...args: Args) => T,
     private readonly options: ThrottleOptions
   ) {
     // Set default options
@@ -59,7 +59,7 @@ export class ThrottleManager<T> {
   /**
    * Execute the throttled function
    */
-  public execute(...args: any[]): T | null {
+  public execute(...args: Args): T | null {
     const now = Date.now();
     const currentInterval = this.getCurrentInterval();
 

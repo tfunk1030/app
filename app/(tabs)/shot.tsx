@@ -10,7 +10,7 @@
 
 import { LoadPriority, ProgressiveLoader } from '@/src/components/ui/ProgressiveLoader';
 import { SkeletonLoader } from '@/src/components/ui/SkeletonLoader';
-import { GlassCard } from '@/src/core/components/ui/GlassCard';
+import { BoldCard } from '@/src/core/components/ui/BoldCard';
 import { MetricTile } from '@/src/core/components/ui/MetricTile';
 import { PageTitle } from '@/src/core/components/ui/page-title';
 import { SectionHeader } from '@/src/core/components/ui/SectionHeader';
@@ -18,7 +18,7 @@ import { Slider } from '@/src/core/components/ui/slider';
 import { Button } from '@/src/core/components/ui/button';
 import { ConnectivityBanner } from '@/src/core/components/ui/ConnectivityBanner';
 import { RetryCard } from '@/src/core/components/ui/RetryCard';
-import { useSettings } from '@/src/core/context/settings';
+import { Settings, useSettings } from '@/src/core/context/settings';
 import { useShotCalc } from '@/src/core/context/shotcalc';
 import { SkillLevel, YardageModelEnhanced } from '@/src/core/models/YardageModel';
 import { useClubSettings } from '@/src/features/settings/context/clubs';
@@ -37,6 +37,26 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import type { EnvironmentalConditions } from '@/src/services/environmental-calculations';
+
+/** Shot calculation result structure */
+interface ShotResult {
+  carryDistance: number;
+  environmentalEffect: number;
+  totalDistance: number;
+}
+
+/** Club recommendation from clubs context */
+interface ClubRecommendation {
+  name: string;
+  normalYardage: number;
+}
+
+/** Combined shot data returned from calculateShot */
+interface ShotData {
+  result: ShotResult;
+  recommendedClub: ClubRecommendation;
+}
 
 // Themed styles factory
 function getThemedStyles(palette: ReturnType<typeof useThemeTokens>) {
@@ -202,8 +222,8 @@ const ConditionIcon = memo(
 
 ConditionIcon.displayName = 'ConditionIcon';
 
-// Memoized conditions display component (modern tiles inside a GlassCard)
-const ConditionsDisplay = memo(({ conditions }: { conditions: any }) => {
+// Memoized conditions display component (modern tiles inside a BoldCard)
+const ConditionsDisplay = memo(({ conditions }: { conditions: EnvironmentalConditions }) => {
   const { settings } = useSettings();
   const palette = useThemeTokens();
   const styles = React.useMemo(() => getThemedStyles(palette), [palette]);
@@ -223,7 +243,7 @@ const ConditionsDisplay = memo(({ conditions }: { conditions: any }) => {
       : '-';
 
   return (
-    <GlassCard style={{ marginBottom: 16 }}>
+    <BoldCard style={{ marginBottom: palette.spacing.md }} accent>
       <SectionHeader title="Conditions" />
       <View style={styles.conditionsGrid}>
         <MetricTile
@@ -251,7 +271,7 @@ const ConditionsDisplay = memo(({ conditions }: { conditions: any }) => {
           value={`${conditions?.humidity?.toFixed(0) || '-'}%`}
         />
       </View>
-    </GlassCard>
+    </BoldCard>
   );
 });
 
@@ -266,27 +286,30 @@ const TargetDistanceInput = memo(
   }: {
     targetYardage: number;
     setTargetYardage: (value: number) => void;
-    settings: any;
-  }) => (
-    <GlassCard style={{ marginBottom: 16 }}>
-      <SectionHeader title="Target Distance" />
-      <View style={styles.distanceInputContainer}>
-        <Slider
-          value={targetYardage}
-          onValueChange={setTargetYardage}
-          min={settings.distanceUnit === 'yards' ? 50 : 45}
-          max={settings.distanceUnit === 'yards' ? 360 : 330}
-          step={1}
-          label="Target Distance"
-          unit={settings.distanceUnit === 'yards' ? ' yds' : ' m'}
-        />
-      </View>
-    </GlassCard>
-  ));
+    settings: Settings;
+  }) => {
+    const palette = useThemeTokens();
+    return (
+      <BoldCard style={{ marginBottom: palette.spacing.md }} accent>
+        <SectionHeader title="Target Distance" />
+        <View style={styles.distanceInputContainer}>
+          <Slider
+            value={targetYardage}
+            onValueChange={setTargetYardage}
+            min={settings.distanceUnit === 'yards' ? 50 : 45}
+            max={settings.distanceUnit === 'yards' ? 360 : 330}
+            step={1}
+            label="Target Distance"
+            unit={settings.distanceUnit === 'yards' ? ' yds' : ' m'}
+          />
+        </View>
+      </BoldCard>
+    );
+  });
 
 // Memoized shot adjustment display component
 const ShotAdjustmentDisplay = memo(
-  ({ shotData, targetYardage }: { shotData: any; targetYardage: number }) => {
+  ({ shotData, targetYardage }: { shotData: ShotData; targetYardage: number }) => {
     const palette = useThemeTokens();
     const styles = React.useMemo(() => getThemedStyles(palette), [palette]);
     const { settings, convertDistance } = useSettings();
@@ -302,7 +325,7 @@ const ShotAdjustmentDisplay = memo(
         : Math.round(shotData.result.totalDistance * 0.9144);
 
     return (
-      <GlassCard style={{ marginBottom: 16 }}>
+      <BoldCard style={{ marginBottom: palette.spacing.md }} variant="elevated" accent>
         <SectionHeader title="Shot Adjustment" />
         <View style={styles.adjustmentContent}>
           <View style={styles.adjustmentRow}>
@@ -328,12 +351,12 @@ const ShotAdjustmentDisplay = memo(
           </Text>
         </View>
         <Text
-          style={{ color: palette.colors.textMuted, fontSize: scaledFontSize(12), marginTop: 6 }}
+          style={{ color: palette.colors.textMuted, fontSize: scaledFontSize(12), marginTop: palette.spacing.sm }}
           accessibilityRole="text"
         >
           Environmental effect = target minus carry. "Play's Like" approximates carry required after conditions.
         </Text>
-      </GlassCard>
+      </BoldCard>
     );
   }
 );
@@ -346,8 +369,8 @@ const ClubRecommendations = memo(
     shotData,
     getRecommendedClub,
   }: {
-    shotData: any;
-    getRecommendedClub: (distance: number) => any;
+    shotData: ShotData;
+    getRecommendedClub: (distance: number) => ClubRecommendation | null;
   }) => {
     const palette = useThemeTokens();
     const styles = React.useMemo(() => getThemedStyles(palette), [palette]);
@@ -358,7 +381,7 @@ const ClubRecommendations = memo(
     const isExactMatch = exactClub?.normalYardage === Math.round(playsLikeDistance);
 
     return (
-      <GlassCard style={{ marginBottom: 16 }}>
+      <BoldCard style={{ marginBottom: palette.spacing.md }} accent>
         <SectionHeader title="Recommended Clubs" />
         <View style={styles.clubContent}>
           {isExactMatch ? (
@@ -423,7 +446,7 @@ const ClubRecommendations = memo(
             </View>
           )}
         </View>
-      </GlassCard>
+      </BoldCard>
     );
   }
 );
@@ -457,7 +480,7 @@ export default function ShotCalculatorScreen() {
   const [targetYardage, setTargetYardage] = useState(150);
   const [lastUpdate, setLastUpdate] = useState(Date.now());
   const [yardageModel] = useState(() => new YardageModelEnhanced());
-  const [shotData, setShotData] = useState<any>(null);
+  const [shotData, setShotData] = useState<ShotData | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const { width, fontScale } = useWindowDimensions();
   const compactLayout = width < 380 || fontScale > 1.15;
@@ -664,13 +687,15 @@ export default function ShotCalculatorScreen() {
   );
 }
 
+// Note: Using static values aligned with token system
+// t.spacing.sm = 8, t.spacing.base = 12, t.spacing.md = 16, t.spacing.lg = 24
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: 'transparent',
   },
   contentContainer: {
-    padding: 16,
+    padding: 16, // t.spacing.md
     paddingBottom: moderateScale(32),
   },
   centerContent: {
@@ -682,8 +707,8 @@ const styles = StyleSheet.create({
   timestampText: {},
   title: {},
   conditionsCard: {
-    marginBottom: 16,
-    padding: 12,
+    marginBottom: 16, // t.spacing.md
+    padding: 12, // t.spacing.base
     backgroundColor: 'rgba(31, 41, 55, 0.4)',
     borderRadius: 12,
     borderWidth: 1,
@@ -694,7 +719,7 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     justifyContent: 'space-between',
     alignItems: 'center',
-    gap: moderateScale(12),
+    gap: 12, // t.spacing.base
   },
   tileHalf: {
     width: '48%',
@@ -702,7 +727,7 @@ const styles = StyleSheet.create({
   conditionItem: {
     alignItems: 'center',
     width: '48%',
-    marginBottom: moderateScale(8),
+    marginBottom: 8, // t.spacing.sm
   },
   iconContainer: {
     width: 24,
@@ -711,14 +736,14 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: 4, // t.spacing.xs
   },
   conditionLabel: {},
   conditionValue: {},
   distanceCard: {},
   cardLabel: {},
   distanceInputContainer: {
-    marginTop: 4,
+    marginTop: 4, // t.spacing.xs
   },
   adjustmentCard: {},
   sectionTitle: {},
@@ -727,7 +752,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 12, // t.spacing.base
   },
   adjustmentLabel: {},
   adjustmentValue: {
@@ -741,12 +766,12 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     flexDirection: 'row',
     alignItems: 'center',
-    gap: moderateScale(8),
+    gap: 8, // t.spacing.sm
     borderWidth: 1,
     borderRadius: 999,
     paddingVertical: 6,
     paddingHorizontal: 10,
-    marginBottom: 12,
+    marginBottom: 12, // t.spacing.base
   },
   metaDot: {
     width: 8,
@@ -759,7 +784,7 @@ const styles = StyleSheet.create({
   clubCard: {},
   clubContent: {},
   exactMatch: {
-    padding: 16,
+    padding: 16, // t.spacing.md
   },
   clubTitle: {},
   clubRow: {

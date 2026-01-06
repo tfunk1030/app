@@ -18,7 +18,7 @@ import {
   Switch,
   Alert,
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import {
@@ -298,7 +298,6 @@ export default function SetupScreen() {
   const { colors, mode, setMode, tokens } = useRedesignTheme();
   const { settings, updateSettings, convertDistance } = useSettings();
   const { clubs, removeClub } = useClubSettings();
-  const insets = useSafeAreaInsets();
 
   const handleDeleteClub = useCallback(
     (index: number, clubName: string) => {
@@ -350,7 +349,7 @@ export default function SetupScreen() {
       <ScrollView
         contentContainerStyle={[
           styles.scrollContent,
-          { paddingBottom: insets.bottom + 100 },
+          { paddingBottom: 80 }, // 64 (tab bar) + 16 (buffer) - insets already in tab bar
         ]}
         showsVerticalScrollIndicator={false}
       >

@@ -9,16 +9,12 @@
  */
 
 import { Button } from '@/src/core/components/ui/button';
-import { GlassCard } from '@/src/core/components/ui/GlassCard';
+import { BoldCard } from '@/src/core/components/ui/BoldCard';
 import { PageTitle } from '@/src/core/components/ui/page-title';
-import { SectionHeader } from '@/src/core/components/ui/SectionHeader';
 import { Slider } from '@/src/core/components/ui/slider';
 import { useSettings } from '@/src/core/context/settings';
-import { usePremium } from '@/src/features/settings/context/premium';
 import WindDirectionCompass from '@/src/features/wind/components/compass';
-import { WindWeatherBar } from '@/src/features/wind/components/wind-weather-bar';
 import { WindCalculationResults } from '@/src/features/wind/components/WindCalculationResults';
-import { WindHourlyForecastBar } from '@/src/features/wind/components/WindHourlyForecastBar';
 import { CompassLockProvider, useCompassLock } from '@/src/features/wind/context/compass-lock';
 import { useSensorData } from '@/src/features/wind/context/sensor-data';
 import { useWindCalculator } from '@/src/features/wind/hooks/useWindCalculator';
@@ -33,8 +29,6 @@ import {
   Animated,
   Easing,
   Platform,
-  RefreshControl,
-  ScrollView,
   StyleSheet,
   Text,
   UIManager,
@@ -48,30 +42,16 @@ import { RetryCard } from '@/src/core/components/ui/RetryCard';
 const logger = LogManager.getLogger('WindTab');
 
 function getThemedStyles(palette: ReturnType<typeof useThemeTokens>) {
-  const scrollPadding = getScrollPadding(16);
+  const horizontalPadding = getScrollPadding(16);
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: palette.colors.background },
-    contentContainer: {
-      paddingVertical: 12,
-      paddingHorizontal: scrollPadding,
-      paddingBottom: 24,
-      paddingTop: 16,
-      minHeight: '100%',
-      alignItems: 'stretch',
+    staticContainer: {
+      flex: 1,
+      paddingHorizontal: horizontalPadding,
+      paddingTop: 8, // Compact top padding
     },
     centerContent: { justifyContent: 'center', alignItems: 'center' },
-    title: {
-      fontSize: scaledFontSize(24),
-      fontWeight: 'bold',
-      color: palette.colors.textPrimary,
-      marginBottom: 24,
-      textShadowColor: 'rgba(0, 0, 0, 0.3)',
-      textShadowOffset: { width: 0, height: 1 },
-      textShadowRadius: 2,
-    },
-    subtitle: { fontSize: scaledFontSize(16), color: palette.colors.textMuted, marginBottom: 16 },
     mainCard: {
-      marginBottom: 16,
       padding: 12,
       backgroundColor: palette.colors.surface,
       borderRadius: 12,
@@ -79,29 +59,22 @@ function getThemedStyles(palette: ReturnType<typeof useThemeTokens>) {
       borderColor: palette.colors.border,
       overflow: 'hidden',
     },
-    compassContainer: { marginBottom: 40, alignItems: 'center' },
-    compassInstructions: { marginBottom: 8 },
-    compassHint: {
-      fontSize: scaledFontSize(12),
-      color: palette.colors.textMuted,
-      textAlign: 'center',
-      opacity: 0.75,
-    },
+    compassContainer: { marginBottom: 16, alignItems: 'center' }, // Reduced from 40 to 16
     compassWrapper: { position: 'relative' },
     inputGroup: {
-      marginBottom: 4, // Further reduced from 6 to 4
+      marginBottom: 2, // Further reduced from 4 to 2
       backgroundColor: palette.colors.surfaceAlt,
-      padding: 0, // Removed padding completely for maximum compactness
+      padding: 0,
       borderRadius: 8,
       borderWidth: 1,
       borderColor: palette.colors.border,
     },
     errorText: { color: palette.colors.danger, fontSize: scaledFontSize(16) },
     timestampText: {
-      fontSize: scaledFontSize(12),
+      fontSize: scaledFontSize(11),
       color: palette.colors.textMuted,
       textAlign: 'center',
-      marginBottom: 12,
+      marginBottom: 8,
       opacity: 0.8,
     },
   });
@@ -245,17 +218,10 @@ const WindCalculatorInput = React.memo(
     );
 
     return (
-      <GlassCard style={styles.mainCard}>
-        <SectionHeader title="Compass & Inputs" />
-        {/* Wind Direction Compass */}
+      <BoldCard accent style={styles.mainCard}>
+        {/* Wind Direction Compass - Hero Size */}
         <View style={styles.compassContainer}>
-          <View style={styles.compassInstructions}>
-            <Text style={styles.compassHint}>
-              Point phone in shot direction and tap lock to set reference
-            </Text>
-          </View>
           <View style={styles.compassWrapper}>
-            {/* Removed compassGlow element */}
             <WindDirectionCompass size={computedCompassSize} />
           </View>
         </View>
@@ -274,26 +240,26 @@ const WindCalculatorInput = React.memo(
           />
         </View>
 
-        {/* Yardage Presets */}
+        {/* Yardage Presets - Larger touch targets */}
         <View
           style={{
             flexDirection: 'row',
             justifyContent: 'space-between',
             alignItems: 'center',
-            gap: 8,
-            marginBottom: 6,
+            gap: 6,
+            marginBottom: 4,
           }}
         >
           {presets.map((p, i) => (
             <Button
               key={`preset-${i}`}
               variant={Math.abs(targetYardage - p) < 1 ? 'default' : 'secondary'}
-              size="sm"
+              size="default"
               onPress={async () => {
                 await Haptics.selectionAsync();
                 setTargetYardage(p);
               }}
-              style={{ flex: 1, minWidth: 0 }}
+              style={{ flex: 1, minWidth: 0, minHeight: 44, paddingVertical: 10 }}
             >
               {p} {settings.distanceUnit === 'yards' ? 'yds' : 'm'}
             </Button>
@@ -334,7 +300,7 @@ const WindCalculatorInput = React.memo(
         >
           {isCalculating ? 'Calculating...' : 'Calculate Wind Effect'}
         </Button>
-      </GlassCard>
+      </BoldCard>
     );
   }
 );
@@ -359,15 +325,12 @@ const formatObservationTime = (timeString: string) => {
 
 // Main Wind Calculator Component
 function WindCalculatorScreen() {
-  const { conditions, isLoading, isActive, forceRefresh, lastUpdatedTimestamp, throttlingStatus } =
+  const { conditions, isActive, forceRefresh, lastUpdatedTimestamp, throttlingStatus } =
     useEnhancedEnvironmental();
-  const { isPremium } = usePremium();
-  const { settings, convertSpeed } = useSettings();
+  const { convertSpeed } = useSettings();
   const palette = useThemeTokens();
   const styles = React.useMemo(() => getThemedStyles(palette), [palette]);
-  const { heading } = useSensorData();
   const { calculate, result, setWindSpeed, setTargetYardage } = useWindCalculator();
-  const [refreshing, setRefreshing] = useState(false);
   const insets = useSafeAreaInsets();
 
   // Calculate bottom padding to account for FloatingTabBar and safe area
@@ -454,9 +417,11 @@ function WindCalculatorScreen() {
     [conditions, setWindSpeed, setTargetYardage, calculate]
   );
 
-  // When a result arrives, animate to the results view
+  // When a result arrives, animate to the results view with haptic feedback
   useEffect(() => {
     if (result) {
+      // Haptic feedback on calculation complete
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setShowResults(true);
       Animated.parallel([
         Animated.timing(inputOpacity, {
@@ -497,95 +462,42 @@ function WindCalculatorScreen() {
     }
   }, [result]);
 
-  // Handle user-triggered refresh
-  const onRefresh = useCallback(async () => {
-    setRefreshing(true);
-    try {
-      logger.info('User triggered refresh in WindCalculatorScreen');
-      await forceRefresh(); // Call the forceRefresh function from context
-    } catch (error) {
-      logger.error('Error during manual refresh:', error);
-      // Optionally, display an error message to the user here
-    } finally {
-      setRefreshing(false); // Ensure refreshing state is reset
-    }
-  }, [forceRefresh]); // Dependency: forceRefresh function
-
-  // Collapsible sections for forecast and weather details (default collapsed)
-  const [showForecast, setShowForecast] = useState(false);
-  const [showWeather, setShowWeather] = useState(false);
-
   return (
     <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right']}>
-      <ScrollView
-        style={[styles.container, { backgroundColor: palette.colors.background }]}
-        contentContainerStyle={[styles.contentContainer, { paddingBottom: bottomPadding }]}
-        scrollEnabled={true}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={palette.colors.textMuted}
-            colors={[palette.colors.textMuted]}
-            progressBackgroundColor={palette.colors.surfaceAlt}
-          />
-        }
-      >
+      <View style={[styles.staticContainer, { paddingBottom: bottomPadding }]}>
         <ConnectivityBanner />
-        <PageTitle title="Wind Calculator" showGlow={true} showGradient={true} />
+        <PageTitle title="Wind Calculator" showGlow={false} showGradient={false} />
 
-        {/* Compact meta line: Last updated • Observation time • Source */}
+        {/* Compact meta line: Last updated • Source */}
         {(() => {
           const parts: string[] = [];
           if (lastUpdatedTimestamp) {
             parts.push(
-              `Last updated: ${formatObservationTime(new Date(lastUpdatedTimestamp).toISOString())}`
+              `Updated ${formatObservationTime(new Date(lastUpdatedTimestamp).toISOString())}`
             );
-          }
-          if (conditions?.obTime) {
-            parts.push(`Observation time: ${formatObservationTime(conditions.obTime)}`);
           }
           const provider = throttlingStatus?.provider;
           const sourceLabel =
             provider === 'open-meteo'
-              ? 'Open‑Meteo'
+              ? 'Open-Meteo'
               : provider === 'stormglass'
               ? 'Stormglass'
               : null;
           if (sourceLabel) {
-            parts.push(`Source: ${sourceLabel}`);
+            parts.push(sourceLabel);
           }
-          const meta = parts.join(' • ');
+          const meta = parts.join(' | ');
           return meta ? (
-            <Text style={[styles.timestampText, { color: palette.colors.textMuted }]}>{meta}</Text>
+            <Text style={styles.timestampText}>{meta}</Text>
           ) : null;
         })()}
 
         {/* Inline retry if conditions missing but app is active */}
         {(!conditions && isActive) && (
-          <RetryCard title="Unable to load wind data" onRetry={onRefresh} />
+          <RetryCard title="Unable to load wind data" onRetry={forceRefresh} />
         )}
 
-        {/* Collapsible Sections at top */}
-        <View style={{ gap: 8, marginTop: 4, marginBottom: 8 }}>
-          <Button
-            variant={showForecast ? 'default' : 'secondary'}
-            onPress={() => setShowForecast(v => !v)}
-          >
-            {showForecast ? 'Hide Hourly Forecast' : 'Show Hourly Forecast'}
-          </Button>
-          {showForecast && <WindHourlyForecastBar />}
-
-          <Button
-            variant={showWeather ? 'default' : 'secondary'}
-            onPress={() => setShowWeather(v => !v)}
-          >
-            {showWeather ? 'Hide Current Wind Details' : 'Show Current Wind Details'}
-          </Button>
-          {showWeather && <WindWeatherBar />}
-        </View>
-
-        {/* Animated in-place swap (no scroll) with absolute overlay and animated container height */}
+        {/* Animated in-place swap with absolute overlay and animated container height */}
         <Animated.View style={{ position: 'relative', height: containerHeight }}>
           <Animated.View
             style={{
@@ -695,7 +607,7 @@ function WindCalculatorScreen() {
             {result && <WindCalculationResults result={result} />}
           </Animated.View>
         </Animated.View>
-      </ScrollView>
+      </View>
     </SafeAreaView>
   );
 }
@@ -725,17 +637,16 @@ function WindCalcScreenWithCompass() {
 
 // Export the wrapper component with error handling
 export default function WindTab() {
-  const { isActive } = useEnhancedEnvironmental();
   const [error, setError] = useState<Error | null>(null);
   const palette = useThemeTokens();
-  const styles = React.useMemo(() => getThemedStyles(palette), [palette]);
+  const themedStyles = React.useMemo(() => getThemedStyles(palette), [palette]);
 
   // Error boundary pattern
   if (error) {
     return (
-      <View style={[styles.container, styles.centerContent]}>
-        <Text style={styles.errorText}>An error occurred in the Wind Calculator</Text>
-        <Text style={[styles.errorText, { fontSize: scaledFontSize(12), marginTop: 8 }]}>
+      <View style={[themedStyles.container, themedStyles.centerContent]}>
+        <Text style={themedStyles.errorText}>An error occurred in the Wind Calculator</Text>
+        <Text style={[themedStyles.errorText, { fontSize: scaledFontSize(12), marginTop: 8 }]}>
           {error?.message || 'Unknown error'}
         </Text>
         <Button
@@ -757,10 +668,8 @@ export default function WindTab() {
 
   // Render directly without ProgressiveLoader to ensure content is visible
   return (
-    <View style={styles.container}>
+    <View style={themedStyles.container}>
       <WindCalcScreenWithCompass />
     </View>
   );
 }
-
-const styles = StyleSheet.create({});

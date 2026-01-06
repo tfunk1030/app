@@ -14,7 +14,7 @@ import {
   RefreshControl,
   Pressable,
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, {
   FadeIn,
   FadeInDown,
@@ -55,7 +55,6 @@ export default function ShotScreen() {
   const { colors } = useRedesignTheme();
   const { settings } = useSettings();
   const { clubs } = useClubSettings();
-  const insets = useSafeAreaInsets();
   const environmental = useEnhancedEnvironmental();
 
   // State
@@ -168,7 +167,7 @@ export default function ShotScreen() {
       <ScrollView
         contentContainerStyle={[
           styles.scrollContent,
-          { paddingBottom: insets.bottom + 100 },
+          { paddingBottom: 80 }, // 64 (tab bar) + 16 (buffer) - insets already in tab bar
         ]}
         refreshControl={
           <RefreshControl

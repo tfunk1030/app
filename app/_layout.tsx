@@ -25,6 +25,11 @@ import { useColorScheme } from '@/components/useColorScheme';
 import { AppProvider } from '@/src/core/context/AppProvider';
 import { AppThemeProvider } from '@/src/theme/ThemeProvider';
 
+// Import Paywall components for subscription modal
+import { Paywall } from '@/src/core/components/ui/Paywall';
+import { RevenueCatPaywall } from '@/src/core/components/ui/RevenueCatPaywall';
+import { CustomerCenter } from '@/src/core/components/ui/CustomerCenter';
+
 // Import onboarding components for first-run experience
 import { OnboardingFlow, hasCompletedOnboarding } from '@/src/components/onboarding/OnboardingFlow';
 
@@ -230,6 +235,12 @@ const RootLayoutNav = () => {
               onComplete={handleOnboardingComplete}
             />
           )}
+          {/* Paywall modal for premium subscriptions (custom UI) */}
+          <Paywall />
+          {/* RevenueCat Paywall (native UI from RevenueCat dashboard) */}
+          <RevenueCatPaywall />
+          {/* Customer Center for subscription management */}
+          <CustomerCenter />
         </ThemeProvider>
       </AppProvider>
     </AppThemeProvider>

@@ -482,18 +482,22 @@ export function getCardinalDirectionStyles(
   const isNorth = direction === 'N';
   const isMain = ['E', 'S', 'W'].includes(direction);
   const isIntercardinal = ['NE', 'SE', 'SW', 'NW'].includes(direction);
-  
+
+  // Use smaller sizes for compasses under 240px to prevent overlap
+  const isSmallCompass = compassSize < 240;
+  const sizeReduction = isSmallCompass ? 0.8 : 1;
+
   return {
-    containerSize: getCompassScaledValue(compassSize, 0.14, 32, 40),
+    containerSize: getCompassScaledValue(compassSize, 0.14 * sizeReduction, 26, 40),
     fontSize: getCompassScaledValue(
       compassSize,
-      isNorth ? 0.072 : isMain ? 0.06 : 0.05,
-      isNorth ? 16 : isMain ? 13 : 11,
+      (isNorth ? 0.072 : isMain ? 0.06 : 0.05) * sizeReduction,
+      isNorth ? 14 : isMain ? 11 : 9,
       isNorth ? 20 : isMain ? 17 : 14
     ),
     fontWeight: isNorth ? '800' : isMain ? '700' : '600',
     opacity: isNorth ? 1 : isMain ? 0.9 : 0.7,
-    sizeMultiplier: isNorth ? 1.2 : isMain ? 1.0 : 0.85,
+    sizeMultiplier: (isNorth ? 1.2 : isMain ? 1.0 : 0.85) * sizeReduction,
     showDegrees: isMain && compassSize >= 240,
     showIntercardinalDegrees: isIntercardinal && compassSize >= 260,
   };
@@ -548,9 +552,9 @@ export function getCompassProgressiveFeatures(compassSize: number) {
  * Calculates optimal distance from compass center
  */
 export function getCardinalDirectionRadius(compassSize: number): number {
-  // Position using formula: radius = compassSize/2 + (compassSize * 0.08)
-  // Cardinals stay outside the compass for visibility
-  return compassSize / 2 + getCompassScaledValue(compassSize, 0.08, 16, 22);
+  // Position using formula: radius = compassSize/2 + (compassSize * 0.04)
+  // Cardinals positioned closer to the compass edge to reduce overlap
+  return compassSize / 2 + getCompassScaledValue(compassSize, 0.04, 10, 14);
 }
 
 /**

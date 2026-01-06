@@ -12,7 +12,22 @@
       "mcp__spawner__spawner_skills",
       "Skill(commit)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Skill(design-review)",
+      "Skill(ui-ux-pro-max)",
+      "Bash(ls:*)",
+      "Bash(wc:*)",
+      "Bash(python3:*)",
+      "Bash(python .claude/skills/ui-ux-pro-max/scripts/search.py:*)",
+      "Bash(bash .claude/scripts/generate-reasoning.sh:*)",
+      "Bash(python:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npx expo lint:*)",
+      "mcp__spawner__spawner_orchestrate",
+      "Bash(dir /b \"C:\\\\dev\\\\aicaddypro\")",
+      "Bash(findstr:*)",
+      "Bash(yarn add:*)"
     ]
   }
 }
