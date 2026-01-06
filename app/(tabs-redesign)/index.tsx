@@ -1,14 +1,11 @@
 /**
- * Play Tab - Redesigned Shot Calculator
+ * Shot Tab - Environmental Shot Calculator (FREE)
  *
- * Unified calculation experience with:
- * - Voice input support
- * - Real wind calculator integration
- * - Quick presets
- * - One-glance results
+ * Adjustments for temperature, altitude, and humidity only.
+ * Wind calculator is a separate PREMIUM tab.
  */
 
-import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -16,33 +13,18 @@ import {
   ScrollView,
   RefreshControl,
   Pressable,
-  Alert,
-  Platform,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
   FadeIn,
   FadeInDown,
-  FadeInUp,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
   withSequence,
-  withTiming,
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
-import {
-  Wind,
-  Target,
-  Thermometer,
-  Droplets,
-  Mountain,
-  ChevronRight,
-  ChevronDown,
-  Mic,
-  MicOff,
-  Volume2,
-} from 'lucide-react-native';
+import { Thermometer, Droplets, Mountain, Gauge } from 'lucide-react-native';
 
 import { useRedesignTheme } from '@/src/theme/redesign';
 import { ResultCard } from '@/src/components/redesign/ResultCard';
@@ -59,241 +41,19 @@ import { useClubSettings } from '@/src/features/settings/context/clubs';
 interface CalculationResult {
   playsLike: number;
   club: string;
-  clubIndex: number;
-  aimAdjustment: string;
-  windEffect: number;
   tempEffect: number;
   altitudeEffect: number;
+  humidityEffect: number;
   totalAdjustment: number;
 }
-
-// =============================================================================
-// VOICE INPUT COMPONENT
-// =============================================================================
-
-interface VoiceInputProps {
-  onResult: (distance: number) => void;
-  isListening: boolean;
-  onToggle: () => void;
-}
-
-const VoiceInput = React.memo(function VoiceInput({
-  onResult,
-  isListening,
-  onToggle,
-}: VoiceInputProps) {
-  const { colors, tokens } = useRedesignTheme();
-  const pulseScale = useSharedValue(1);
-
-  useEffect(() => {
-    if (isListening) {
-      pulseScale.value = withSequence(
-        withTiming(1.1, { duration: 500 }),
-        withTiming(1, { duration: 500 })
-      );
-      // Repeat pulse animation
-      const interval = setInterval(() => {
-        pulseScale.value = withSequence(
-          withTiming(1.1, { duration: 500 }),
-          withTiming(1, { duration: 500 })
-        );
-      }, 1000);
-      return () => clearInterval(interval);
-    }
-  }, [isListening]);
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: pulseScale.value }],
-  }));
-
-  return (
-    <Pressable
-      onPress={() => {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-        onToggle();
-      }}
-      style={[
-        styles.voiceButton,
-        {
-          backgroundColor: isListening ? colors.brand : colors.surface,
-          borderColor: isListening ? colors.brand : colors.border,
-        },
-      ]}
-      accessibilityLabel={isListening ? 'Stop listening' : 'Start voice input'}
-      accessibilityRole="button"
-    >
-      <Animated.View style={animatedStyle}>
-        {isListening ? (
-          <Volume2 size={24} color={colors.textInverse} />
-        ) : (
-          <Mic size={24} color={colors.textMuted} />
-        )}
-      </Animated.View>
-      <Text
-        style={[
-          styles.voiceButtonText,
-          { color: isListening ? colors.textInverse : colors.textMuted },
-        ]}
-      >
-        {isListening ? 'Listening...' : 'Voice'}
-      </Text>
-    </Pressable>
-  );
-});
-
-// =============================================================================
-// WIND DETAILS PANEL
-// =============================================================================
-
-interface WindDetailsPanelProps {
-  windSpeed: number;
-  windDirection: number;
-  expanded: boolean;
-  onToggle: () => void;
-  windEffect: number;
-}
-
-const WindDetailsPanel = React.memo(function WindDetailsPanel({
-  windSpeed,
-  windDirection,
-  expanded,
-  onToggle,
-  windEffect,
-}: WindDetailsPanelProps) {
-  const { colors } = useRedesignTheme();
-
-  const getWindDirectionLabel = (degrees: number): string => {
-    const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
-    const index = Math.round(degrees / 45) % 8;
-    return directions[index];
-  };
-
-  const getWindImpact = (): 'low' | 'medium' | 'high' => {
-    if (windSpeed < 8) return 'low';
-    if (windSpeed < 15) return 'medium';
-    return 'high';
-  };
-
-  const impact = getWindImpact();
-
-  return (
-    <Animated.View entering={FadeInDown.delay(400)}>
-      <Pressable
-        onPress={onToggle}
-        style={[styles.windPanel, { backgroundColor: colors.surface }]}
-        accessibilityRole="button"
-        accessibilityLabel="Toggle wind analysis details"
-      >
-        <View style={styles.windPanelHeader}>
-          <View style={styles.windPanelLeft}>
-            <Wind size={20} color={colors.brand} />
-            <View style={styles.windPanelText}>
-              <Text style={[styles.windPanelTitle, { color: colors.textPrimary }]}>
-                Wind Analysis
-              </Text>
-              <Text style={[styles.windPanelSubtitle, { color: colors.textMuted }]}>
-                {Math.round(windSpeed)} mph from {getWindDirectionLabel(windDirection)}
-              </Text>
-            </View>
-          </View>
-          <View style={styles.windPanelRight}>
-            <View
-              style={[
-                styles.impactBadge,
-                {
-                  backgroundColor:
-                    impact === 'high'
-                      ? colors.error + '20'
-                      : impact === 'medium'
-                      ? colors.warning + '20'
-                      : colors.success + '20',
-                },
-              ]}
-            >
-              <Text
-                style={[
-                  styles.impactBadgeText,
-                  {
-                    color:
-                      impact === 'high'
-                        ? colors.error
-                        : impact === 'medium'
-                        ? colors.warning
-                        : colors.success,
-                  },
-                ]}
-              >
-                {impact.toUpperCase()}
-              </Text>
-            </View>
-            {expanded ? (
-              <ChevronDown size={20} color={colors.textMuted} />
-            ) : (
-              <ChevronRight size={20} color={colors.textMuted} />
-            )}
-          </View>
-        </View>
-
-        {expanded && (
-          <Animated.View
-            entering={FadeIn}
-            style={[styles.windPanelExpanded, { borderTopColor: colors.divider }]}
-          >
-            <View style={styles.windDetailRow}>
-              <Text style={[styles.windDetailLabel, { color: colors.textMuted }]}>
-                Distance Effect
-              </Text>
-              <Text
-                style={[
-                  styles.windDetailValue,
-                  {
-                    color:
-                      windEffect > 0
-                        ? colors.error
-                        : windEffect < 0
-                        ? colors.success
-                        : colors.textPrimary,
-                  },
-                ]}
-              >
-                {windEffect > 0 ? '+' : ''}
-                {Math.round(windEffect)} yds
-              </Text>
-            </View>
-            <View style={styles.windDetailRow}>
-              <Text style={[styles.windDetailLabel, { color: colors.textMuted }]}>
-                Wind Angle
-              </Text>
-              <Text style={[styles.windDetailValue, { color: colors.textPrimary }]}>
-                {Math.round(windDirection)}°
-              </Text>
-            </View>
-            <View style={styles.windDetailRow}>
-              <Text style={[styles.windDetailLabel, { color: colors.textMuted }]}>
-                Recommendation
-              </Text>
-              <Text style={[styles.windDetailValue, { color: colors.brand }]}>
-                {windSpeed > 15
-                  ? 'Club up, punch shot'
-                  : windSpeed > 8
-                  ? 'Adjust aim'
-                  : 'Normal swing'}
-              </Text>
-            </View>
-          </Animated.View>
-        )}
-      </Pressable>
-    </Animated.View>
-  );
-});
 
 // =============================================================================
 // MAIN SCREEN
 // =============================================================================
 
-export default function PlayScreen() {
-  const { colors, tokens, isDark } = useRedesignTheme();
-  const { settings, convertDistance } = useSettings();
+export default function ShotScreen() {
+  const { colors } = useRedesignTheme();
+  const { settings } = useSettings();
   const { clubs } = useClubSettings();
   const insets = useSafeAreaInsets();
   const environmental = useEnhancedEnvironmental();
@@ -302,13 +62,11 @@ export default function PlayScreen() {
   const [targetDistance, setTargetDistance] = useState(150);
   const [selectedPreset, setSelectedPreset] = useState<string | null>('150');
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [isVoiceListening, setIsVoiceListening] = useState(false);
-  const [windExpanded, setWindExpanded] = useState(false);
 
   // Animation
   const resultScale = useSharedValue(1);
 
-  // Quick presets based on common distances
+  // Quick presets
   const presets = useMemo(() => [
     { id: '100', label: '100', distance: 100 },
     { id: '125', label: '125', distance: 125 },
@@ -317,76 +75,47 @@ export default function PlayScreen() {
     { id: '200', label: '200', distance: 200 },
   ], []);
 
-  // Real calculation using environmental data and club data
+  // FREE calculation - Environment only (NO WIND)
   const calculationResult = useMemo((): CalculationResult => {
-    const windSpeed = environmental.current?.windSpeed || 0;
-    const windDirection = environmental.current?.windDirection || 0;
-    const temperature = environmental.current?.temperature || 70;
-    const humidity = environmental.current?.humidity || 50;
-    const altitude = environmental.current?.altitude || 0;
-
-    // Wind effect calculation
-    // Headwind adds distance needed, tailwind reduces
-    // Crosswind has less effect on distance
-    const windAngleRad = (windDirection * Math.PI) / 180;
-    const headwindComponent = Math.cos(windAngleRad) * windSpeed;
-    const crosswindComponent = Math.abs(Math.sin(windAngleRad) * windSpeed);
-
-    // Roughly 1 yard per 1mph of headwind, -0.5 for tailwind
-    const windEffect = headwindComponent * 0.8;
+    const temperature = environmental.conditions?.temperature || 70;
+    const humidity = environmental.conditions?.humidity || 50;
+    const altitude = environmental.conditions?.altitude || 0;
 
     // Temperature effect: ball flies further in warm air
-    // Roughly 2 yards per 10°F above/below 70°F
     const tempEffect = ((temperature - 70) / 10) * -2;
 
     // Altitude effect: ball flies further at altitude
-    // Roughly 2% per 1000ft
     const altitudeEffect = (altitude / 1000) * targetDistance * -0.02;
 
-    // Total adjustment
-    const totalAdjustment = windEffect + tempEffect + altitudeEffect;
+    // Humidity effect: humid air is less dense
+    const humidityEffect = ((humidity - 50) / 25) * -1;
+
+    // FREE tier: NO wind effect
+    const totalAdjustment = tempEffect + altitudeEffect + humidityEffect;
     const adjustedDistance = Math.round(targetDistance + totalAdjustment);
 
     // Find the right club from user's bag
     let selectedClub = '7-Iron';
-    let clubIndex = -1;
 
     if (clubs.length > 0) {
-      // Sort clubs by distance
       const sortedClubs = [...clubs].sort((a, b) => a.normalYardage - b.normalYardage);
-
-      // Find club that matches adjusted distance
-      for (let i = 0; i < sortedClubs.length; i++) {
-        if (sortedClubs[i].normalYardage >= adjustedDistance) {
-          selectedClub = sortedClubs[i].name;
-          clubIndex = i;
+      for (const c of sortedClubs) {
+        if (c.normalYardage >= adjustedDistance) {
+          selectedClub = c.name;
           break;
         }
       }
-
-      // If no club found, use the longest
-      if (clubIndex === -1 && sortedClubs.length > 0) {
-        selectedClub = sortedClubs[sortedClubs.length - 1].name;
-        clubIndex = sortedClubs.length - 1;
-      }
     }
-
-    // Aim adjustment based on crosswind
-    const aimYards = Math.round(crosswindComponent * 0.6);
-    const aimDirection = windDirection > 90 && windDirection < 270 ? 'right' : 'left';
-    const aimAdjustment = aimYards > 1 ? `${aimYards} yds ${aimDirection}` : 'Straight';
 
     return {
       playsLike: adjustedDistance,
       club: selectedClub,
-      clubIndex,
-      aimAdjustment,
-      windEffect,
       tempEffect,
       altitudeEffect,
+      humidityEffect,
       totalAdjustment,
     };
-  }, [targetDistance, environmental.current, clubs]);
+  }, [targetDistance, environmental.conditions, clubs]);
 
   // Handlers
   const handlePresetSelect = useCallback((preset: { id: string; distance: number }) => {
@@ -418,39 +147,12 @@ export default function PlayScreen() {
   const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-
-    if (environmental.refresh) {
-      await environmental.refresh();
+    if (environmental.forceRefresh) {
+      await environmental.forceRefresh();
     }
-
-    // Simulate minimum refresh time for UX
     await new Promise((resolve) => setTimeout(resolve, 500));
     setIsRefreshing(false);
-  }, [environmental]);
-
-  const handleVoiceToggle = useCallback(() => {
-    if (isVoiceListening) {
-      setIsVoiceListening(false);
-      // Mock voice result for demo
-      Alert.alert(
-        'Voice Input',
-        'Voice recognition requires native module integration. For now, try the quick presets or +/- buttons.',
-        [{ text: 'OK' }]
-      );
-    } else {
-      setIsVoiceListening(true);
-      // Auto-stop after 3 seconds for demo
-      setTimeout(() => {
-        setIsVoiceListening(false);
-        // Mock result
-        const mockDistances = [120, 145, 160, 180];
-        const randomDistance = mockDistances[Math.floor(Math.random() * mockDistances.length)];
-        setTargetDistance(randomDistance);
-        setSelectedPreset(null);
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      }, 3000);
-    }
-  }, [isVoiceListening]);
+  }, [environmental.forceRefresh]);
 
   const resultAnimatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: resultScale.value }],
@@ -479,26 +181,11 @@ export default function PlayScreen() {
       >
         {/* Header */}
         <Animated.View entering={FadeIn} style={styles.header}>
-          <View>
-            <Text style={[styles.title, { color: colors.textPrimary }]}>
-              Your Shot
-            </Text>
-            <Text style={[styles.subtitle, { color: colors.textMuted }]}>
-              {new Date().toLocaleDateString('en-US', {
-                weekday: 'long',
-                month: 'short',
-                day: 'numeric',
-              })}
-            </Text>
-          </View>
-          <VoiceInput
-            isListening={isVoiceListening}
-            onToggle={handleVoiceToggle}
-            onResult={setTargetDistance}
-          />
+          <Text style={[styles.title, { color: colors.textPrimary }]}>Shot Calculator</Text>
+          <Text style={[styles.subtitle, { color: colors.textMuted }]}>Environmental adjustments</Text>
         </Animated.View>
 
-        {/* Conditions Bar */}
+        {/* Conditions Bar - NO WIND (that's premium) */}
         <Animated.View entering={FadeIn.delay(100)}>
           <ScrollView
             horizontal
@@ -507,29 +194,24 @@ export default function PlayScreen() {
             contentContainerStyle={styles.conditionsContainer}
           >
             <MetricPill
-              icon={<Wind size={14} color={colors.textMuted} />}
-              label="Wind"
-              value={`${Math.round(environmental.current?.windSpeed || 0)} mph`}
-              status={
-                (environmental.current?.windSpeed || 0) > 15
-                  ? 'warning'
-                  : 'neutral'
-              }
-            />
-            <MetricPill
               icon={<Thermometer size={14} color={colors.textMuted} />}
               label="Temp"
-              value={`${Math.round(environmental.current?.temperature || 72)}°F`}
+              value={`${Math.round(environmental.conditions?.temperature || 72)}°F`}
+            />
+            <MetricPill
+              icon={<Mountain size={14} color={colors.textMuted} />}
+              label="Altitude"
+              value={`${Math.round(environmental.conditions?.altitude || 0)} ft`}
             />
             <MetricPill
               icon={<Droplets size={14} color={colors.textMuted} />}
               label="Humidity"
-              value={`${Math.round(environmental.current?.humidity || 50)}%`}
+              value={`${Math.round(environmental.conditions?.humidity || 50)}%`}
             />
             <MetricPill
-              icon={<Mountain size={14} color={colors.textMuted} />}
-              label="Alt"
-              value={`${Math.round(environmental.current?.altitude || 0)} ft`}
+              icon={<Gauge size={14} color={colors.textMuted} />}
+              label="Density"
+              value={(environmental.conditions?.density || 1.225).toFixed(3)}
             />
           </ScrollView>
         </Animated.View>
@@ -599,46 +281,25 @@ export default function PlayScreen() {
             primaryUnit={unit}
             secondaryLabel="Club"
             secondaryValue={calculationResult.club}
-            tertiaryLabel="Aim"
-            tertiaryValue={calculationResult.aimAdjustment}
+            tertiaryLabel="Adjustment"
+            tertiaryValue={`${calculationResult.totalAdjustment > 0 ? '+' : ''}${Math.round(calculationResult.totalAdjustment)} ${unit}`}
             variant="highlighted"
             style={styles.resultCard}
           />
         </Animated.View>
 
-        {/* Adjustments Breakdown */}
-        {Math.abs(calculationResult.totalAdjustment) > 1 && (
+        {/* Adjustments Breakdown - Environment only */}
+        {Math.abs(calculationResult.totalAdjustment) > 0.5 && (
           <Animated.View
             entering={FadeInDown.delay(450)}
             style={[styles.adjustmentsCard, { backgroundColor: colors.surface }]}
           >
             <Text style={[styles.adjustmentsTitle, { color: colors.textMuted }]}>
-              ADJUSTMENTS
+              ENVIRONMENTAL EFFECTS
             </Text>
             <View style={styles.adjustmentRow}>
               <Text style={[styles.adjustmentLabel, { color: colors.textSecondary }]}>
-                Wind
-              </Text>
-              <Text
-                style={[
-                  styles.adjustmentValue,
-                  {
-                    color:
-                      calculationResult.windEffect > 0
-                        ? colors.error
-                        : calculationResult.windEffect < 0
-                        ? colors.success
-                        : colors.textPrimary,
-                  },
-                ]}
-              >
-                {calculationResult.windEffect > 0 ? '+' : ''}
-                {Math.round(calculationResult.windEffect)} yds
-              </Text>
-            </View>
-            <View style={styles.adjustmentRow}>
-              <Text style={[styles.adjustmentLabel, { color: colors.textSecondary }]}>
-                Temperature
+                Temperature ({Math.round(environmental.conditions?.temperature || 70)}°F)
               </Text>
               <Text
                 style={[
@@ -659,7 +320,7 @@ export default function PlayScreen() {
             </View>
             <View style={styles.adjustmentRow}>
               <Text style={[styles.adjustmentLabel, { color: colors.textSecondary }]}>
-                Altitude
+                Altitude ({Math.round(environmental.conditions?.altitude || 0)} ft)
               </Text>
               <Text
                 style={[
@@ -678,17 +339,36 @@ export default function PlayScreen() {
                 {Math.round(calculationResult.altitudeEffect)} yds
               </Text>
             </View>
+            <View style={styles.adjustmentRow}>
+              <Text style={[styles.adjustmentLabel, { color: colors.textSecondary }]}>
+                Humidity ({Math.round(environmental.conditions?.humidity || 50)}%)
+              </Text>
+              <Text
+                style={[
+                  styles.adjustmentValue,
+                  {
+                    color:
+                      calculationResult.humidityEffect > 0
+                        ? colors.error
+                        : calculationResult.humidityEffect < 0
+                        ? colors.success
+                        : colors.textPrimary,
+                  },
+                ]}
+              >
+                {calculationResult.humidityEffect > 0 ? '+' : ''}
+                {Math.round(calculationResult.humidityEffect)} yds
+              </Text>
+            </View>
           </Animated.View>
         )}
 
-        {/* Wind Details Panel */}
-        <WindDetailsPanel
-          windSpeed={environmental.current?.windSpeed || 0}
-          windDirection={environmental.current?.windDirection || 0}
-          expanded={windExpanded}
-          onToggle={() => setWindExpanded(!windExpanded)}
-          windEffect={calculationResult.windEffect}
-        />
+        {/* Info Note */}
+        <Animated.View entering={FadeInDown.delay(500)}>
+          <Text style={[styles.infoNote, { color: colors.textMuted }]}>
+            Use the Wind tab for wind-adjusted calculations with compass heading.
+          </Text>
+        </Animated.View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -709,9 +389,6 @@ const styles = StyleSheet.create({
   },
 
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
     marginBottom: 20,
   },
 
@@ -724,22 +401,6 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 16,
     marginTop: 4,
-  },
-
-  // Voice Button
-  voiceButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 24,
-    borderWidth: 1.5,
-    gap: 8,
-  },
-
-  voiceButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
   },
 
   // Conditions
@@ -855,76 +516,11 @@ const styles = StyleSheet.create({
     fontVariant: ['tabular-nums'],
   },
 
-  // Wind Panel
-  windPanel: {
-    borderRadius: 16,
-    overflow: 'hidden',
-  },
-
-  windPanelHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 16,
-  },
-
-  windPanelLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-
-  windPanelText: {
-    gap: 2,
-  },
-
-  windPanelTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-
-  windPanelSubtitle: {
-    fontSize: 14,
-  },
-
-  windPanelRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-
-  impactBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-
-  impactBadgeText: {
-    fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 0.5,
-  },
-
-  windPanelExpanded: {
+  // Info Note
+  infoNote: {
+    fontSize: 13,
+    textAlign: 'center',
+    lineHeight: 18,
     paddingHorizontal: 16,
-    paddingBottom: 16,
-    borderTopWidth: 1,
-    paddingTop: 12,
-  },
-
-  windDetailRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 6,
-  },
-
-  windDetailLabel: {
-    fontSize: 14,
-  },
-
-  windDetailValue: {
-    fontSize: 14,
-    fontWeight: '600',
   },
 });

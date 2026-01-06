@@ -1,16 +1,16 @@
 /**
- * Redesign Tab Layout - Expo Router Version
+ * Redesign Tab Layout - 3 Tab Freemium Structure
  *
- * New 3-tab navigation structure using Expo Router.
- * This can coexist with the existing (tabs) folder for A/B testing.
+ * - Shot (FREE): Environmental adjustments only
+ * - Wind (PREMIUM): Full wind calculator with compass
+ * - Setup: Clubs + settings
  */
 
 import React from 'react';
 import { Tabs } from 'expo-router';
-import { View, StyleSheet, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
-import { Target, BarChart3, Settings } from 'lucide-react-native';
+import { Target, Wind, Settings } from 'lucide-react-native';
 
 import { RedesignThemeProvider, useRedesignTheme } from '@/src/theme/redesign';
 import { AppProvider } from '@/src/core/context/AppProvider';
@@ -21,7 +21,7 @@ import { EnhancedEnvironmentalProvider } from '@/src/providers/EnhancedEnvironme
 // =============================================================================
 
 interface TabBarIconProps {
-  name: 'play' | 'stats' | 'setup';
+  name: 'shot' | 'wind' | 'setup';
   color: string;
   focused: boolean;
 }
@@ -30,10 +30,10 @@ function TabBarIcon({ name, color, focused }: TabBarIconProps) {
   const size = 24;
 
   switch (name) {
-    case 'play':
+    case 'shot':
       return <Target size={size} color={color} strokeWidth={focused ? 2.5 : 2} />;
-    case 'stats':
-      return <BarChart3 size={size} color={color} strokeWidth={focused ? 2.5 : 2} />;
+    case 'wind':
+      return <Wind size={size} color={color} strokeWidth={focused ? 2.5 : 2} />;
     case 'setup':
       return <Settings size={size} color={color} strokeWidth={focused ? 2.5 : 2} />;
     default:
@@ -81,18 +81,18 @@ function TabNavigatorContent() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Play',
+          title: 'Shot',
           tabBarIcon: ({ color, focused }) => (
-            <TabBarIcon name="play" color={color} focused={focused} />
+            <TabBarIcon name="shot" color={color} focused={focused} />
           ),
         }}
       />
       <Tabs.Screen
-        name="stats"
+        name="wind"
         options={{
-          title: 'Stats',
+          title: 'Wind',
           tabBarIcon: ({ color, focused }) => (
-            <TabBarIcon name="stats" color={color} focused={focused} />
+            <TabBarIcon name="wind" color={color} focused={focused} />
           ),
         }}
       />
