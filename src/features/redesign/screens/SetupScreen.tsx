@@ -281,7 +281,7 @@ export function SetupScreen() {
   const insets = useSafeAreaInsets();
 
   // Handlers
-  const handleDeleteClub = useCallback((index: number, clubName: string) => {
+  const handleDeleteClub = useCallback((clubId: string, clubName: string) => {
     Alert.alert(
       'Delete Club',
       `Are you sure you want to remove ${clubName} from your bag?`,
@@ -292,7 +292,7 @@ export function SetupScreen() {
           style: 'destructive',
           onPress: () => {
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-            removeClub(index);
+            removeClub(clubId);
           },
         },
       ]
@@ -381,7 +381,7 @@ export function SetupScreen() {
                     distance={displayDistance}
                     unit={unit}
                     onEdit={() => Alert.alert('Edit Club', 'Club editor coming soon!')}
-                    onDelete={() => handleDeleteClub(index, club.name)}
+                    onDelete={() => handleDeleteClub(club.id ?? '', club.name)}
                   />
                 );
               })

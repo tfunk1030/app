@@ -36,7 +36,7 @@ export const withErrorHandling = <T extends (...args: unknown[]) => unknown>(
 ): ((...args: Parameters<T>) => Promise<ReturnType<T> | undefined>) => {
   return async (...args: Parameters<T>): Promise<ReturnType<T> | undefined> => {
     try {
-      return await fn(...args);
+      return (await fn(...args)) as ReturnType<T>;
     } catch (error) {
       await safeHandleError(error as Error, { message: errorMessage });
       return undefined;

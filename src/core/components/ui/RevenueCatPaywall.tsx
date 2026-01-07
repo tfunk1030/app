@@ -62,9 +62,7 @@ export function RevenueCatPaywall({
       logger.info('Presenting RevenueCat paywall', { offeringIdentifier });
 
       // Present the paywall using RevenueCat UI
-      const paywallResult = await RevenueCatUI.presentPaywall({
-        offering: offeringIdentifier,
-      });
+      const paywallResult = await RevenueCatUI.presentPaywall();
 
       logger.info('Paywall result', { result: paywallResult });
 
@@ -153,9 +151,7 @@ export async function presentRevenueCatPaywall(
   try {
     logger.info('Presenting RevenueCat paywall (imperative)', { offeringIdentifier });
 
-    const paywallResult = await RevenueCatUI.presentPaywall({
-      offering: offeringIdentifier,
-    });
+    const paywallResult = await RevenueCatUI.presentPaywall();
 
     switch (paywallResult) {
       case PAYWALL_RESULT.PURCHASED:
@@ -196,7 +192,6 @@ export async function presentPaywallIfNeeded(
 
     const paywallResult = await RevenueCatUI.presentPaywallIfNeeded({
       requiredEntitlementIdentifier: entitlementIdentifier,
-      offering: offeringIdentifier,
     });
 
     switch (paywallResult) {

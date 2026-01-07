@@ -1,8 +1,10 @@
 {
   "mcpServers": {
     "spawner": {
-      "command": "npx",
+      "command": "cmd",
       "args": [
+        "/c",
+        "npx",
         "-y",
         "mcp-remote",
         "https://mcp.vibeship.co"

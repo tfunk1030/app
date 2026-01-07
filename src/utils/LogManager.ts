@@ -17,7 +17,7 @@ type LogLevel = 'debug' | 'info' | 'warn' | 'error';
  * Log data type - allows structured objects for spread compatibility.
  * Uses Record<string, unknown> to allow arbitrary keys while being type-safe.
  */
-type LogData = Record<string, unknown> | undefined;
+type LogData = Record<string, unknown> | Error | unknown | undefined;
 
 // Log entry structure for consistent formatting
 interface LogEntry {

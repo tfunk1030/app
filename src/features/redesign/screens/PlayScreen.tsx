@@ -241,9 +241,9 @@ export function PlayScreen() {
   // Mock calculation result (replace with actual calculator)
   const calculationResult = useMemo(() => {
     // This would be replaced with actual wind/shot calculation
-    const windAdjustment = (environmental.current?.windSpeed || 0) * 0.8;
-    const tempAdjustment = ((environmental.current?.temperature || 70) - 70) * 0.1;
-    const altitudeAdjustment = ((environmental.current?.altitude || 0) / 1000) * 2;
+    const windAdjustment = (environmental.conditions?.windSpeed || 0) * 0.8;
+    const tempAdjustment = ((environmental.conditions?.temperature || 70) - 70) * 0.1;
+    const altitudeAdjustment = ((environmental.conditions?.altitude || 0) / 1000) * 2;
 
     const adjustedDistance = Math.round(
       targetDistance + windAdjustment + tempAdjustment + altitudeAdjustment
@@ -266,15 +266,15 @@ export function PlayScreen() {
     const club = clubs.find((c) => c.max >= adjustedDistance) || clubs[clubs.length - 1];
 
     // Wind aim adjustment
-    const aimAdjustment = Math.round((environmental.current?.windSpeed || 0) * 0.6);
-    const aimDirection = (environmental.current?.windDirection || 0) > 180 ? 'right' : 'left';
+    const aimAdjustment = Math.round((environmental.conditions?.windSpeed || 0) * 0.6);
+    const aimDirection = (environmental.conditions?.windDirection || 0) > 180 ? 'right' : 'left';
 
     return {
       playsLike: adjustedDistance,
       club: club.name,
       aimAdjustment: aimAdjustment > 0 ? `${aimAdjustment} yds ${aimDirection}` : 'Straight',
     };
-  }, [targetDistance, environmental.current]);
+  }, [targetDistance, environmental.conditions]);
 
   // Handlers
   const handlePresetSelect = useCallback((preset: QuickPreset) => {
@@ -293,8 +293,8 @@ export function PlayScreen() {
   const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
     // Refresh environmental data
-    if (environmental.refresh) {
-      await environmental.refresh();
+    if (environmental.forceRefresh) {
+      await environmental.forceRefresh();
     }
     setIsRefreshing(false);
   }, [environmental]);
@@ -337,11 +337,11 @@ export function PlayScreen() {
         {/* Conditions Bar */}
         <Animated.View entering={FadeIn.delay(100)}>
           <ConditionsBar
-            windSpeed={Math.round(environmental.current?.windSpeed || 0)}
-            windDirection={getWindDirectionLabel(environmental.current?.windDirection || 0)}
-            temperature={Math.round(environmental.current?.temperature || 72)}
-            humidity={Math.round(environmental.current?.humidity || 50)}
-            altitude={Math.round(environmental.current?.altitude || 0)}
+            windSpeed={Math.round(environmental.conditions?.windSpeed || 0)}
+            windDirection={getWindDirectionLabel(environmental.conditions?.windDirection || 0)}
+            temperature={Math.round(environmental.conditions?.temperature || 72)}
+            humidity={Math.round(environmental.conditions?.humidity || 50)}
+            altitude={Math.round(environmental.conditions?.altitude || 0)}
           />
         </Animated.View>
 
@@ -395,8 +395,8 @@ export function PlayScreen() {
                   Wind Analysis
                 </Text>
                 <Text style={[styles.windDetailsSubtitle, { color: colors.textMuted }]}>
-                  {Math.round(environmental.current?.windSpeed || 0)} mph from{' '}
-                  {getWindDirectionLabel(environmental.current?.windDirection || 0)}
+                  {Math.round(environmental.conditions?.windSpeed || 0)} mph from{' '}
+                  {getWindDirectionLabel(environmental.conditions?.windDirection || 0)}
                 </Text>
               </View>
             </View>

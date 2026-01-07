@@ -108,13 +108,13 @@ export const ResultCard = memo(function ResultCard({
       borderColor: isHighlighted ? colors.brand : colors.border,
       borderWidth: isHighlighted ? 2 : 1,
       padding: isCompact ? tokens.spacing.base : tokens.spacing.lg,
-    },
-    isHighlighted && {
-      ...tokens.shadows.lg,
-      shadowColor: colors.brand,
+      ...(isHighlighted && {
+        ...tokens.shadows.lg,
+        shadowColor: colors.brand,
+      }),
     },
     style,
-  ];
+  ].filter(Boolean) as ViewStyle[];
 
   const content = (
     <>

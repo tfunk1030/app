@@ -18,7 +18,7 @@ import { LogManager } from '@/src/utils/LogManager';
 import * as Haptics from 'expo-haptics';
 import React, { useCallback, useEffect } from 'react';
 import { Alert } from 'react-native';
-import RevenueCatUI, { CUSTOMER_CENTER_MANAGEMENT_OPTION } from 'react-native-purchases-ui';
+import RevenueCatUI from 'react-native-purchases-ui';
 
 const logger = LogManager.getLogger('CustomerCenter');
 

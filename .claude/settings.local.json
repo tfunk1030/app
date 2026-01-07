@@ -27,7 +27,11 @@
       "mcp__spawner__spawner_orchestrate",
       "Bash(dir /b \"C:\\\\dev\\\\aicaddypro\")",
       "Bash(findstr:*)",
-      "Bash(yarn add:*)"
+      "Bash(yarn add:*)",
+      "Bash(bash -c:*)",
+      "Bash(dir:*)",
+      "Bash(git checkout:*)",
+      "Bash(cat:*)"
     ]
   }
 }

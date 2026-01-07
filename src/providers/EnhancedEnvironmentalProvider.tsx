@@ -14,11 +14,24 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const logger = LogManager.getLogger('EnhancedEnvironmentalProvider');
 
+interface ThrottlerStatus {
+  isAppActive: boolean;
+  currentInterval: number;
+  timeSinceLastCall: number;
+  hasPendingCall: boolean;
+  hasLastArgs: boolean;
+}
+
 interface ThrottlingStatus {
-  isThrottled: boolean;
-  lastRequestTime: number | null;
-  requestCount: number;
-  interval: number;
+  location: ThrottlerStatus;
+  weather: ThrottlerStatus;
+  update: ThrottlerStatus;
+  isActive: boolean;
+  lastFetchTime: number;
+  timeSinceLastFetch: number;
+  provider: string | null;
+  providerLatencyMs: number;
+  fallbackUsed: boolean;
 }
 
 interface EnhancedEnvironmentalContextType {
