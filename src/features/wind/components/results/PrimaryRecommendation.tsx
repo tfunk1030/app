@@ -20,11 +20,11 @@ interface PrimaryRecommendationProps {
 export function PrimaryRecommendation({ effectiveDistance }: PrimaryRecommendationProps) {
   const t = useThemeTokens();
   const styles = React.useMemo(() => createStyles(t), [t]);
-  const { settings } = useSettings();
+  const { settings, convertDistance } = useSettings();
   const roundedDistance =
     settings.distanceUnit === 'yards'
       ? Math.round(effectiveDistance)
-      : Math.round(effectiveDistance * 0.9144);
+      : Math.round(convertDistance(effectiveDistance, 'meters'));
   const unitLabel = settings.distanceUnit === 'yards' ? 'yards' : 'm';
 
   return (

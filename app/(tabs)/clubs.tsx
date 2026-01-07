@@ -216,8 +216,8 @@ const ClubCard = memo(
   }: {
     club: ClubData;
     index: number;
-    onEdit: (index: number) => void;
-    onDelete: (index: number) => void;
+    onEdit: (clubId: string) => void;
+    onDelete: (clubId: string) => void;
     distanceUnit: string;
     convertDistance: (value: number, unit: 'meters' | 'yards') => number;
   }) => {
@@ -229,14 +229,17 @@ const ClubCard = memo(
         ? Math.round(convertDistance(club.normalYardage, 'meters'))
         : Math.round(club.normalYardage);
 
+    // Use club ID for stable identification after sorting
+    const clubId = club.id || `fallback-${club.name}-${index}`;
+
     const handleEdit = useCallback(async () => {
       try {
         await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       } catch {
         // Haptics not available
       }
-      onEdit(index);
-    }, [index, onEdit]);
+      onEdit(clubId);
+    }, [clubId, onEdit]);
 
     const handleDelete = useCallback(async () => {
       try {
@@ -252,11 +255,11 @@ const ClubCard = memo(
           {
             text: 'Delete',
             style: 'destructive',
-            onPress: () => onDelete(index),
+            onPress: () => onDelete(clubId),
           },
         ]
       );
-    }, [club.name, index, onDelete]);
+    }, [club.name, clubId, onDelete]);
 
     const glowColor = getClubGlowColor(club.name);
 
@@ -329,7 +332,7 @@ export default function ClubLibraryScreen() {
   const styles = React.useMemo(() => getThemedStyles(palette), [palette]);
 
   const [modalVisible, setModalVisible] = useState(false);
-  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [editingClubId, setEditingClubId] = useState<string | null>(null);
   const [clubName, setClubName] = useState('');
   const [clubDistance, setClubDistance] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -341,22 +344,24 @@ export default function ClubLibraryScreen() {
     } catch {
       // Haptics not available
     }
-    setEditingIndex(null);
+    setEditingClubId(null);
     setClubName('');
     setClubDistance('');
     setModalVisible(true);
   }, []);
 
-  // Handle edit club
+  // Handle edit club - uses ID for stable tracking after sorting
   const handleEdit = useCallback(
-    (index: number) => {
-      const club = clubs[index];
+    (clubId: string) => {
+      const club = clubs.find(c => c.id === clubId);
+      if (!club) return;
+
       const displayYardage =
         settings.distanceUnit === 'meters'
           ? Math.round(convertDistance(club.normalYardage, 'meters'))
           : Math.round(club.normalYardage);
 
-      setEditingIndex(index);
+      setEditingClubId(clubId);
       setClubName(club.name);
       setClubDistance(displayYardage.toString());
       setModalVisible(true);
@@ -364,15 +369,15 @@ export default function ClubLibraryScreen() {
     [clubs, settings.distanceUnit, convertDistance]
   );
 
-  // Handle delete club
+  // Handle delete club - uses ID for stable deletion after sorting
   const handleDelete = useCallback(
-    async (index: number) => {
+    async (clubId: string) => {
       try {
         await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       } catch {
         // Haptics not available
       }
-      removeClub(index);
+      removeClub(clubId);
     },
     [removeClub]
   );
@@ -395,21 +400,23 @@ export default function ClubLibraryScreen() {
         ? convertDistance(numericYardage, 'yards')
         : numericYardage;
 
+    // Preserve existing club data when editing, only update name and yardage
+    const existingClub = editingClubId !== null ? clubs.find(c => c.id === editingClubId) : null;
     const clubData: ClubData = {
       name: clubName.trim(),
       normalYardage: processedYardage,
-      ball_speed: 0,
-      launch_angle: 0,
-      spin_rate: 0,
-      max_height: 0,
-      land_angle: 0,
-      spin_decay: 0,
-      wind_sensitivity: 1.0,
+      ball_speed: existingClub?.ball_speed ?? 0,
+      launch_angle: existingClub?.launch_angle ?? 0,
+      spin_rate: existingClub?.spin_rate ?? 0,
+      max_height: existingClub?.max_height ?? 0,
+      land_angle: existingClub?.land_angle ?? 0,
+      spin_decay: existingClub?.spin_decay ?? 0,
+      wind_sensitivity: existingClub?.wind_sensitivity ?? 1.0,
     };
 
     setTimeout(() => {
-      if (editingIndex !== null) {
-        updateClub(editingIndex, clubData);
+      if (editingClubId !== null) {
+        updateClub(editingClubId, clubData);
       } else {
         addClub(clubData);
       }
@@ -421,9 +428,10 @@ export default function ClubLibraryScreen() {
     clubDistance,
     settings.distanceUnit,
     convertDistance,
-    editingIndex,
+    editingClubId,
     updateClub,
     addClub,
+    clubs,
   ]);
 
   // Handle quick add
@@ -535,7 +543,7 @@ export default function ClubLibraryScreen() {
               {/* Club List */}
               <FlatList
                 data={clubs}
-                keyExtractor={(item, index) => `club-${item.name}-${index}`}
+                keyExtractor={(item) => item.id || `club-${item.name}`}
                 renderItem={renderClubItem}
                 contentContainerStyle={styles.contentContainer}
                 showsVerticalScrollIndicator={false}
@@ -562,7 +570,7 @@ export default function ClubLibraryScreen() {
           <Pressable style={styles.modalContent} onPress={() => {}}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
-                {editingIndex !== null ? 'Edit Club' : 'Add Club'}
+                {editingClubId !== null ? 'Edit Club' : 'Add Club'}
               </Text>
               <Pressable
                 style={styles.modalClose}
@@ -577,7 +585,7 @@ export default function ClubLibraryScreen() {
             </View>
 
             {/* Quick Add Section */}
-            {editingIndex === null && (
+            {editingClubId === null && (
               <View style={styles.quickAddContainer}>
                 <Text style={styles.quickAddTitle}>Quick Add</Text>
                 <View style={styles.quickAddGrid}>
@@ -623,7 +631,7 @@ export default function ClubLibraryScreen() {
               onPress={handleSaveClub}
               disabled={!clubName.trim() || !clubDistance.trim() || isLoading}
             >
-              {isLoading ? 'Saving...' : editingIndex !== null ? 'Update Club' : 'Add Club'}
+              {isLoading ? 'Saving...' : editingClubId !== null ? 'Update Club' : 'Add Club'}
             </Button>
           </Pressable>
         </Pressable>

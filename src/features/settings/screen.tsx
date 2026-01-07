@@ -441,7 +441,7 @@ export default function SettingsScreen() {
   const { openCustomerCenter } = useCustomerCenter();
   const insets = useSafeAreaInsets();
   const { headerEntering, cardEntering, quickFade } = useAccessibleAnimations();
-  const [editingIndex, setEditingIndex] = React.useState<number | null>(null);
+  const [editingClubId, setEditingClubId] = React.useState<string | null>(null);
   const [newClub, setNewClub] = React.useState({ name: '', normalYardage: '', loft: '' });
   const [showAddForm, setShowAddForm] = React.useState(false);
 
@@ -468,19 +468,21 @@ export default function SettingsScreen() {
       wind_sensitivity: 0,
     };
 
-    if (editingIndex !== null) {
-      updateClub(editingIndex, clubData as ClubData);
+    if (editingClubId !== null) {
+      updateClub(editingClubId, clubData as ClubData);
     } else {
       addClub(clubData as ClubData);
     }
 
     setNewClub({ name: '', normalYardage: '', loft: '' });
-    setEditingIndex(null);
+    setEditingClubId(null);
     setShowAddForm(false);
   };
 
-  const handleEdit = (index: number) => {
-    const club = clubs[index];
+  const handleEdit = (clubId: string) => {
+    const club = clubs.find(c => c.id === clubId);
+    if (!club) return;
+
     const displayYardage =
       settings.distanceUnit === 'meters'
         ? convertDistance(club.normalYardage, 'meters')
@@ -491,13 +493,13 @@ export default function SettingsScreen() {
       normalYardage: displayYardage.toString(),
       loft: '',
     });
-    setEditingIndex(index);
+    setEditingClubId(clubId);
     setShowAddForm(true);
   };
 
   const handleCancel = () => {
     setNewClub({ name: '', normalYardage: '', loft: '' });
-    setEditingIndex(null);
+    setEditingClubId(null);
     setShowAddForm(false);
   };
 
@@ -655,7 +657,7 @@ export default function SettingsScreen() {
                   style={styles.formButton}
                   disabled={!newClub.name || !newClub.normalYardage}
                 >
-                  {editingIndex !== null ? 'Update' : 'Add Club'}
+                  {editingClubId !== null ? 'Update' : 'Add Club'}
                 </Button>
               </View>
             </Animated.View>
@@ -664,6 +666,7 @@ export default function SettingsScreen() {
           {/* Club List */}
           <View style={styles.clubList}>
             {clubs.map((club, index) => {
+              const clubId = club.id || `fallback-${club.name}-${index}`;
               const displayYardage =
                 settings.distanceUnit === 'meters'
                   ? convertDistance(club.normalYardage, 'meters')
@@ -671,12 +674,12 @@ export default function SettingsScreen() {
 
               return (
                 <ClubItem
-                  key={index}
+                  key={clubId}
                   club={club}
                   displayYardage={displayYardage}
                   unit={settings.distanceUnit === 'yards' ? 'yds' : 'm'}
-                  onEdit={() => handleEdit(index)}
-                  onDelete={() => removeClub(index)}
+                  onEdit={() => handleEdit(clubId)}
+                  onDelete={() => removeClub(clubId)}
                   tokens={tokens}
                 />
               );

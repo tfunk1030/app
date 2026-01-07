@@ -180,21 +180,21 @@ const WindCalculatorInput = React.memo(
     const maxByUnit = (() => {
       switch (settings.speedUnit) {
         case 'mph':
-          return 50;
+          return 40;
         case 'kph':
-          return Math.round(50 * 1.60934);
+          return Math.round(40 * 1.60934); // ~64 kph
         case 'kts':
-          return Math.round(50 * 0.868976);
+          return Math.round(40 * 0.868976); // ~35 kts
         case 'mps':
-          return Math.round(50 * 0.44704);
+          return Math.round(40 * 0.44704); // ~18 m/s
         default:
-          return 50;
+          return 40;
       }
     })();
 
     const distanceUnitLabel = settings.distanceUnit === 'yards' ? ' yards' : ' m';
-    const distMin = settings.distanceUnit === 'yards' ? 50 : 45;
-    const distMax = settings.distanceUnit === 'yards' ? 350 : 318; // reasonable meter cap
+    const distMin = 1; // Start from 1 for both yards and meters
+    const distMax = settings.distanceUnit === 'yards' ? 400 : Math.round(400 * 0.9144); // 400 yds or ~366m
 
     // Yardage presets row (unit-aware)
     const presetYards = [100, 125, 150, 175, 200];
@@ -226,18 +226,46 @@ const WindCalculatorInput = React.memo(
           </View>
         </View>
 
-        {/* Wind Speed Slider */}
+        {/* Wind Speed Slider with +/- buttons */}
         <View style={styles.inputGroup}>
-          <Slider
-            value={windSpeed}
-            onValueChange={setWindSpeed}
-            min={0}
-            max={maxByUnit}
-            step={1}
-            label="Wind Speed"
-            unit={speedUnitLabel}
-            dense
-          />
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Button
+              variant="secondary"
+              size="default"
+              onPress={async () => {
+                await Haptics.selectionAsync();
+                setWindSpeed(Math.max(0, windSpeed - 1));
+              }}
+              style={{ minWidth: 44, minHeight: 44, paddingHorizontal: 12 }}
+              accessibilityLabel="Decrease wind speed by 1"
+            >
+              -1
+            </Button>
+            <View style={{ flex: 1 }}>
+              <Slider
+                value={windSpeed}
+                onValueChange={setWindSpeed}
+                min={0}
+                max={maxByUnit}
+                step={1}
+                label="Wind Speed"
+                unit={speedUnitLabel}
+                dense
+              />
+            </View>
+            <Button
+              variant="secondary"
+              size="default"
+              onPress={async () => {
+                await Haptics.selectionAsync();
+                setWindSpeed(Math.min(maxByUnit, windSpeed + 1));
+              }}
+              style={{ minWidth: 44, minHeight: 44, paddingHorizontal: 12 }}
+              accessibilityLabel="Increase wind speed by 1"
+            >
+              +1
+            </Button>
+          </View>
         </View>
 
         {/* Yardage Presets - Larger touch targets */}
@@ -266,18 +294,46 @@ const WindCalculatorInput = React.memo(
           ))}
         </View>
 
-        {/* Target Yardage Slider */}
+        {/* Target Yardage Slider with +/- buttons */}
         <View style={styles.inputGroup}>
-          <Slider
-            value={targetYardage}
-            onValueChange={setTargetYardage}
-            min={distMin}
-            max={distMax}
-            step={1}
-            label="Target Yardage"
-            unit={distanceUnitLabel}
-            dense
-          />
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Button
+              variant="secondary"
+              size="default"
+              onPress={async () => {
+                await Haptics.selectionAsync();
+                setTargetYardage(Math.max(distMin, targetYardage - 1));
+              }}
+              style={{ minWidth: 44, minHeight: 44, paddingHorizontal: 12 }}
+              accessibilityLabel="Decrease yardage by 1"
+            >
+              -1
+            </Button>
+            <View style={{ flex: 1 }}>
+              <Slider
+                value={targetYardage}
+                onValueChange={setTargetYardage}
+                min={distMin}
+                max={distMax}
+                step={1}
+                label="Target"
+                unit={distanceUnitLabel}
+                dense
+              />
+            </View>
+            <Button
+              variant="secondary"
+              size="default"
+              onPress={async () => {
+                await Haptics.selectionAsync();
+                setTargetYardage(Math.min(distMax, targetYardage + 1));
+              }}
+              style={{ minWidth: 44, minHeight: 44, paddingHorizontal: 12 }}
+              accessibilityLabel="Increase yardage by 1"
+            >
+              +1
+            </Button>
+          </View>
         </View>
 
         {/* Calculate Button */}

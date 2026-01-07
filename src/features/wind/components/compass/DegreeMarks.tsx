@@ -50,52 +50,8 @@ const DegreeMarks: React.FC<DegreeMarksProps> = ({ size, heading, borderColor, t
       />
     );
 
-    // Add degree labels for major ticks (every 45 degrees)
-    if (isMajor && features.showMainDegrees) {
-      const labelRadius = (size - 70) / 2; // Position labels inside the compass ring
-      const radians = ((degrees - heading) * Math.PI) / 180;
-      const x = Math.sin(radians) * labelRadius;
-      const y = -Math.cos(radians) * labelRadius;
-
-      // Calculate scaled dimensions for the label container
-      const scaledFontSizeValue = scaledFontSize(10);
-      const containerHeight = Math.max(24, scaledFontSizeValue * 2);
-      const containerWidth = 50;
-
-      marks.push(
-        <View
-          key={`degree-${i}`}
-          style={[
-            styles.degreeLabel,
-            {
-              position: 'absolute',
-              left: size / 2 + x - containerWidth / 2,
-              top: size / 2 + y - containerHeight / 2,
-              width: containerWidth,
-              height: containerHeight,
-              overflow: 'visible',
-            },
-          ]}
-        >
-          <Text
-            style={[
-              styles.degreeLabelText,
-              {
-                color: textColor,
-                fontSize: scaledFontSizeValue,
-                opacity: 0.5,
-                lineHeight: scaledFontSizeValue * 1.2,
-              },
-            ]}
-            numberOfLines={1}
-            adjustsFontSizeToFit={true}
-            minimumFontScale={0.6}
-          >
-            {degrees}°
-          </Text>
-        </View>
-      );
-    }
+    // Degree labels removed - cardinal directions (N, NE, E, etc.) already cover these positions
+    // This eliminates the overlap issue between degree numbers and cardinal letters
   }
 
   return <>{marks}</>;

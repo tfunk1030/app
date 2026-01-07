@@ -40,10 +40,13 @@ export const useNavigationPreference = create<NavigationPreferenceState>((set, g
 
   loadPreference: async () => {
     try {
-      // Force redesign layout - ignore stored preference during transition
-      // TODO: Remove this override once redesign is confirmed as final
-      await AsyncStorage.setItem(STORAGE_KEY, 'redesign');
-      set({ style: 'redesign', isLoaded: true });
+      const saved = await AsyncStorage.getItem(STORAGE_KEY);
+      if (saved && (saved === 'classic' || saved === 'redesign')) {
+        set({ style: saved as NavigationStyle, isLoaded: true });
+      } else {
+        // Default to redesign if no preference is stored
+        set({ style: 'redesign', isLoaded: true });
+      }
     } catch (error) {
       console.error('Failed to load navigation preference:', error);
       set({ style: 'redesign', isLoaded: true });

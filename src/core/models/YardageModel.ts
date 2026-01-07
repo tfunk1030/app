@@ -22,6 +22,7 @@ export interface BallModel {
 }
 
 export interface ClubData {
+  id?: string; // Unique identifier for stable editing/deletion after sorting
   name: string;
   normalYardage: number;
   ball_speed: number;

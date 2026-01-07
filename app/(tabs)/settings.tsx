@@ -216,7 +216,7 @@ AddClubForm.displayName = 'AddClubForm';
 const ClubItem = memo(
   ({
     club,
-    index,
+    clubId,
     isEditing,
     editingValues,
     setEditingValues,
@@ -228,14 +228,14 @@ const ClubItem = memo(
     settings,
   }: {
     club: ClubData;
-    index: number;
+    clubId: string;
     isEditing: boolean;
     editingValues: { name: string; normalYardage: string };
     setEditingValues: (values: { name: string; normalYardage: string }) => void;
-    handleSaveEdit: (index: number) => void;
+    handleSaveEdit: (clubId: string) => void;
     handleCancelEdit: () => void;
-    handleEdit: (index: number) => void;
-    removeClub: (index: number) => void;
+    handleEdit: (clubId: string) => void;
+    removeClub: (clubId: string) => void;
     displayYardage: number;
     settings: Settings;
   }) => {
@@ -260,7 +260,7 @@ const ClubItem = memo(
             <View style={styles.clubActions}>
               {isEditing ? (
                 <>
-                  <Button variant="default" onPress={() => handleSaveEdit(index)} size="sm">
+                  <Button variant="default" onPress={() => handleSaveEdit(clubId)} size="sm">
                     Save
                   </Button>
                   <Button variant="secondary" onPress={handleCancelEdit} size="sm">
@@ -269,10 +269,10 @@ const ClubItem = memo(
                 </>
               ) : (
                 <>
-                  <Pressable onPress={() => handleEdit(index)}>
+                  <Pressable onPress={() => handleEdit(clubId)}>
                     <Text style={styles.actionText}>Edit</Text>
                   </Pressable>
-                  <Pressable onPress={() => removeClub(index)}>
+                  <Pressable onPress={() => removeClub(clubId)}>
                     <Text style={[styles.actionText, styles.deleteText]}>Delete</Text>
                   </Pressable>
                 </>
@@ -310,7 +310,7 @@ const ClubManagement = memo(
     handleNameChange,
     setNewClub,
     handleAddClub,
-    editingIndex,
+    editingClubId,
     editingValues,
     setEditingValues,
     handleSaveEdit,
@@ -325,13 +325,13 @@ const ClubManagement = memo(
     handleNameChange: (text: string) => void;
     setNewClub: (club: { name: string; normalYardage: string }) => void;
     handleAddClub: () => void;
-    editingIndex: number | null;
+    editingClubId: string | null;
     editingValues: { name: string; normalYardage: string };
     setEditingValues: (values: { name: string; normalYardage: string }) => void;
-    handleSaveEdit: (index: number) => void;
+    handleSaveEdit: (clubId: string) => void;
     handleCancelEdit: () => void;
-    handleEdit: (index: number) => void;
-    removeClub: (index: number) => void;
+    handleEdit: (clubId: string) => void;
+    removeClub: (clubId: string) => void;
     settings: Settings;
     convertDistance: (value: number, unit: 'meters' | 'yards') => number;
   }) => {
@@ -351,7 +351,8 @@ const ClubManagement = memo(
         />
 
         {clubs.map((club, index) => {
-          const isEditing = editingIndex === index;
+          const clubId = club.id || `fallback-${club.name}-${index}`;
+          const isEditing = editingClubId === clubId;
           const displayYardage =
             settings.distanceUnit === 'meters'
               ? convertDistance(club.normalYardage, 'meters')
@@ -359,9 +360,9 @@ const ClubManagement = memo(
 
           return (
             <ClubItem
-              key={`club-${club.name}-${index}`}
+              key={clubId}
               club={club}
-              index={index}
+              clubId={clubId}
               isEditing={isEditing}
               editingValues={editingValues}
               setEditingValues={setEditingValues}
@@ -469,7 +470,7 @@ export default function SettingsScreen() {
   const palette = useThemeTokens();
   const { mode, setMode } = useThemeMode();
   const insets = useSafeAreaInsets();
-  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [editingClubId, setEditingClubId] = useState<string | null>(null);
   const [newClub, setNewClub] = useState({ name: '', normalYardage: '' });
   const [editingValues, setEditingValues] = useState({ name: '', normalYardage: '' });
   const [isLoading, setIsLoading] = useState(false);
@@ -537,8 +538,10 @@ export default function SettingsScreen() {
     }, 300);
   };
 
-  const handleEdit = (index: number) => {
-    const club = clubs[index];
+  const handleEdit = (clubId: string) => {
+    const club = clubs.find(c => c.id === clubId);
+    if (!club) return;
+
     // When editing, convert the stored yardage to the current unit system for display
     const displayYardage =
       settings.distanceUnit === 'meters'
@@ -549,10 +552,13 @@ export default function SettingsScreen() {
       name: club.name,
       normalYardage: Math.round(displayYardage).toString(),
     });
-    setEditingIndex(index);
+    setEditingClubId(clubId);
   };
 
-  const handleSaveEdit = (index: number) => {
+  const handleSaveEdit = (clubId: string) => {
+    const club = clubs.find(c => c.id === clubId);
+    if (!club) return;
+
     const numericYardage = parseFloat(editingValues.normalYardage) || 0;
     const processedYardage =
       settings.distanceUnit === 'meters'
@@ -560,7 +566,7 @@ export default function SettingsScreen() {
         : numericYardage;
 
     const updatedClub: ClubData = {
-      ...clubs[index],
+      ...club,
       name: editingValues.name,
       normalYardage: processedYardage,
     };
@@ -569,14 +575,14 @@ export default function SettingsScreen() {
 
     // Simulate a short loading state for better UX
     setTimeout(() => {
-      updateClub(index, updatedClub);
-      setEditingIndex(null);
+      updateClub(clubId, updatedClub);
+      setEditingClubId(null);
       setIsLoading(false);
     }, 300);
   };
 
   const handleCancelEdit = () => {
-    setEditingIndex(null);
+    setEditingClubId(null);
   };
 
   // Utilities handlers
@@ -682,7 +688,7 @@ export default function SettingsScreen() {
             handleNameChange={handleNameChange}
             setNewClub={setNewClub}
             handleAddClub={handleAddClub}
-            editingIndex={editingIndex}
+            editingClubId={editingClubId}
             editingValues={editingValues}
             setEditingValues={setEditingValues}
             handleSaveEdit={handleSaveEdit}
