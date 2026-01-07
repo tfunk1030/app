@@ -30,7 +30,7 @@ export const safeHandleError = (error: Error, options?: Partial<NotificationOpti
 /**
  * Create a wrapped version of a function that catches and safely handles errors
  */
-export const withErrorHandling = <T extends (...args: any[]) => any>(
+export const withErrorHandling = <T extends (...args: unknown[]) => unknown>(
   fn: T,
   errorMessage?: string
 ): ((...args: Parameters<T>) => Promise<ReturnType<T> | undefined>) => {

@@ -32,7 +32,7 @@
       "expo-web-browser"
     ],
     "ios": {
-      "supportsTablet": true,
+      "supportsTablet": false,
       "bundleIdentifier": "com.tfunk1030.aicaddypro",
       "buildNumber": "1.2.0",
       "infoPlist": {

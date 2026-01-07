@@ -39,6 +39,7 @@ import {
   View,
   Alert,
   Platform,
+  ViewStyle,
 } from 'react-native';
 import Animated, {
   useAnimatedStyle,
@@ -61,7 +62,7 @@ interface PresetSelectorProps {
   /** Callback when a preset is loaded */
   onLoadPreset: (data: PresetData) => void;
   /** Optional style */
-  style?: any;
+  style?: ViewStyle;
 }
 
 interface PresetItemProps {

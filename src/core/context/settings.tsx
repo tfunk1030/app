@@ -84,7 +84,6 @@ export function SettingsProvider({ children }: Readonly<{ children: React.ReactN
           const parsedSettings = JSON.parse(saved);
           // Initialize with saved settings
           dispatch({ type: 'INITIALIZE', settings: parsedSettings });
-          console.log('Settings loaded from AsyncStorage:', parsedSettings);
         }
       } catch (error) {
         console.error('Failed to load settings:', error);
@@ -95,8 +94,6 @@ export function SettingsProvider({ children }: Readonly<{ children: React.ReactN
 
   const updateSettings = async (newSettings: Partial<Settings>) => {
     try {
-      console.log('Updating settings:', newSettings);
-
       // Update state first for immediate UI response
       dispatch({ type: 'UPDATE', newSettings });
 
@@ -104,7 +101,6 @@ export function SettingsProvider({ children }: Readonly<{ children: React.ReactN
       const updated = { ...settings, ...newSettings, version: settings.version + 1 };
       try {
         await AsyncStorage.setItem('userSettings', JSON.stringify(updated));
-        console.log('Settings saved to AsyncStorage');
       } catch (error) {
         console.error('Failed to save settings to AsyncStorage:', error);
       }

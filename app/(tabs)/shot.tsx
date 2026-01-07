@@ -305,7 +305,10 @@ const TargetDistanceInput = memo(
         </View>
       </BoldCard>
     );
-  });
+  }
+);
+
+TargetDistanceInput.displayName = 'TargetDistanceInput';
 
 // Memoized shot adjustment display component
 const ShotAdjustmentDisplay = memo(
@@ -340,7 +343,7 @@ const ShotAdjustmentDisplay = memo(
               {envEffectDisplay} {unitLabel}
             </Text>
           </View>
-          <Text style={styles.adjustmentLabel}>Play's Like</Text>
+          <Text style={styles.adjustmentLabel}>Plays Like</Text>
           <Text
             style={styles.playsLikeValue}
             numberOfLines={1}
@@ -354,7 +357,7 @@ const ShotAdjustmentDisplay = memo(
           style={{ color: palette.colors.textMuted, fontSize: scaledFontSize(12), marginTop: palette.spacing.sm }}
           accessibilityRole="text"
         >
-          Environmental effect = target minus carry. "Play's Like" approximates carry required after conditions.
+          Environmental effect = target minus carry. Plays Like approximates carry required after conditions.
         </Text>
       </BoldCard>
     );

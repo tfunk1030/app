@@ -8,7 +8,7 @@
  * - Permissions
  */
 
-import React, { useCallback, memo } from 'react';
+import React, { useCallback, memo, useState } from 'react';
 import {
   View,
   Text,
@@ -17,6 +17,9 @@ import {
   Pressable,
   Switch,
   Alert,
+  Linking,
+  Modal,
+  TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
@@ -37,7 +40,10 @@ import {
   MessageSquare,
   Shield,
   LayoutGrid,
+  X,
 } from 'lucide-react-native';
+
+import Constants from 'expo-constants';
 
 import { useRedesignTheme, ThemeMode } from '@/src/theme/redesign';
 import { QuickAction } from '@/src/components/redesign/QuickAction';
@@ -45,6 +51,29 @@ import { useSettings } from '@/src/core/context/settings';
 import { useClubSettings } from '@/src/features/settings/context/clubs';
 import { useNavigationPreference } from '@/src/stores/navigationPreference';
 import * as Updates from 'expo-updates';
+
+// App URLs - replace with your hosted URLs
+const SUPPORT_URL = 'mailto:support@aicaddypro.com?subject=AICaddyPro%20Support';
+const FEEDBACK_URL = 'mailto:feedback@aicaddypro.com?subject=AICaddyPro%20Feedback';
+const PRIVACY_URL = 'https://aicaddypro.com/privacy'; // Replace with actual hosted URL
+
+// Quick add club presets
+const QUICK_ADD_CLUBS = [
+  { name: 'Driver', yardage: 300 },
+  { name: '3-Wood', yardage: 260 },
+  { name: '5-Wood', yardage: 235 },
+  { name: 'Hybrid', yardage: 235 },
+  { name: '4-Iron', yardage: 220 },
+  { name: '5-Iron', yardage: 205 },
+  { name: '6-Iron', yardage: 192 },
+  { name: '7-Iron', yardage: 180 },
+  { name: '8-Iron', yardage: 165 },
+  { name: '9-Iron', yardage: 153 },
+  { name: 'PW', yardage: 138 },
+  { name: 'GW', yardage: 125 },
+  { name: 'SW', yardage: 110 },
+  { name: 'LW', yardage: 90 },
+];
 
 // =============================================================================
 // SUB-COMPONENTS
@@ -297,10 +326,16 @@ const NavigationStyleSection = memo(function NavigationStyleSection() {
 export default function SetupScreen() {
   const { colors, mode, setMode, tokens } = useRedesignTheme();
   const { settings, updateSettings, convertDistance } = useSettings();
-  const { clubs, removeClub } = useClubSettings();
+  const { clubs, addClub, updateClub, removeClub } = useClubSettings();
+
+  // Club modal state
+  const [modalVisible, setModalVisible] = useState(false);
+  const [editingClubId, setEditingClubId] = useState<string | null>(null);
+  const [clubName, setClubName] = useState('');
+  const [clubDistance, setClubDistance] = useState('');
 
   const handleDeleteClub = useCallback(
-    (index: number, clubName: string) => {
+    (clubId: string, clubName: string) => {
       Alert.alert('Delete Club', `Remove ${clubName} from your bag?`, [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -308,7 +343,7 @@ export default function SetupScreen() {
           style: 'destructive',
           onPress: () => {
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-            removeClub(index);
+            removeClub(clubId);
           },
         },
       ]);
@@ -338,6 +373,90 @@ export default function SetupScreen() {
     [updateSettings]
   );
 
+  // Open modal for adding a new club
+  const handleOpenAddModal = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setEditingClubId(null);
+    setClubName('');
+    setClubDistance('');
+    setModalVisible(true);
+  }, []);
+
+  // Open modal for editing an existing club
+  const handleOpenEditModal = useCallback(
+    (clubId: string) => {
+      const club = clubs.find((c) => c.id === clubId);
+      if (!club) return;
+
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      const displayYardage =
+        settings.distanceUnit === 'meters'
+          ? Math.round(convertDistance(club.normalYardage, 'meters'))
+          : Math.round(club.normalYardage);
+
+      setEditingClubId(clubId);
+      setClubName(club.name);
+      setClubDistance(displayYardage.toString());
+      setModalVisible(true);
+    },
+    [clubs, settings.distanceUnit, convertDistance]
+  );
+
+  // Handle quick add preset
+  const handleQuickAdd = useCallback(
+    (name: string, yardage: number) => {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      setClubName(name);
+      const displayYardage =
+        settings.distanceUnit === 'meters' ? Math.round(yardage * 0.9144) : yardage;
+      setClubDistance(displayYardage.toString());
+    },
+    [settings.distanceUnit]
+  );
+
+  // Save club (add or update)
+  const handleSaveClub = useCallback(() => {
+    if (!clubName.trim() || !clubDistance.trim()) return;
+
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+    const numericYardage = parseFloat(clubDistance) || 0;
+    const processedYardage =
+      settings.distanceUnit === 'meters'
+        ? convertDistance(numericYardage, 'yards')
+        : numericYardage;
+
+    const existingClub = editingClubId ? clubs.find((c) => c.id === editingClubId) : null;
+    const clubData = {
+      name: clubName.trim(),
+      normalYardage: processedYardage,
+      ball_speed: existingClub?.ball_speed ?? 0,
+      launch_angle: existingClub?.launch_angle ?? 0,
+      spin_rate: existingClub?.spin_rate ?? 0,
+      max_height: existingClub?.max_height ?? 0,
+      land_angle: existingClub?.land_angle ?? 0,
+      spin_decay: existingClub?.spin_decay ?? 0,
+      wind_sensitivity: existingClub?.wind_sensitivity ?? 1.0,
+    };
+
+    if (editingClubId) {
+      updateClub(editingClubId, clubData);
+    } else {
+      addClub(clubData);
+    }
+
+    setModalVisible(false);
+  }, [
+    clubName,
+    clubDistance,
+    settings.distanceUnit,
+    convertDistance,
+    editingClubId,
+    clubs,
+    updateClub,
+    addClub,
+  ]);
+
   const isMetric = settings.distanceUnit === 'meters';
   const unit = isMetric ? 'm' : 'yds';
 
@@ -366,7 +485,7 @@ export default function SetupScreen() {
           <SectionHeader
             title="MY BAG"
             action="Add Club"
-            onAction={() => Alert.alert('Add Club', 'Club editor coming soon!')}
+            onAction={handleOpenAddModal}
           />
 
           <View style={[styles.section, { backgroundColor: colors.surface }]}>
@@ -379,12 +498,13 @@ export default function SetupScreen() {
                   label="Add Your First Club"
                   icon={<Plus size={18} color={colors.textInverse} />}
                   variant="primary"
-                  onPress={() => Alert.alert('Add Club', 'Club editor coming soon!')}
+                  onPress={handleOpenAddModal}
                   style={{ marginTop: 12 }}
                 />
               </View>
             ) : (
               clubs.map((club, index) => {
+                const clubId = club.id || `fallback-${club.name}-${index}`;
                 const distance = Math.round(
                   isMetric
                     ? convertDistance(club.normalYardage, 'meters')
@@ -393,7 +513,7 @@ export default function SetupScreen() {
 
                 return (
                   <View
-                    key={`${club.name}-${index}`}
+                    key={clubId}
                     style={[styles.clubRow, { borderBottomColor: colors.divider }]}
                   >
                     <View style={styles.clubInfo}>
@@ -406,15 +526,15 @@ export default function SetupScreen() {
                     </View>
                     <View style={styles.clubActions}>
                       <Pressable
-                        onPress={() =>
-                          Alert.alert('Edit Club', 'Club editor coming soon!')
-                        }
+                        onPress={() => handleOpenEditModal(clubId)}
                         style={[styles.clubAction, { backgroundColor: colors.backgroundAlt }]}
+                        accessibilityLabel={`Edit ${club.name}`}
+                        accessibilityRole="button"
                       >
                         <Edit3 size={16} color={colors.textMuted} />
                       </Pressable>
                       <Pressable
-                        onPress={() => handleDeleteClub(index, club.name)}
+                        onPress={() => handleDeleteClub(clubId, club.name)}
                         style={[styles.clubAction, { backgroundColor: colors.backgroundAlt }]}
                       >
                         <Trash2 size={16} color={colors.error} />
@@ -582,26 +702,121 @@ export default function SetupScreen() {
             <SettingRow
               icon={<HelpCircle size={18} color={colors.brand} />}
               label="Help Center"
-              onPress={() => Alert.alert('Help', 'Help center coming soon!')}
+              onPress={() => Linking.openURL(SUPPORT_URL)}
             />
             <SettingRow
               icon={<MessageSquare size={18} color={colors.brand} />}
               label="Send Feedback"
-              onPress={() => Alert.alert('Feedback', 'Feedback form coming soon!')}
+              onPress={() => Linking.openURL(FEEDBACK_URL)}
             />
             <SettingRow
               icon={<Shield size={18} color={colors.brand} />}
               label="Privacy Policy"
-              onPress={() => Alert.alert('Privacy', 'Privacy policy coming soon!')}
+              onPress={() => Linking.openURL(PRIVACY_URL)}
             />
           </View>
         </Animated.View>
 
         {/* Version */}
         <Text style={[styles.version, { color: colors.textMuted }]}>
-          AICaddy Pro v2.0.0 (Redesign)
+          AICaddy Pro v{Constants.expoConfig?.version ?? '1.0.0'}
         </Text>
       </ScrollView>
+
+      {/* Club Edit/Add Modal */}
+      <Modal
+        visible={modalVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <Pressable
+          style={styles.modalOverlay}
+          onPress={() => setModalVisible(false)}
+        >
+          <Pressable style={[styles.modalContent, { backgroundColor: colors.surface }]} onPress={() => {}}>
+            {/* Modal Header */}
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>
+                {editingClubId ? 'Edit Club' : 'Add Club'}
+              </Text>
+              <Pressable
+                onPress={() => setModalVisible(false)}
+                style={styles.modalClose}
+                accessibilityLabel="Close modal"
+                accessibilityRole="button"
+              >
+                <X size={24} color={colors.textMuted} />
+              </Pressable>
+            </View>
+
+            {/* Quick Add Section (only when adding) */}
+            {!editingClubId && (
+              <View style={styles.quickAddContainer}>
+                <Text style={[styles.quickAddTitle, { color: colors.textMuted }]}>
+                  Quick Add
+                </Text>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  style={styles.quickAddScroll}
+                >
+                  {QUICK_ADD_CLUBS.map((preset) => (
+                    <Pressable
+                      key={preset.name}
+                      onPress={() => handleQuickAdd(preset.name, preset.yardage)}
+                      style={[styles.quickAddChip, { backgroundColor: colors.backgroundAlt, borderColor: colors.border }]}
+                    >
+                      <Text style={[styles.quickAddChipText, { color: colors.textPrimary }]}>
+                        {preset.name}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+
+            {/* Club Name Input */}
+            <TextInput
+              style={[styles.input, { backgroundColor: colors.backgroundAlt, color: colors.textPrimary, borderColor: colors.border }]}
+              placeholder="Club Name"
+              placeholderTextColor={colors.textMuted}
+              value={clubName}
+              onChangeText={setClubName}
+              accessibilityLabel="Club name"
+            />
+
+            {/* Distance Input */}
+            <TextInput
+              style={[styles.input, { backgroundColor: colors.backgroundAlt, color: colors.textPrimary, borderColor: colors.border }]}
+              placeholder={`Distance (${settings.distanceUnit})`}
+              placeholderTextColor={colors.textMuted}
+              value={clubDistance}
+              onChangeText={setClubDistance}
+              keyboardType="numeric"
+              accessibilityLabel={`Club distance in ${settings.distanceUnit}`}
+            />
+
+            {/* Save Button */}
+            <Pressable
+              onPress={handleSaveClub}
+              disabled={!clubName.trim() || !clubDistance.trim()}
+              style={[
+                styles.saveButton,
+                {
+                  backgroundColor: clubName.trim() && clubDistance.trim() ? colors.brand : colors.border,
+                },
+              ]}
+              accessibilityLabel={editingClubId ? 'Update club' : 'Add club'}
+              accessibilityRole="button"
+            >
+              <Text style={[styles.saveButtonText, { color: colors.textInverse }]}>
+                {editingClubId ? 'Update Club' : 'Add Club'}
+              </Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -829,5 +1044,82 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 32,
     marginBottom: 16,
+  },
+
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    justifyContent: 'flex-end',
+  },
+
+  modalContent: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 24,
+    paddingBottom: 40,
+  },
+
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+  },
+
+  modalClose: {
+    padding: 8,
+  },
+
+  quickAddContainer: {
+    marginBottom: 16,
+  },
+
+  quickAddTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 12,
+  },
+
+  quickAddScroll: {
+    flexGrow: 0,
+  },
+
+  quickAddChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    marginRight: 8,
+  },
+
+  quickAddChipText: {
+    fontSize: 13,
+    fontWeight: '500',
+  },
+
+  input: {
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 16,
+    borderWidth: 1,
+    marginBottom: 16,
+  },
+
+  saveButton: {
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+
+  saveButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
