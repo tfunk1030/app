@@ -5,11 +5,12 @@
  * Includes haptic feedback, animations, and accessibility support.
  */
 import React from 'react';
-import { View, Pressable, Platform, Animated, StyleSheet } from 'react-native';
+import { View, Pressable, Platform, Animated, StyleSheet, useWindowDimensions } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { getLockButtonMetrics } from '@/src/utils/responsive';
 import { lockButtonStyles as styles } from './styles';
+import { useReduceMotionValue } from '@/src/hooks/useAccessibility';
 
 interface LockButtonProps {
   isLocked: boolean;
@@ -36,8 +37,10 @@ const LockButton: React.FC<LockButtonProps> = ({
   mode,
   pulseAnim,
 }) => {
+  const reduceMotion = useReduceMotionValue();
   const rippleColor = mode === 'dark' ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)';
   const lockMetrics = getLockButtonMetrics(compassSize);
+  const glowSize = lockMetrics.size + 8;
 
   return (
     <View
@@ -49,6 +52,25 @@ const LockButton: React.FC<LockButtonProps> = ({
         },
       ]}
     >
+      {/* Outer glow ring when locked */}
+      {isLocked && !reduceMotion && (
+        <Animated.View
+          style={[
+            localStyles.outerGlow,
+            {
+              width: glowSize,
+              height: glowSize,
+              borderRadius: glowSize / 2,
+              borderColor: tokens.colors.success,
+              opacity: pulseAnim.interpolate({
+                inputRange: [1, 1.08],
+                outputRange: [0.6, 0.2],
+              }),
+              transform: [{ scale: pulseAnim }],
+            },
+          ]}
+        />
+      )}
       <Pressable
         onPress={onPress}
         accessibilityRole="button"
@@ -114,5 +136,14 @@ const LockButton: React.FC<LockButtonProps> = ({
     </View>
   );
 };
+
+const localStyles = StyleSheet.create({
+  outerGlow: {
+    position: 'absolute',
+    borderWidth: 2,
+    top: -4,
+    left: -4,
+  },
+});
 
 export default React.memo(LockButton);

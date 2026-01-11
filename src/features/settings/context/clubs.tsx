@@ -5,12 +5,52 @@ import { ClubData } from '@/src/core/models/YardageModel';
 // Generate unique ID for clubs
 const generateClubId = () => `club-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
+// Club validation
+export interface ClubValidationResult {
+  isValid: boolean;
+  errors: string[];
+}
+
+export function validateClub(club: Partial<ClubData>): ClubValidationResult {
+  const errors: string[] = [];
+
+  if (!club.name || club.name.trim().length === 0) {
+    errors.push('Club name is required');
+  }
+  if (!club.normalYardage || club.normalYardage < 20 || club.normalYardage > 400) {
+    errors.push('Distance must be between 20 and 400 yards');
+  }
+  if (club.ball_speed !== undefined && (club.ball_speed < 50 || club.ball_speed > 200)) {
+    errors.push('Ball speed must be between 50 and 200 mph');
+  }
+  if (club.launch_angle !== undefined && (club.launch_angle < 0 || club.launch_angle > 45)) {
+    errors.push('Launch angle must be between 0 and 45 degrees');
+  }
+  if (club.spin_rate !== undefined && (club.spin_rate < 1000 || club.spin_rate > 15000)) {
+    errors.push('Spin rate must be between 1,000 and 15,000 rpm');
+  }
+
+  return { isValid: errors.length === 0, errors };
+}
+
+// Club presets for different skill levels
+export type ClubPresetType = 'beginner' | 'amateur' | 'scratch' | 'pro';
+
+export const CLUB_PRESETS: Record<ClubPresetType, { name: string; description: string; multiplier: number }> = {
+  beginner: { name: 'Beginner', description: 'Learning the game', multiplier: 0.7 },
+  amateur: { name: 'Amateur', description: 'Regular golfer', multiplier: 0.85 },
+  scratch: { name: 'Scratch', description: 'Low handicap', multiplier: 1.0 },
+  pro: { name: 'Pro', description: 'Tour-level distances', multiplier: 1.1 },
+};
+
 interface ClubSettingsContextType {
   clubs: ClubData[];
   addClub: (club: ClubData) => Promise<void>;
   updateClub: (clubId: string, club: ClubData) => Promise<void>;
   removeClub: (clubId: string) => Promise<void>;
   getRecommendedClub: (targetYardage: number) => ClubData | null;
+  loadPreset: (preset: ClubPresetType) => Promise<void>;
+  resetToDefaults: () => Promise<void>;
 }
 
 const DEFAULT_CLUBS: ClubData[] = [
@@ -36,7 +76,9 @@ const ClubSettingsContext = React.createContext<ClubSettingsContextType>({
   addClub: async () => {},
   updateClub: async () => {},
   removeClub: async () => {},
-  getRecommendedClub: () => null
+  getRecommendedClub: () => null,
+  loadPreset: async () => {},
+  resetToDefaults: async () => {},
 });
 
 export function ClubSettingsProvider({ children }: Readonly<{ children: React.ReactNode }>) {
@@ -114,13 +156,38 @@ export function ClubSettingsProvider({ children }: Readonly<{ children: React.Re
     });
   }, []);
 
+  // Load a preset with adjusted distances
+  const loadPreset = React.useCallback(async (preset: ClubPresetType) => {
+    const { multiplier } = CLUB_PRESETS[preset];
+    const presetClubs = DEFAULT_CLUBS.map(club => ({
+      ...club,
+      id: generateClubId(),
+      normalYardage: Math.round(club.normalYardage * multiplier),
+    }));
+    const sortedClubs = sortClubs(presetClubs);
+    setClubs(sortedClubs);
+    await saveClubs(sortedClubs);
+  }, []);
+
+  // Reset to default clubs
+  const resetToDefaults = React.useCallback(async () => {
+    const defaultsWithIds = DEFAULT_CLUBS.map(club => ({
+      ...club,
+      id: generateClubId(),
+    }));
+    setClubs(defaultsWithIds);
+    await saveClubs(defaultsWithIds);
+  }, []);
+
   const value = React.useMemo(() => ({
     clubs,
     addClub,
     updateClub,
     removeClub,
-    getRecommendedClub
-  }), [clubs, addClub, updateClub, removeClub, getRecommendedClub]);
+    getRecommendedClub,
+    loadPreset,
+    resetToDefaults,
+  }), [clubs, addClub, updateClub, removeClub, getRecommendedClub, loadPreset, resetToDefaults]);
 
   return (
     <ClubSettingsContext.Provider value={value}>

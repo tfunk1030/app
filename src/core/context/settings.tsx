@@ -11,7 +11,11 @@ export interface Settings {
   compassEnabled: boolean;
   notificationsEnabled: boolean;
   activityTrackingEnabled: boolean;
-  version: number; // Added version field to force re-renders
+  /** Sunlight mode for outdoor visibility - high contrast theme */
+  sunlightModeEnabled: boolean;
+  /** Wind speed unit (separate from speedUnit for granular control) */
+  windSpeedUnit: 'mph' | 'kph' | 'kts' | 'mps';
+  version: number;
 }
 
 interface SettingsContextType {
@@ -39,7 +43,9 @@ const defaultSettings: Settings = {
   compassEnabled: false,
   notificationsEnabled: false,
   activityTrackingEnabled: false,
-  version: 1, // Initialize version field
+  sunlightModeEnabled: false,
+  windSpeedUnit: 'mph',
+  version: 1,
 };
 
 const SettingsContext = React.createContext<SettingsContextType>({

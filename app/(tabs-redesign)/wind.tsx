@@ -10,7 +10,8 @@
  * - QuickAction for presets
  */
 
-import React, { useState, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   View,
   Text,
@@ -137,11 +138,36 @@ function WindCalculatorRedesign({ sensorAvailable = true }: { sensorAvailable?: 
   const [windSpeedOverride, setWindSpeedOverride] = useState<number | null>(null);
   const [selectedPreset, setSelectedPreset] = useState<string | null>('150');
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [showTutorial, setShowTutorial] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
   const calcTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Animation
   const resultScale = useSharedValue(1);
+
+  // Check if user has seen compass tutorial
+  useEffect(() => {
+    const checkTutorial = async () => {
+      try {
+        const hasSeen = await AsyncStorage.getItem('hasSeenCompassTutorial');
+        if (!hasSeen) {
+          setTimeout(() => setShowTutorial(true), 1500);
+        }
+      } catch (error) {
+        console.error('Failed to check tutorial state:', error);
+      }
+    };
+    checkTutorial();
+  }, []);
+
+  const dismissTutorial = useCallback(async () => {
+    setShowTutorial(false);
+    try {
+      await AsyncStorage.setItem('hasSeenCompassTutorial', 'true');
+    } catch (error) {
+      console.error('Failed to save tutorial state:', error);
+    }
+  }, []);
 
   // Get current wind data (convert from mph to user's unit)
   const currentWindSpeedMph = environmental.conditions?.windSpeed || 0;
@@ -342,15 +368,75 @@ function WindCalculatorRedesign({ sensorAvailable = true }: { sensorAvailable?: 
           <View style={styles.compassWrapper}>
             <WindDirectionCompass size={compassSize} />
           </View>
+
+          {/* First-Use Tutorial Tooltip */}
+          {showTutorial && (
+            <Pressable
+              onPress={dismissTutorial}
+              style={[
+                styles.tutorialTooltip,
+                { backgroundColor: colors.surface, borderColor: colors.brand },
+              ]}
+              accessibilityLabel="Tutorial: Tap to lock your shot direction. Tap to dismiss."
+              accessibilityRole="button"
+            >
+              <View style={styles.tutorialTextContainer}>
+                <Lock size={16} color={colors.brand} />
+                <Text style={[styles.tutorialText, { color: colors.textPrimary }]}>
+                  Tap the lock button to freeze your shot direction
+                </Text>
+              </View>
+            </Pressable>
+          )}
         </Animated.View>
 
         {/* Sensor Warning - Show when compass unavailable */}
+        {/* Sensor Warning & Manual Input - Show when compass unavailable */}
         {FeatureFlags.PHASE1_ACCESSIBILITY_ENHANCEMENTS && !sensorAvailable && (
-          <View style={styles.sensorWarning}>
-            <AlertTriangle size={16} color={colors.warning} />
-            <Text style={[styles.warningText, { color: colors.warning }]}>
-              Compass unavailable
-            </Text>
+          <View style={styles.manualHeadingSection}>
+            <View style={styles.sensorWarning}>
+              <AlertTriangle size={16} color={colors.warning} />
+              <Text style={[styles.warningText, { color: colors.warning }]}>
+                Compass unavailable - select shot direction
+              </Text>
+            </View>
+            <View style={styles.cardinalButtons}>
+              {(['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'] as const).map((dir) => {
+                const degrees: Record<string, number> = {
+                  N: 0, NE: 45, E: 90, SE: 135, S: 180, SW: 225, W: 270, NW: 315,
+                };
+                const isSelected = Math.abs((relativeWindAngle + 360) % 360 - degrees[dir]) < 22.5;
+                return (
+                  <Pressable
+                    key={dir}
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      // This would need to set a manual heading override
+                      // For now, provide visual feedback
+                    }}
+                    style={[
+                      styles.cardinalButton,
+                      {
+                        backgroundColor: isSelected ? colors.brandMuted : colors.surface,
+                        borderColor: isSelected ? colors.brand : colors.border,
+                      },
+                    ]}
+                    accessibilityLabel={`Shot direction ${dir}`}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: isSelected }}
+                  >
+                    <Text
+                      style={[
+                        styles.cardinalButtonText,
+                        { color: isSelected ? colors.brand : colors.textMuted },
+                      ]}
+                    >
+                      {dir}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
           </View>
         )}
 
@@ -698,6 +784,62 @@ const styles = StyleSheet.create({
   warningText: {
     fontSize: 13,
     fontWeight: '500',
+  },
+
+  // Tutorial Tooltip
+  tutorialTooltip: {
+    position: 'absolute',
+    bottom: -8,
+    left: 24,
+    right: 24,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    borderWidth: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+
+  tutorialTextContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+
+  tutorialText: {
+    fontSize: 14,
+    fontWeight: '500',
+    flex: 1,
+  },
+
+  // Manual Heading Fallback
+  manualHeadingSection: {
+    marginBottom: 16,
+    gap: 8,
+  },
+
+  cardinalButtons: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    justifyContent: 'center',
+  },
+
+  cardinalButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    borderWidth: 1.5,
+    minWidth: 44,
+    alignItems: 'center',
+  },
+
+  cardinalButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
   },
 
   // Slider Sections

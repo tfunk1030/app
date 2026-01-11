@@ -42,7 +42,11 @@ import {
   Shield,
   LayoutGrid,
   X,
+  Activity,
+  Database,
+  Wind,
 } from 'lucide-react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import Constants from 'expo-constants';
 
@@ -588,6 +592,23 @@ export default function SetupScreen() {
             <View style={styles.themeSelectorContainer}>
               <ThemeSelector value={mode} onChange={setMode} />
             </View>
+            <SettingRow
+              icon={<Sun size={18} color={colors.brand} />}
+              label="Outdoor/Sunlight Mode"
+              rightElement={
+                <Switch
+                  value={mode === 'outdoor'}
+                  onValueChange={(value) => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    setMode(value ? 'outdoor' : 'light');
+                    updateSettings({ sunlightModeEnabled: value });
+                  }}
+                  trackColor={{ false: colors.border, true: colors.brand }}
+                  thumbColor={colors.surface}
+                  accessibilityLabel="Outdoor sunlight mode toggle"
+                />
+              }
+            />
           </View>
         </Animated.View>
 
@@ -648,6 +669,48 @@ export default function SetupScreen() {
                 </Text>
               </Pressable>
             </View>
+
+            {/* Wind Speed Unit Selector */}
+            <View style={[styles.settingRow, { borderBottomColor: colors.divider, borderBottomWidth: 0 }]}>
+              <View style={styles.settingRowLeft}>
+                <View style={[styles.settingIcon, { backgroundColor: colors.brandMuted }]}>
+                  <Wind size={18} color={colors.brand} />
+                </View>
+                <Text style={[styles.settingLabel, { color: colors.textPrimary }]}>
+                  Wind Speed
+                </Text>
+              </View>
+            </View>
+            <View style={styles.windUnitSelector}>
+              {(['mph', 'kph', 'kts', 'mps'] as const).map((unit) => (
+                <Pressable
+                  key={unit}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    updateSettings({ windSpeedUnit: unit, speedUnit: unit });
+                  }}
+                  style={[
+                    styles.windUnitOption,
+                    {
+                      backgroundColor: settings.speedUnit === unit ? colors.brandMuted : 'transparent',
+                      borderColor: settings.speedUnit === unit ? colors.brand : colors.border,
+                    },
+                  ]}
+                  accessibilityLabel={`Wind speed in ${unit === 'mps' ? 'meters per second' : unit}`}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: settings.speedUnit === unit }}
+                >
+                  <Text
+                    style={[
+                      styles.windUnitOptionLabel,
+                      { color: settings.speedUnit === unit ? colors.brand : colors.textMuted },
+                    ]}
+                  >
+                    {unit === 'mps' ? 'm/s' : unit}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
           </View>
         </Animated.View>
 
@@ -699,6 +762,57 @@ export default function SetupScreen() {
                   thumbColor={colors.surface}
                 />
               }
+            />
+            <SettingRow
+              icon={<Activity size={18} color={colors.brand} />}
+              label="Activity Tracking"
+              rightElement={
+                <Switch
+                  value={settings.activityTrackingEnabled}
+                  onValueChange={(value) => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    updateSettings({ activityTrackingEnabled: value });
+                  }}
+                  trackColor={{ false: colors.border, true: colors.brand }}
+                  thumbColor={colors.surface}
+                  accessibilityLabel="Activity Tracking toggle"
+                />
+              }
+            />
+          </View>
+        </Animated.View>
+
+        {/* Data Management */}
+        <Animated.View entering={cardEntering(3)}>
+          <SectionHeader title="DATA" />
+          <View style={[styles.section, { backgroundColor: colors.surface }]}>
+            <SettingRow
+              icon={<Database size={18} color={colors.brand} />}
+              label="Clear Weather Cache"
+              onPress={() => {
+                Alert.alert(
+                  'Clear Weather Cache',
+                  'This will remove cached weather data. Fresh data will be fetched on next use.',
+                  [
+                    { text: 'Cancel', style: 'cancel' },
+                    {
+                      text: 'Clear',
+                      style: 'destructive',
+                      onPress: async () => {
+                        try {
+                          await AsyncStorage.removeItem('weatherCache');
+                          await AsyncStorage.removeItem('weatherCacheTimestamp');
+                          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                          Alert.alert('Success', 'Weather cache cleared.');
+                        } catch (error) {
+                          console.error('Failed to clear cache:', error);
+                          Alert.alert('Error', 'Failed to clear cache.');
+                        }
+                      },
+                    },
+                  ]
+                );
+              }}
             />
           </View>
         </Animated.View>
@@ -1045,6 +1159,30 @@ const styles = StyleSheet.create({
   unitOptionDetail: {
     fontSize: 12,
     marginTop: 4,
+  },
+
+  // Wind Unit Selector
+  windUnitSelector: {
+    flexDirection: 'row',
+    gap: 8,
+    flexWrap: 'wrap',
+    paddingHorizontal: 12,
+    paddingBottom: 12,
+  },
+
+  windUnitOption: {
+    flex: 1,
+    minWidth: 60,
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    borderRadius: 10,
+    borderWidth: 1.5,
+  },
+
+  windUnitOptionLabel: {
+    fontSize: 14,
+    fontWeight: '600',
   },
 
   // Premium Card
