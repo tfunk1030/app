@@ -15,6 +15,7 @@ import * as Haptics from 'expo-haptics';
 import { useEnhancedEnvironmental } from '@/src/providers/EnhancedEnvironmentalProvider';
 import { useThemeMode } from '@/src/theme/ThemeProvider';
 import { useTokens } from '@/src/theme/useTokens';
+import { useSettings } from '@/src/core/context/settings';
 import { LogManager } from '@/src/utils/LogManager';
 import {
   getResponsiveCompassSize,
@@ -91,6 +92,7 @@ const WindDirectionCompass: React.FC<WindDirectionCompassProps> = ({
     useCompassLock();
   const tokens = useTokens();
   const { mode } = useThemeMode();
+  const { settings } = useSettings();
 
   // Wind speed and unit (use props or fall back to conditions)
   const windSpeed = propWindSpeed ?? conditions?.windSpeed ?? 0;
@@ -165,14 +167,7 @@ const WindDirectionCompass: React.FC<WindDirectionCompassProps> = ({
 
   return (
     <View style={styles.wrapper}>
-      {/* Subtle heading display - positioned above compass with adequate spacing */}
-      <View style={[styles.headingDisplaySubtle, { marginBottom: Math.max(16, Math.round(size * 0.08)) }]}>
-        <Text style={styles.headingTextSubtle}>
-          <Text style={{ color: tokens.colors.success, opacity: 0.8 }}>{displayHeadings.shot}°</Text>
-          <Text style={{ color: tokens.colors.textMuted }}> / </Text>
-          <Text style={{ color: tokens.colors.brandAlt, opacity: 0.8 }}>{displayHeadings.wind}°</Text>
-        </Text>
-      </View>
+      {/* Removed verbose heading display - degrees shown in wind.tsx MetricPills */}
 
       <View
         style={[
@@ -288,19 +283,17 @@ const WindDirectionCompass: React.FC<WindDirectionCompassProps> = ({
             ]}
           />
 
-          {/* Wind Info Display - Below Center, above S cardinal */}
+          {/* Wind Speed Display - Simplified, below center */}
           <View
             style={[styles.windInfoContainer, { bottom: Math.max(size * 0.24, 52) }]}
             pointerEvents="none"
             accessibilityRole="text"
-            accessibilityLabel={`Wind speed ${Math.round(windSpeed)} ${speedUnit} from ${cardinalDirection}`}
+            accessibilityLabel={`Wind ${Math.round(windSpeed)} ${speedUnit}`}
           >
-            <Text style={[styles.windSpeedText, { color: tokens.colors.brandAlt, fontSize: Math.max(14, Math.min(18, size * 0.075)) }]}>
+            <Text style={[styles.windSpeedText, { color: tokens.colors.brandAlt, fontSize: Math.max(16, Math.min(20, size * 0.08)) }]}>
               {Math.round(windSpeed)} {speedUnit}
             </Text>
-            <Text style={[styles.windDirectionText, { color: tokens.colors.textMuted, fontSize: Math.max(9, Math.min(11, size * 0.046)) }]}>
-              from {cardinalDirection}
-            </Text>
+            {/* Removed "from NW" - already shown in MetricPills */}
           </View>
         </View>
 
@@ -368,6 +361,7 @@ const WindDirectionCompass: React.FC<WindDirectionCompassProps> = ({
           tokens={tokens}
           mode={mode}
           pulseAnim={pulseAnim}
+          side={settings.dominantHand}
         />
       </View>
     </View>

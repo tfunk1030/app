@@ -461,15 +461,21 @@ export function getCompassScaledValue(
 /**
  * Get lock button position and size based on compass size
  * Returns position and size for proper placement relative to compass
- * Positioned bottom-center to avoid corner overlap issues
+ * @param compassSize - Size of the compass in pixels
+ * @param side - 'left' or 'right' based on user's dominant hand preference
  */
-export function getLockButtonMetrics(compassSize: number) {
+export function getLockButtonMetrics(compassSize: number, side: 'left' | 'right' = 'right') {
   const buttonSize = getCompassScaledValue(compassSize, 0.18, 44, 56);
+  const sideOffset = compassSize * 0.08; // Offset from compass edge
+
+  // Position on the preferred side of the compass, vertically centered-ish
   return {
     position: 'absolute' as const,
-    // Center horizontally, position below compass with small overlap
-    bottom: -buttonSize / 2 - 4,
-    right: compassSize / 2 - buttonSize / 2,
+    bottom: compassSize * 0.15, // Position near bottom but inside compass area
+    // For right-handed: button on right. For left-handed: button on left
+    ...(side === 'right'
+      ? { right: sideOffset, left: undefined }
+      : { left: sideOffset, right: undefined }),
     size: buttonSize,
   };
 }

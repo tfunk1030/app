@@ -10,7 +10,7 @@ import { BlurView } from 'expo-blur';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { getLockButtonMetrics } from '@/src/utils/responsive';
 import { lockButtonStyles as styles } from './styles';
-import { useReduceMotionValue } from '@/src/hooks/useAccessibility';
+import { useReducedMotion } from '@/src/hooks/useAccessibility';
 
 interface LockButtonProps {
   isLocked: boolean;
@@ -27,6 +27,8 @@ interface LockButtonProps {
   };
   mode: string; // 'light' | 'dark' | 'system' - only 'dark' check is used
   pulseAnim: Animated.Value;
+  /** Which side to position the button - based on dominant hand */
+  side?: 'left' | 'right';
 }
 
 const LockButton: React.FC<LockButtonProps> = ({
@@ -36,10 +38,11 @@ const LockButton: React.FC<LockButtonProps> = ({
   tokens,
   mode,
   pulseAnim,
+  side = 'right',
 }) => {
-  const reduceMotion = useReduceMotionValue();
+  const reduceMotion = useReducedMotion();
   const rippleColor = mode === 'dark' ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)';
-  const lockMetrics = getLockButtonMetrics(compassSize);
+  const lockMetrics = getLockButtonMetrics(compassSize, side);
   const glowSize = lockMetrics.size + 8;
 
   return (
@@ -48,7 +51,10 @@ const LockButton: React.FC<LockButtonProps> = ({
         styles.lockButtonContainer,
         {
           bottom: lockMetrics.bottom,
-          right: lockMetrics.right,
+          // Position based on dominant hand preference
+          ...(side === 'left'
+            ? { left: lockMetrics.left, right: undefined }
+            : { right: lockMetrics.right, left: undefined }),
         },
       ]}
     >

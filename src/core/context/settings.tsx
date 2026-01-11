@@ -15,6 +15,8 @@ export interface Settings {
   sunlightModeEnabled: boolean;
   /** Wind speed unit (separate from speedUnit for granular control) */
   windSpeedUnit: 'mph' | 'kph' | 'kts' | 'mps';
+  /** Dominant hand - positions lock button on preferred side */
+  dominantHand: 'right' | 'left';
   version: number;
 }
 
@@ -45,6 +47,7 @@ const defaultSettings: Settings = {
   activityTrackingEnabled: false,
   sunlightModeEnabled: false,
   windSpeedUnit: 'mph',
+  dominantHand: 'right',
   version: 1,
 };
 

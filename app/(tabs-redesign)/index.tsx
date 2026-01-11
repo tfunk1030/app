@@ -85,10 +85,9 @@ export default function ShotScreen() {
   const environmental = useEnhancedEnvironmental();
   const { headerEntering, cardEntering } = useAccessibleAnimations();
 
-  // Detect initial loading state
+  // Detect initial loading state (conditions null means still loading)
   const isInitialLoading = FeatureFlags.PHASE1_ACCESSIBILITY_ENHANCEMENTS &&
-    !environmental.conditions &&
-    !environmental.error;
+    !environmental.conditions;
 
   // State
   const [targetDistance, setTargetDistance] = useState(150);
@@ -121,14 +120,18 @@ export default function ShotScreen() {
 
   // FREE calculation - Environment only (NO WIND)
   const calculationResult = useMemo((): CalculationResult => {
-    const temperatureF = environmental.conditions?.temperature || 70;
-    const humidity = environmental.conditions?.humidity || 50;
-    const altitudeFt = environmental.conditions?.altitude || 0;
+    const temperatureF = environmental.conditions?.temperature ?? 70;
+    const humidity = environmental.conditions?.humidity ?? 50;
+    const altitudeFt = environmental.conditions?.altitude ?? 0;
+
+    // Guard against invalid target distance
+    const safeTargetDistance = targetDistance > 0 ? targetDistance : 150;
 
     // Convert target distance to yards for calculation if in meters
+    // Use explicit conversion to avoid default context returning 0
     const targetInYards = settings.distanceUnit === 'meters'
-      ? Math.round(convertDistance(targetDistance, 'yards'))
-      : targetDistance;
+      ? Math.round(safeTargetDistance / 0.9144) // meters to yards directly
+      : safeTargetDistance;
 
     // Temperature effect: ball flies further in warm air (calculated in yards)
     const tempEffectYards = ((temperatureF - 70) / 10) * -2;
@@ -154,24 +157,29 @@ export default function ShotScreen() {
           break;
         }
       }
+      // If no club found (distance longer than all clubs), use the longest
+      if (selectedClub === '7-Iron' && sortedClubs.length > 0) {
+        selectedClub = sortedClubs[sortedClubs.length - 1].name;
+      }
     }
 
     // Convert results back to user's unit for display
+    // Use direct conversion to avoid default context issues
     const isMetric = settings.distanceUnit === 'meters';
     const playsLike = isMetric
-      ? Math.round(convertDistance(adjustedDistanceYards, 'meters'))
+      ? Math.round(adjustedDistanceYards * 0.9144) // yards to meters directly
       : adjustedDistanceYards;
     const tempEffect = isMetric
-      ? Math.round(convertDistance(tempEffectYards, 'meters'))
+      ? Math.round(tempEffectYards * 0.9144)
       : Math.round(tempEffectYards);
     const altitudeEffect = isMetric
-      ? Math.round(convertDistance(altitudeEffectYards, 'meters'))
+      ? Math.round(altitudeEffectYards * 0.9144)
       : Math.round(altitudeEffectYards);
     const humidityEffect = isMetric
-      ? Math.round(convertDistance(humidityEffectYards, 'meters'))
+      ? Math.round(humidityEffectYards * 0.9144)
       : Math.round(humidityEffectYards);
     const totalAdjustment = isMetric
-      ? Math.round(convertDistance(totalAdjustmentYards, 'meters'))
+      ? Math.round(totalAdjustmentYards * 0.9144)
       : Math.round(totalAdjustmentYards);
 
     return {
@@ -182,7 +190,7 @@ export default function ShotScreen() {
       humidityEffect,
       totalAdjustment,
     };
-  }, [targetDistance, environmental.conditions, clubs, settings.distanceUnit, convertDistance]);
+  }, [targetDistance, environmental.conditions, clubs, settings.distanceUnit]);
 
   // Handlers
   const handlePresetSelect = useCallback((preset: { id: string; distance: number }) => {

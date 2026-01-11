@@ -27,12 +27,13 @@ import { useAccessibleAnimations } from '@/src/hooks/useAccessibility';
 import * as Haptics from 'expo-haptics';
 import {
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
   Plus,
   Trash2,
   Edit3,
   Sun,
   Moon,
-  Ruler,
   Crown,
   Bell,
   MapPin,
@@ -45,6 +46,7 @@ import {
   Activity,
   Database,
   Wind,
+  Hand,
 } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -89,18 +91,33 @@ const SectionHeader = memo(function SectionHeader({
   title,
   action,
   onAction,
+  collapsible,
+  expanded,
+  onToggle,
 }: {
   title: string;
   action?: string;
   onAction?: () => void;
+  collapsible?: boolean;
+  expanded?: boolean;
+  onToggle?: () => void;
 }) {
   const { colors } = useRedesignTheme();
 
-  return (
+  const headerContent = (
     <View style={styles.sectionHeader}>
-      <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>
-        {title}
-      </Text>
+      <View style={styles.sectionHeaderLeft}>
+        {collapsible && (
+          expanded ? (
+            <ChevronUp size={16} color={colors.textMuted} style={{ marginRight: 4 }} />
+          ) : (
+            <ChevronDown size={16} color={colors.textMuted} style={{ marginRight: 4 }} />
+          )
+        )}
+        <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>
+          {title}
+        </Text>
+      </View>
       {action && onAction && (
         <Pressable onPress={onAction}>
           <Text style={[styles.sectionAction, { color: colors.brand }]}>
@@ -110,6 +127,16 @@ const SectionHeader = memo(function SectionHeader({
       )}
     </View>
   );
+
+  if (collapsible && onToggle) {
+    return (
+      <Pressable onPress={onToggle} accessibilityRole="button" accessibilityState={{ expanded }}>
+        {headerContent}
+      </Pressable>
+    );
+  }
+
+  return headerContent;
 });
 
 interface SettingRowProps {
@@ -331,7 +358,7 @@ const NavigationStyleSection = memo(function NavigationStyleSection() {
 // =============================================================================
 
 export default function SetupScreen() {
-  const { colors, mode, setMode, tokens } = useRedesignTheme();
+  const { colors, mode, setMode } = useRedesignTheme();
   const { settings, updateSettings, convertDistance } = useSettings();
   const { clubs, addClub, updateClub, removeClub } = useClubSettings();
   const { headerEntering, cardEntering } = useAccessibleAnimations();
@@ -341,6 +368,20 @@ export default function SetupScreen() {
   const [editingClubId, setEditingClubId] = useState<string | null>(null);
   const [clubName, setClubName] = useState('');
   const [clubDistance, setClubDistance] = useState('');
+
+  // Collapsible sections state
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
+    clubs: true,
+    appearance: true,
+    units: false,
+    permissions: false,
+    support: false,
+  });
+
+  const toggleSection = useCallback((section: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setExpandedSections((prev) => ({ ...prev, [section]: !prev[section] }));
+  }, []);
 
   const handleDeleteClub = useCallback(
     (clubId: string, clubName: string) => {
@@ -582,39 +623,118 @@ export default function SetupScreen() {
 
         {/* Appearance */}
         <Animated.View entering={cardEntering(1)}>
-          <SectionHeader title="APPEARANCE" />
-          <View style={[styles.section, { backgroundColor: colors.surface }]}>
-            <View style={[styles.settingRow, { borderBottomColor: colors.divider }]}>
-              <Text style={[styles.settingLabel, { color: colors.textPrimary }]}>
-                Theme
+          <SectionHeader
+            title="APPEARANCE"
+            collapsible
+            expanded={expandedSections.appearance}
+            onToggle={() => toggleSection('appearance')}
+          />
+          {expandedSections.appearance && (
+            <View style={[styles.section, { backgroundColor: colors.surface }]}>
+              <View style={[styles.settingRow, { borderBottomColor: colors.divider }]}>
+                <Text style={[styles.settingLabel, { color: colors.textPrimary }]}>
+                  Theme
+                </Text>
+              </View>
+              <View style={styles.themeSelectorContainer}>
+                <ThemeSelector value={mode} onChange={setMode} />
+              </View>
+              <SettingRow
+                icon={<Sun size={18} color={colors.brand} />}
+                label="Outdoor/Sunlight Mode"
+                rightElement={
+                  <Switch
+                    value={mode === 'outdoor'}
+                    onValueChange={(value) => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      setMode(value ? 'outdoor' : 'light');
+                      updateSettings({ sunlightModeEnabled: value });
+                    }}
+                    trackColor={{ false: colors.border, true: colors.brand }}
+                    thumbColor={colors.surface}
+                    accessibilityLabel="Outdoor sunlight mode toggle"
+                  />
+                }
+              />
+              {/* Dominant Hand - for lock button positioning */}
+              <View style={[styles.settingRow, { borderBottomColor: colors.divider, borderBottomWidth: 0 }]}>
+                <View style={styles.settingRowLeft}>
+                  <View style={[styles.settingIcon, { backgroundColor: colors.brandMuted }]}>
+                    <Hand size={18} color={colors.brand} />
+                  </View>
+                  <Text style={[styles.settingLabel, { color: colors.textPrimary }]}>
+                    Dominant Hand
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.handSelector}>
+                <Pressable
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    updateSettings({ dominantHand: 'right' });
+                  }}
+                  style={[
+                    styles.handOption,
+                    {
+                      backgroundColor: settings.dominantHand === 'right' ? colors.brandMuted : 'transparent',
+                      borderColor: settings.dominantHand === 'right' ? colors.brand : colors.border,
+                    },
+                  ]}
+                  accessibilityLabel="Right handed - lock button on right"
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: settings.dominantHand === 'right' }}
+                >
+                  <Text
+                    style={[
+                      styles.handOptionLabel,
+                      { color: settings.dominantHand === 'right' ? colors.brand : colors.textMuted },
+                    ]}
+                  >
+                    Right
+                  </Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    updateSettings({ dominantHand: 'left' });
+                  }}
+                  style={[
+                    styles.handOption,
+                    {
+                      backgroundColor: settings.dominantHand === 'left' ? colors.brandMuted : 'transparent',
+                      borderColor: settings.dominantHand === 'left' ? colors.brand : colors.border,
+                    },
+                  ]}
+                  accessibilityLabel="Left handed - lock button on left"
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: settings.dominantHand === 'left' }}
+                >
+                  <Text
+                    style={[
+                      styles.handOptionLabel,
+                      { color: settings.dominantHand === 'left' ? colors.brand : colors.textMuted },
+                    ]}
+                  >
+                    Left
+                  </Text>
+                </Pressable>
+              </View>
+              <Text style={[styles.settingHint, { color: colors.textMuted }]}>
+                Positions lock button on your preferred side
               </Text>
             </View>
-            <View style={styles.themeSelectorContainer}>
-              <ThemeSelector value={mode} onChange={setMode} />
-            </View>
-            <SettingRow
-              icon={<Sun size={18} color={colors.brand} />}
-              label="Outdoor/Sunlight Mode"
-              rightElement={
-                <Switch
-                  value={mode === 'outdoor'}
-                  onValueChange={(value) => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    setMode(value ? 'outdoor' : 'light');
-                    updateSettings({ sunlightModeEnabled: value });
-                  }}
-                  trackColor={{ false: colors.border, true: colors.brand }}
-                  thumbColor={colors.surface}
-                  accessibilityLabel="Outdoor sunlight mode toggle"
-                />
-              }
-            />
-          </View>
+          )}
         </Animated.View>
 
         {/* Units */}
         <Animated.View entering={cardEntering(2)}>
-          <SectionHeader title="UNITS" />
+          <SectionHeader
+            title="UNITS"
+            collapsible
+            expanded={expandedSections.units}
+            onToggle={() => toggleSection('units')}
+          />
+          {expandedSections.units && (
           <View style={[styles.section, { backgroundColor: colors.surface }]}>
             <View style={styles.unitSelector}>
               <Pressable
@@ -712,74 +832,82 @@ export default function SetupScreen() {
               ))}
             </View>
           </View>
+          )}
         </Animated.View>
 
         {/* Permissions */}
         <Animated.View entering={cardEntering(3)}>
-          <SectionHeader title="PERMISSIONS" />
-          <View style={[styles.section, { backgroundColor: colors.surface }]}>
-            <SettingRow
-              icon={<MapPin size={18} color={colors.brand} />}
-              label="Location"
-              rightElement={
-                <Switch
-                  value={settings.locationEnabled}
-                  onValueChange={(value) => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    updateSettings({ locationEnabled: value });
-                  }}
-                  trackColor={{ false: colors.border, true: colors.brand }}
-                  thumbColor={colors.surface}
-                />
-              }
-            />
-            <SettingRow
-              icon={<Compass size={18} color={colors.brand} />}
-              label="Compass"
-              rightElement={
-                <Switch
-                  value={settings.compassEnabled}
-                  onValueChange={(value) => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    updateSettings({ compassEnabled: value });
-                  }}
-                  trackColor={{ false: colors.border, true: colors.brand }}
-                  thumbColor={colors.surface}
-                />
-              }
-            />
-            <SettingRow
-              icon={<Bell size={18} color={colors.brand} />}
-              label="Notifications"
-              rightElement={
-                <Switch
-                  value={settings.notificationsEnabled}
-                  onValueChange={(value) => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    updateSettings({ notificationsEnabled: value });
-                  }}
-                  trackColor={{ false: colors.border, true: colors.brand }}
-                  thumbColor={colors.surface}
-                />
-              }
-            />
-            <SettingRow
-              icon={<Activity size={18} color={colors.brand} />}
-              label="Activity Tracking"
-              rightElement={
-                <Switch
-                  value={settings.activityTrackingEnabled}
-                  onValueChange={(value) => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    updateSettings({ activityTrackingEnabled: value });
-                  }}
-                  trackColor={{ false: colors.border, true: colors.brand }}
-                  thumbColor={colors.surface}
-                  accessibilityLabel="Activity Tracking toggle"
-                />
-              }
-            />
-          </View>
+          <SectionHeader
+            title="PERMISSIONS"
+            collapsible
+            expanded={expandedSections.permissions}
+            onToggle={() => toggleSection('permissions')}
+          />
+          {expandedSections.permissions && (
+            <View style={[styles.section, { backgroundColor: colors.surface }]}>
+              <SettingRow
+                icon={<MapPin size={18} color={colors.brand} />}
+                label="Location"
+                rightElement={
+                  <Switch
+                    value={settings.locationEnabled}
+                    onValueChange={(value) => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      updateSettings({ locationEnabled: value });
+                    }}
+                    trackColor={{ false: colors.border, true: colors.brand }}
+                    thumbColor={colors.surface}
+                  />
+                }
+              />
+              <SettingRow
+                icon={<Compass size={18} color={colors.brand} />}
+                label="Compass"
+                rightElement={
+                  <Switch
+                    value={settings.compassEnabled}
+                    onValueChange={(value) => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      updateSettings({ compassEnabled: value });
+                    }}
+                    trackColor={{ false: colors.border, true: colors.brand }}
+                    thumbColor={colors.surface}
+                  />
+                }
+              />
+              <SettingRow
+                icon={<Bell size={18} color={colors.brand} />}
+                label="Notifications"
+                rightElement={
+                  <Switch
+                    value={settings.notificationsEnabled}
+                    onValueChange={(value) => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      updateSettings({ notificationsEnabled: value });
+                    }}
+                    trackColor={{ false: colors.border, true: colors.brand }}
+                    thumbColor={colors.surface}
+                  />
+                }
+              />
+              <SettingRow
+                icon={<Activity size={18} color={colors.brand} />}
+                label="Activity Tracking"
+                rightElement={
+                  <Switch
+                    value={settings.activityTrackingEnabled}
+                    onValueChange={(value) => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      updateSettings({ activityTrackingEnabled: value });
+                    }}
+                    trackColor={{ false: colors.border, true: colors.brand }}
+                    thumbColor={colors.surface}
+                    accessibilityLabel="Activity Tracking toggle"
+                  />
+                }
+              />
+            </View>
+          )}
         </Animated.View>
 
         {/* Data Management */}
@@ -1009,6 +1137,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
 
+  sectionHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+
   sectionTitle: {
     fontSize: 12,
     fontWeight: '600',
@@ -1183,6 +1316,35 @@ const styles = StyleSheet.create({
   windUnitOptionLabel: {
     fontSize: 14,
     fontWeight: '600',
+  },
+
+  // Dominant hand selector
+  handSelector: {
+    flexDirection: 'row',
+    gap: 12,
+    paddingHorizontal: 12,
+    paddingBottom: 8,
+  },
+
+  handOption: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    borderWidth: 1.5,
+  },
+
+  handOptionLabel: {
+    fontSize: 15,
+    fontWeight: '600',
+  },
+
+  settingHint: {
+    fontSize: 12,
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    paddingTop: 4,
   },
 
   // Premium Card

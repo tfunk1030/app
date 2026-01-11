@@ -94,14 +94,16 @@ const CardinalDirections: React.FC<CardinalDirectionsProps> = ({
                   style={[
                     styles.cardinalText,
                     {
+                      // High contrast: N uses brand color, main cardinals use primary text, intercardinals use muted
                       color: label === 'N'
                         ? brandAltColor || textColor
                         : isMainDirection
-                        ? subTextColor
+                        ? textColor // Changed from subTextColor for better contrast
                         : subTextColor,
                       fontSize: directionStyles.fontSize * nFontScale,
                       fontWeight: directionStyles.fontWeight as any,
-                      opacity: directionStyles.opacity,
+                      // Higher opacity for better outdoor readability
+                      opacity: isMainDirection ? 1 : directionStyles.opacity,
                     },
                     label === 'N' && styles.northCardinalText,
                   ]}
