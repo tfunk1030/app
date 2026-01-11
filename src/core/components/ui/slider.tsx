@@ -577,6 +577,7 @@ export function Slider({
               minimumTrackTintColor={glow && isDark ? 'transparent' : t.colors.brand}
               maximumTrackTintColor={t.colors.border}
               renderThumbComponent={renderThumb}
+              trackClickable={false} // Prevent accidental activation during scroll - must drag thumb
               trackStyle={StyleSheet.flatten([
                 styles.track,
                 {

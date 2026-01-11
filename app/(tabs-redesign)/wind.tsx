@@ -18,8 +18,6 @@ import {
   ScrollView,
   RefreshControl,
   Pressable,
-  TextInput,
-  Keyboard,
   useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -38,8 +36,9 @@ import { useRedesignTheme } from '@/src/theme/redesign';
 import { ResultCard } from '@/src/components/redesign/ResultCard';
 import { QuickAction } from '@/src/components/redesign/QuickAction';
 import { MetricPill } from '@/src/components/redesign/MetricPill';
+import { Slider } from '@/src/core/components/ui/slider';
 import { usePremium } from '@/src/features/settings/context/premium';
-import { useSettings } from '@/src/core/context/settings';
+import { useSettings, Settings } from '@/src/core/context/settings';
 import { useEnhancedEnvironmental } from '@/src/providers/EnhancedEnvironmentalProvider';
 import { useWindCalculator } from '@/src/features/wind/hooks/useWindCalculator';
 import { useSensorData } from '@/src/features/wind/context/sensor-data';
@@ -70,29 +69,65 @@ function degreesToDirection(degrees: number): string {
 }
 
 // =============================================================================
+// HELPER - Unit conversions
+// =============================================================================
+
+function getSpeedUnitLabel(speedUnit: Settings['speedUnit']): string {
+  return speedUnit === 'mps' ? 'm/s' : speedUnit;
+}
+
+function convertFromMph(mph: number, speedUnit: Settings['speedUnit']): number {
+  switch (speedUnit) {
+    case 'mph': return mph;
+    case 'kph': return mph * 1.60934;
+    case 'kts': return mph * 0.868976;
+    case 'mps': return mph * 0.44704;
+    default: return mph;
+  }
+}
+
+function convertToMph(value: number, speedUnit: Settings['speedUnit']): number {
+  switch (speedUnit) {
+    case 'mph': return value;
+    case 'kph': return value / 1.60934;
+    case 'kts': return value / 0.868976;
+    case 'mps': return value / 0.44704;
+    default: return value;
+  }
+}
+
+function getMaxWindSpeed(speedUnit: Settings['speedUnit']): number {
+  switch (speedUnit) {
+    case 'mph': return 40;
+    case 'kph': return Math.round(40 * 1.60934); // ~64 kph
+    case 'kts': return Math.round(40 * 0.868976); // ~35 kts
+    case 'mps': return Math.round(40 * 0.44704); // ~18 m/s
+    default: return 40;
+  }
+}
+
+// =============================================================================
 // WIND CALCULATOR REDESIGN COMPONENT
 // =============================================================================
 
 function WindCalculatorRedesign() {
   const { colors } = useRedesignTheme();
-  const { settings } = useSettings();
+  const { settings, convertDistance } = useSettings();
   const environmental = useEnhancedEnvironmental();
   const { isLocked, relativeWindAngle } = useCompassLock();
   const { height: screenHeight } = useWindowDimensions();
 
-  // Adaptive compass sizing (180-260px based on screen height)
-  // Reserve space for: header(60) + conditions(40) + distance(140) + presets(60) + wind(100) + button(80) + result(~150) + padding(100)
-  const reservedSpace = 730;
+  // Adaptive compass sizing (180-240px based on screen height)
+  // Smaller to make room for result card above the fold
+  const reservedSpace = 650;
   const availableForCompass = Math.max(0, screenHeight - reservedSpace);
-  const compassSize = Math.max(180, Math.min(260, 180 + availableForCompass));
+  const compassSize = Math.max(180, Math.min(240, 180 + availableForCompass * 0.5));
 
   // Wind calculator hook
   const {
     calculate,
     result,
-    windSpeed: hookWindSpeed,
     setWindSpeed,
-    targetYardage: hookTargetYardage,
     setTargetYardage,
   } = useWindCalculator();
 
@@ -101,126 +136,135 @@ function WindCalculatorRedesign() {
   const [windSpeedOverride, setWindSpeedOverride] = useState<number | null>(null);
   const [selectedPreset, setSelectedPreset] = useState<string | null>('150');
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [hasCalculated, setHasCalculated] = useState(false);
-  const [isEditingDistance, setIsEditingDistance] = useState(false);
-  const [distanceInputValue, setDistanceInputValue] = useState('150');
-  const distanceInputRef = useRef<TextInput>(null);
+  const scrollViewRef = useRef<ScrollView>(null);
+  const calcTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Animation
   const resultScale = useSharedValue(1);
 
-  // Get current wind data
-  const currentWindSpeed = environmental.conditions?.windSpeed || 0;
+  // Get current wind data (convert from mph to user's unit)
+  const currentWindSpeedMph = environmental.conditions?.windSpeed || 0;
   const currentWindDirection = environmental.conditions?.windDirection || 0;
-  const currentWindGust = environmental.conditions?.windGust;
+  const currentWindGustMph = environmental.conditions?.windGust;
 
-  // Effective wind speed (override or actual)
-  const effectiveWindSpeed = windSpeedOverride ?? Math.round(currentWindSpeed);
+  // Convert to user's preferred unit for display
+  const currentWindSpeedDisplay = Math.round(convertFromMph(currentWindSpeedMph, settings.speedUnit));
+  const currentWindGustDisplay = currentWindGustMph ? Math.round(convertFromMph(currentWindGustMph, settings.speedUnit)) : null;
+  const speedUnitLabel = getSpeedUnitLabel(settings.speedUnit);
+  const maxWindSpeed = getMaxWindSpeed(settings.speedUnit);
 
-  // Quick presets
-  const presets = useMemo(() => [
-    { id: '100', label: '100', distance: 100 },
-    { id: '125', label: '125', distance: 125 },
-    { id: '150', label: '150', distance: 150 },
-    { id: '175', label: '175', distance: 175 },
-    { id: '200', label: '200', distance: 200 },
-  ], []);
+  // Effective wind speed (override or actual) - in user's unit
+  const effectiveWindSpeed = windSpeedOverride ?? currentWindSpeedDisplay;
 
-  // Format the result for display
+  // Distance unit label
+  const unit = settings.distanceUnit === 'meters' ? 'm' : 'yds';
+
+  // Distance bounds based on unit
+  const distMin = 50;
+  const distMax = settings.distanceUnit === 'yards' ? 350 : Math.round(convertDistance(350, 'meters'));
+
+  // Quick presets (convert to user's unit if metric)
+  const presets = useMemo(() => {
+    const baseYards = [100, 125, 150, 175, 200];
+    if (settings.distanceUnit === 'meters') {
+      return baseYards.map(y => {
+        const meters = Math.round(convertDistance(y, 'meters'));
+        return { id: String(meters), label: String(meters), distance: meters };
+      });
+    }
+    return baseYards.map(y => ({ id: String(y), label: String(y), distance: y }));
+  }, [settings.distanceUnit, convertDistance]);
+
+  // Format the result for display (convert to user's unit)
   const displayResult = useMemo((): WindCalculationDisplay | null => {
     if (!result) return null;
 
-    // lateralEffect is the crosswind (left/right push)
-    const crosswind = result.lateralEffect || 0;
+    // lateralEffect is the crosswind (left/right push) - in yards
+    const crosswindYards = result.lateralEffect || 0;
+    const headwindYards = result.windEffect || 0;
+    const playsLikeYards = result.effectivePlayingDistance;
+
+    // Convert to user's distance unit
+    const isMetric = settings.distanceUnit === 'meters';
+    const playsLike = isMetric
+      ? Math.round(convertDistance(playsLikeYards, 'meters'))
+      : Math.round(playsLikeYards);
+    const crosswind = isMetric
+      ? Math.round(convertDistance(Math.abs(crosswindYards), 'meters'))
+      : Math.round(Math.abs(crosswindYards));
+    const headwindEffect = isMetric
+      ? Math.round(convertDistance(headwindYards, 'meters'))
+      : Math.round(headwindYards);
+
     let aimDirection = '';
-    if (Math.abs(crosswind) > 0.5) {
-      aimDirection = crosswind > 0 ? 'right' : 'left';
+    if (Math.abs(crosswindYards) > 0.5) {
+      aimDirection = crosswindYards > 0 ? 'right' : 'left';
     }
 
     return {
-      playsLike: Math.round(result.effectivePlayingDistance),
+      playsLike,
       club: result.finalClub,
-      aimAdjustment: Math.abs(crosswind) > 0.5
-        ? `${Math.abs(Math.round(crosswind))} yds ${aimDirection}`
+      aimAdjustment: Math.abs(crosswindYards) > 0.5
+        ? `${crosswind} ${unit} ${aimDirection}`
         : 'On line',
-      headwindEffect: Math.round(result.windEffect || 0),
-      crosswindEffect: Math.round(crosswind),
-      totalAdjustment: Math.round(result.windEffect || 0),
+      headwindEffect,
+      crosswindEffect: crosswindYards > 0 ? crosswind : -crosswind,
+      totalAdjustment: headwindEffect,
     };
-  }, [result]);
+  }, [result, settings.distanceUnit, convertDistance, unit]);
+
+  // Auto-calculate when inputs change (debounced)
+  const triggerCalculation = useCallback(() => {
+    // Clear any pending calculation
+    if (calcTimeoutRef.current) {
+      clearTimeout(calcTimeoutRef.current);
+    }
+
+    // Debounce calculation by 200ms
+    calcTimeoutRef.current = setTimeout(() => {
+      // Convert wind speed to mph for calculation (calculator expects mph)
+      const windSpeedMph = Math.round(convertToMph(effectiveWindSpeed, settings.speedUnit));
+
+      // Convert target distance to yards for calculation if in meters
+      const targetInYards = settings.distanceUnit === 'meters'
+        ? Math.round(targetDistance / 0.9144) // meters to yards
+        : targetDistance;
+
+      // Ensure the hook has the latest values (in yards/mph for calculation)
+      setWindSpeed(windSpeedMph);
+      setTargetYardage(targetInYards);
+
+      // Run calculation with the relative wind angle
+      calculate(relativeWindAngle);
+
+      // Subtle animation on result update
+      resultScale.value = withSequence(
+        withSpring(1.02, { damping: 12 }),
+        withSpring(1, { damping: 15 })
+      );
+    }, 200);
+  }, [effectiveWindSpeed, targetDistance, relativeWindAngle, calculate, setWindSpeed, setTargetYardage, resultScale, settings.speedUnit, settings.distanceUnit]);
+
+  // Trigger calculation on input changes
+  React.useEffect(() => {
+    triggerCalculation();
+  }, [targetDistance, effectiveWindSpeed, relativeWindAngle, isLocked, triggerCalculation]);
+
+  // Cleanup timeout on unmount
+  React.useEffect(() => {
+    return () => {
+      if (calcTimeoutRef.current) {
+        clearTimeout(calcTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Handlers
   const handlePresetSelect = useCallback((preset: { id: string; distance: number }) => {
     setSelectedPreset(preset.id);
     setTargetDistance(preset.distance);
-    setTargetYardage(preset.distance);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-  }, [setTargetYardage]);
-
-  const handleDistanceChange = useCallback((delta: number) => {
-    setTargetDistance((prev) => {
-      const newValue = Math.max(50, Math.min(350, prev + delta));
-      setTargetYardage(newValue);
-      return newValue;
-    });
-    setSelectedPreset(null);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-  }, [setTargetYardage]);
-
-  const handleWindSpeedChange = useCallback((delta: number) => {
-    setWindSpeedOverride((prev) => {
-      const current = prev ?? Math.round(currentWindSpeed);
-      const newValue = Math.max(0, Math.min(50, current + delta));
-      setWindSpeed(newValue);
-      return newValue;
-    });
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-  }, [currentWindSpeed, setWindSpeed]);
-
-  const handleDistanceTap = useCallback(() => {
-    setDistanceInputValue(targetDistance.toString());
-    setIsEditingDistance(true);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    // Focus the input after a brief delay to ensure it's mounted
-    setTimeout(() => {
-      distanceInputRef.current?.focus();
-    }, 50);
-  }, [targetDistance]);
-
-  const handleDistanceInputSubmit = useCallback(() => {
-    const parsed = parseInt(distanceInputValue, 10);
-    if (!isNaN(parsed)) {
-      const newValue = Math.max(50, Math.min(350, parsed));
-      setTargetDistance(newValue);
-      setTargetYardage(newValue);
-      setSelectedPreset(null);
-    }
-    setIsEditingDistance(false);
-    Keyboard.dismiss();
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-  }, [distanceInputValue, setTargetYardage]);
-
-  const handleDistanceInputBlur = useCallback(() => {
-    handleDistanceInputSubmit();
-  }, [handleDistanceInputSubmit]);
-
-  const handleCalculate = useCallback(() => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-
-    // Ensure the hook has the latest values
-    setWindSpeed(effectiveWindSpeed);
-    setTargetYardage(targetDistance);
-
-    // Run calculation with the relative wind angle
-    calculate(relativeWindAngle);
-    setHasCalculated(true);
-
-    // Animate result
-    resultScale.value = withSequence(
-      withSpring(1.03, { damping: 10 }),
-      withSpring(1, { damping: 15 })
-    );
-  }, [effectiveWindSpeed, targetDistance, relativeWindAngle, calculate, setWindSpeed, setTargetYardage, resultScale]);
+  }, []);
 
   const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
@@ -237,14 +281,13 @@ function WindCalculatorRedesign() {
     transform: [{ scale: resultScale.value }],
   }));
 
-  const unit = settings.distanceUnit === 'meters' ? 'm' : 'yds';
-
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
       edges={['top']}
     >
       <ScrollView
+        ref={scrollViewRef}
         contentContainerStyle={[
           styles.scrollContent,
           { paddingBottom: 80 }, // 64 (tab bar) + 16 (buffer) - insets already in tab bar
@@ -275,18 +318,18 @@ function WindCalculatorRedesign() {
             <MetricPill
               icon={<Wind size={14} color={colors.textMuted} />}
               label="Wind"
-              value={`${Math.round(currentWindSpeed)} mph`}
+              value={`${currentWindSpeedDisplay} ${speedUnitLabel}`}
             />
             <MetricPill
               icon={<Navigation size={14} color={colors.textMuted} />}
               label="Direction"
               value={`${degreesToDirection(currentWindDirection)} (${Math.round(currentWindDirection)}°)`}
             />
-            {currentWindGust && currentWindGust > currentWindSpeed && (
+            {currentWindGustDisplay && currentWindGustDisplay > currentWindSpeedDisplay && (
               <MetricPill
                 icon={<Wind size={14} color={colors.warning} />}
                 label="Gust"
-                value={`${Math.round(currentWindGust)} mph`}
+                value={`${currentWindGustDisplay} ${speedUnitLabel}`}
                 status="warning"
               />
             )}
@@ -295,106 +338,48 @@ function WindCalculatorRedesign() {
 
         {/* Compass Section */}
         <Animated.View entering={FadeInDown.delay(150)} style={styles.compassSection}>
-          <Text style={[styles.sectionLabel, { color: colors.textMuted }]}>
-            SHOT DIRECTION
-          </Text>
           <View style={styles.compassWrapper}>
             <WindDirectionCompass size={compassSize} />
           </View>
-          <Text style={[styles.compassHint, { color: colors.textMuted }]}>
-            {isLocked
-              ? 'Compass locked - tap lock to adjust'
-              : 'Point phone in shot direction, then lock'
-            }
-          </Text>
         </Animated.View>
 
-        {/* Target Distance Input */}
-        <Animated.View entering={FadeInDown.delay(200)} style={styles.distanceSection}>
-          <Text style={[styles.sectionLabel, { color: colors.textMuted }]}>
-            TARGET DISTANCE
-          </Text>
-          <View style={styles.distanceRow}>
-            <Pressable
-              onPress={() => handleDistanceChange(-10)}
-              style={[styles.adjustButton, { backgroundColor: colors.surface }]}
-              accessibilityLabel="Decrease by 10"
-              accessibilityRole="button"
-            >
-              <Text style={[styles.adjustButtonText, { color: colors.textPrimary }]}>
-                -10
-              </Text>
-            </Pressable>
+        {/* Result Card - Show immediately with live updates */}
+        {displayResult && (
+          <Animated.View entering={FadeInDown.delay(200)} style={resultAnimatedStyle}>
+            <ResultCard
+              primaryLabel="Plays like"
+              primaryValue={displayResult.playsLike.toString()}
+              primaryUnit={unit}
+              secondaryLabel="Club"
+              secondaryValue={displayResult.club}
+              tertiaryLabel="Adjustment"
+              tertiaryValue={`${displayResult.totalAdjustment > 0 ? '+' : ''}${displayResult.totalAdjustment} ${unit}`}
+              tertiaryStatus={displayResult.totalAdjustment > 0 ? 'negative' : displayResult.totalAdjustment < 0 ? 'positive' : 'neutral'}
+              variant="highlighted"
+              style={styles.resultCard}
+            />
+          </Animated.View>
+        )}
 
-            <Pressable
-              onPress={handleDistanceTap}
-              style={styles.distanceValueContainer}
-              accessibilityLabel={`Distance ${targetDistance} ${unit}. Tap to edit`}
-              accessibilityRole="button"
-              accessibilityHint="Double tap to enter exact distance"
-            >
-              {isEditingDistance ? (
-                <TextInput
-                  ref={distanceInputRef}
-                  style={[styles.distanceInput, { color: colors.textPrimary, borderColor: colors.brand }]}
-                  value={distanceInputValue}
-                  onChangeText={setDistanceInputValue}
-                  onSubmitEditing={handleDistanceInputSubmit}
-                  onBlur={handleDistanceInputBlur}
-                  keyboardType="number-pad"
-                  maxLength={3}
-                  selectTextOnFocus
-                  accessibilityLabel="Enter distance"
-                />
-              ) : (
-                <Text style={[styles.distanceValue, { color: colors.textPrimary }]}>
-                  {targetDistance}
-                </Text>
-              )}
-              <Text style={[styles.distanceUnit, { color: colors.textMuted }]}>
-                {unit}
-              </Text>
-            </Pressable>
-
-            <Pressable
-              onPress={() => handleDistanceChange(10)}
-              style={[styles.adjustButton, { backgroundColor: colors.surface }]}
-              accessibilityLabel="Increase by 10"
-              accessibilityRole="button"
-            >
-              <Text style={[styles.adjustButtonText, { color: colors.textPrimary }]}>
-                +10
-              </Text>
-            </Pressable>
-          </View>
-
-          {/* Fine-tune steppers */}
-          <View style={styles.stepperRow}>
-            <Pressable
-              onPress={() => handleDistanceChange(-1)}
-              style={[styles.stepperButton, { backgroundColor: colors.surface }]}
-              accessibilityLabel="Decrease by 1"
-              accessibilityRole="button"
-            >
-              <Text style={[styles.stepperButtonText, { color: colors.textPrimary }]}>-1</Text>
-            </Pressable>
-
-            <Pressable
-              onPress={() => handleDistanceChange(1)}
-              style={[styles.stepperButton, { backgroundColor: colors.surface }]}
-              accessibilityLabel="Increase by 1"
-              accessibilityRole="button"
-            >
-              <Text style={[styles.stepperButtonText, { color: colors.textPrimary }]}>+1</Text>
-            </Pressable>
-          </View>
+        {/* Target Distance Input with Slider */}
+        <Animated.View entering={FadeInDown.delay(250)} style={styles.sliderSection}>
+          <Slider
+            value={targetDistance}
+            onValueChange={(val) => {
+              setTargetDistance(val);
+              setSelectedPreset(null);
+            }}
+            min={distMin}
+            max={distMax}
+            step={1}
+            label="Target Distance"
+            unit={unit}
+            dense
+          />
         </Animated.View>
 
         {/* Quick Presets */}
-        <Animated.View entering={FadeInDown.delay(250)} style={styles.presetsSection}>
-          <Text style={[styles.sectionLabel, { color: colors.textMuted }]}>
-            QUICK SELECT
-          </Text>
+        <Animated.View entering={FadeInDown.delay(300)} style={styles.presetsSection}>
           <View style={styles.presetsRow}>
             {presets.map((preset) => (
               <QuickAction
@@ -410,67 +395,18 @@ function WindCalculatorRedesign() {
           </View>
         </Animated.View>
 
-        {/* Wind Speed Override */}
-        <Animated.View entering={FadeInDown.delay(300)} style={styles.windSpeedSection}>
-          <Text style={[styles.sectionLabel, { color: colors.textMuted }]}>
-            WIND SPEED {windSpeedOverride !== null ? '(OVERRIDE)' : ''}
-          </Text>
-          {/* Large wind adjustments */}
-          <View style={styles.windSpeedRow}>
-            <Pressable
-              onPress={() => handleWindSpeedChange(-5)}
-              style={[styles.windAdjustButton, { backgroundColor: colors.surface }]}
-              accessibilityLabel="Decrease wind speed by 5"
-              accessibilityRole="button"
-            >
-              <Text style={[styles.windAdjustButtonText, { color: colors.textPrimary }]}>
-                -5
-              </Text>
-            </Pressable>
-
-            <View style={styles.windSpeedValueContainer}>
-              <Wind size={18} color={colors.textMuted} />
-              <Text style={[styles.windSpeedValue, { color: colors.textPrimary }]}>
-                {effectiveWindSpeed}
-              </Text>
-              <Text style={[styles.windSpeedUnit, { color: colors.textMuted }]}>
-                mph
-              </Text>
-            </View>
-
-            <Pressable
-              onPress={() => handleWindSpeedChange(5)}
-              style={[styles.windAdjustButton, { backgroundColor: colors.surface }]}
-              accessibilityLabel="Increase wind speed by 5"
-              accessibilityRole="button"
-            >
-              <Text style={[styles.windAdjustButtonText, { color: colors.textPrimary }]}>
-                +5
-              </Text>
-            </Pressable>
-          </View>
-
-          {/* Fine-tune wind steppers */}
-          <View style={styles.windStepperRow}>
-            <Pressable
-              onPress={() => handleWindSpeedChange(-1)}
-              style={[styles.windStepperButton, { backgroundColor: colors.surface }]}
-              accessibilityLabel="Decrease wind speed by 1"
-              accessibilityRole="button"
-            >
-              <Text style={[styles.windStepperButtonText, { color: colors.textPrimary }]}>-1</Text>
-            </Pressable>
-
-            <Pressable
-              onPress={() => handleWindSpeedChange(1)}
-              style={[styles.windStepperButton, { backgroundColor: colors.surface }]}
-              accessibilityLabel="Increase wind speed by 1"
-              accessibilityRole="button"
-            >
-              <Text style={[styles.windStepperButtonText, { color: colors.textPrimary }]}>+1</Text>
-            </Pressable>
-          </View>
-
+        {/* Wind Speed Override with Slider */}
+        <Animated.View entering={FadeInDown.delay(350)} style={styles.sliderSection}>
+          <Slider
+            value={effectiveWindSpeed}
+            onValueChange={(val) => setWindSpeedOverride(val)}
+            min={0}
+            max={maxWindSpeed}
+            step={1}
+            label={`Wind Speed${windSpeedOverride !== null ? ' (Override)' : ''}`}
+            unit={speedUnitLabel}
+            dense
+          />
           {windSpeedOverride !== null && (
             <Pressable
               onPress={() => {
@@ -482,46 +418,14 @@ function WindCalculatorRedesign() {
               accessibilityRole="button"
             >
               <Text style={[styles.resetButtonText, { color: colors.brand }]}>
-                Reset to actual ({Math.round(currentWindSpeed)} mph)
+                Reset to actual ({currentWindSpeedDisplay} {speedUnitLabel})
               </Text>
             </Pressable>
           )}
         </Animated.View>
 
-        {/* Calculate Button */}
-        <Animated.View entering={FadeInDown.delay(350)} style={styles.calculateButtonSection}>
-          <Pressable
-            onPress={handleCalculate}
-            style={[styles.calculateButton, { backgroundColor: colors.brand }]}
-            accessibilityLabel="Calculate Wind Effect"
-            accessibilityRole="button"
-          >
-            <Wind size={20} color={colors.textInverse} />
-            <Text style={[styles.calculateButtonText, { color: colors.textInverse }]}>
-              Calculate Wind Effect
-            </Text>
-          </Pressable>
-        </Animated.View>
-
-        {/* Result Card */}
-        {hasCalculated && displayResult && (
-          <Animated.View entering={FadeInDown.delay(100)} style={resultAnimatedStyle}>
-            <ResultCard
-              primaryLabel="Plays like"
-              primaryValue={displayResult.playsLike.toString()}
-              primaryUnit={unit}
-              secondaryLabel="Club"
-              secondaryValue={displayResult.club}
-              tertiaryLabel="Aim"
-              tertiaryValue={displayResult.aimAdjustment}
-              variant="highlighted"
-              style={styles.resultCard}
-            />
-          </Animated.View>
-        )}
-
-        {/* Wind Effects Breakdown */}
-        {hasCalculated && displayResult && Math.abs(displayResult.totalAdjustment) > 0.5 && (
+        {/* Wind Effects Breakdown - Only show if there's meaningful adjustment */}
+        {displayResult && Math.abs(displayResult.totalAdjustment) > 0.5 && (
           <Animated.View
             entering={FadeInDown.delay(150)}
             style={[styles.adjustmentsCard, { backgroundColor: colors.surface }]}
@@ -547,7 +451,7 @@ function WindCalculatorRedesign() {
                 ]}
               >
                 {displayResult.headwindEffect > 0 ? '+' : ''}
-                {displayResult.headwindEffect} yds
+                {displayResult.headwindEffect} {unit}
               </Text>
             </View>
             <View style={styles.adjustmentRow}>
@@ -560,8 +464,7 @@ function WindCalculatorRedesign() {
                   { color: colors.textPrimary },
                 ]}
               >
-                {displayResult.crosswindEffect > 0 ? '' : ''}
-                {Math.abs(displayResult.crosswindEffect)} yds {displayResult.crosswindEffect > 0 ? 'R' : displayResult.crosswindEffect < 0 ? 'L' : ''}
+                {Math.abs(displayResult.crosswindEffect)} {unit} {displayResult.crosswindEffect > 0 ? 'R' : displayResult.crosswindEffect < 0 ? 'L' : ''}
               </Text>
             </View>
             <View style={[styles.adjustmentRow, styles.totalRow]}>
@@ -583,7 +486,7 @@ function WindCalculatorRedesign() {
                 ]}
               >
                 {displayResult.totalAdjustment > 0 ? '+' : ''}
-                {displayResult.totalAdjustment} yds
+                {displayResult.totalAdjustment} {unit}
               </Text>
             </View>
           </Animated.View>
@@ -767,13 +670,13 @@ const styles = StyleSheet.create({
     marginVertical: 8,
   },
 
-  compassHint: {
-    fontSize: 13,
-    textAlign: 'center',
-    marginTop: 8,
+  // Slider Sections
+  sliderSection: {
+    marginBottom: 16,
+    paddingHorizontal: 4,
   },
 
-  // Distance Input
+  // Distance Input (legacy - kept for reference)
   distanceSection: {
     alignItems: 'center',
     marginBottom: 24,
@@ -938,26 +841,6 @@ const styles = StyleSheet.create({
   resetButtonText: {
     fontSize: 13,
     fontWeight: '500',
-  },
-
-  // Calculate Button
-  calculateButtonSection: {
-    marginBottom: 24,
-  },
-
-  calculateButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-    paddingVertical: 18,
-    paddingHorizontal: 32,
-    borderRadius: 16,
-  },
-
-  calculateButtonText: {
-    fontSize: 17,
-    fontWeight: '700',
   },
 
   // Result

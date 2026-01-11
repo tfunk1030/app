@@ -165,8 +165,8 @@ const WindDirectionCompass: React.FC<WindDirectionCompassProps> = ({
 
   return (
     <View style={styles.wrapper}>
-      {/* Subtle heading display */}
-      <View style={[styles.headingDisplaySubtle, { marginBottom: Math.max(8, Math.round(size * 0.03)) }]}>
+      {/* Subtle heading display - positioned above compass with adequate spacing */}
+      <View style={[styles.headingDisplaySubtle, { marginBottom: Math.max(16, Math.round(size * 0.08)) }]}>
         <Text style={styles.headingTextSubtle}>
           <Text style={{ color: tokens.colors.success, opacity: 0.8 }}>{displayHeadings.shot}°</Text>
           <Text style={{ color: tokens.colors.textMuted }}> / </Text>
@@ -288,17 +288,17 @@ const WindDirectionCompass: React.FC<WindDirectionCompassProps> = ({
             ]}
           />
 
-          {/* Wind Info Display - Below Center */}
+          {/* Wind Info Display - Below Center, above S cardinal */}
           <View
-            style={[styles.windInfoContainer, { bottom: Math.max(size * 0.12, 28) }]}
+            style={[styles.windInfoContainer, { bottom: Math.max(size * 0.24, 52) }]}
             pointerEvents="none"
             accessibilityRole="text"
             accessibilityLabel={`Wind speed ${Math.round(windSpeed)} ${speedUnit} from ${cardinalDirection}`}
           >
-            <Text style={[styles.windSpeedText, { color: tokens.colors.brandAlt, fontSize: size < 240 ? 14 : 18 }]}>
+            <Text style={[styles.windSpeedText, { color: tokens.colors.brandAlt, fontSize: Math.max(14, Math.min(18, size * 0.075)) }]}>
               {Math.round(windSpeed)} {speedUnit}
             </Text>
-            <Text style={[styles.windDirectionText, { color: tokens.colors.textMuted, fontSize: size < 240 ? 9 : 11 }]}>
+            <Text style={[styles.windDirectionText, { color: tokens.colors.textMuted, fontSize: Math.max(9, Math.min(11, size * 0.046)) }]}>
               from {cardinalDirection}
             </Text>
           </View>
@@ -314,10 +314,10 @@ const WindDirectionCompass: React.FC<WindDirectionCompassProps> = ({
           brandAltColor={tokens.colors.brandAlt}
         />
 
-        {/* Top-centered Wind Label or Locked chip overlay inside compass */}
+        {/* Top-centered Wind Label or Locked chip overlay inside compass - positioned below N cardinal */}
         <View
           pointerEvents="none"
-          style={[styles.windLabelContainer, { top: Math.max(size * 0.15, 32) }]}
+          style={[styles.windLabelContainer, { top: Math.max(size * 0.28, 58) }]}
           accessibilityRole="text"
           accessibilityLabel={isLocked ? 'Locked' : `Wind is ${windRelationship.toLowerCase()}`}
         >

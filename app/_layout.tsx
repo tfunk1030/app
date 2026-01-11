@@ -5,7 +5,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import { useFonts } from 'expo-font';
 import * as Location from 'expo-location';
 import * as Notifications from 'expo-notifications';
-import { Stack, Redirect } from 'expo-router';
+import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useState } from 'react';
 import { LogBox, Platform, Text as RNText } from 'react-native';
@@ -13,7 +13,6 @@ import 'react-native-reanimated';
 import SegmentedCacheManager from '../src/utils/SegmentedCacheManager';
 import CacheManager from '../src/utils/cacheManager';
 import { runCacheValidation } from '@/src/startup/cacheValidation';
-import { useNavigationPreference } from '@/src/stores/navigationPreference';
 
 // TypeScript doesn't know about React Native's global ErrorUtils
 const globalAny = global as any;
@@ -158,14 +157,6 @@ const RootLayoutNav = () => {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [onboardingChecked, setOnboardingChecked] = useState(false);
 
-  // Navigation preference for classic vs redesign
-  const { style: navStyle, isLoaded: navLoaded, loadPreference } = useNavigationPreference();
-
-  // Load navigation preference on mount
-  useEffect(() => {
-    loadPreference();
-  }, [loadPreference]);
-
   // Check if onboarding has been completed on first launch
   useEffect(() => {
     async function checkOnboardingStatus() {
@@ -212,18 +203,12 @@ const RootLayoutNav = () => {
     setShowOnboarding(false);
   };
 
-  // Wait for navigation preference to load before rendering
-  if (!navLoaded) {
-    return null;
-  }
-
   return (
     // Wrap with theme + app providers
     <AppThemeProvider>
       <AppProvider>
         <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
           <Stack>
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen name="(tabs-redesign)" options={{ headerShown: false }} />
             <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
             <Stack.Screen name="index" options={{ headerShown: false }} />

@@ -16,7 +16,10 @@ export interface Settings {
 interface SettingsContextType {
   settings: Settings;
   updateSettings: (newSettings: Partial<Settings>) => Promise<void>;
-  convertDistance: (distance: number, to?: 'yards' | 'meters') => number;
+  /** Convert distance from yards to target unit. Input assumed to be yards. */
+  convertDistance: (distanceYards: number, to?: 'yards' | 'meters') => number;
+  /** Convert between any distance units explicitly */
+  convertDistanceExplicit: (value: number, from: 'yards' | 'meters', to: 'yards' | 'meters') => number;
   convertTemperature: (temp: number, to?: 'celsius' | 'fahrenheit') => number;
   convertAltitude: (altitude: number, to?: 'feet' | 'meters') => number;
   convertSpeed: (speedMph: number, to?: 'mph' | 'kph' | 'kts' | 'mps') => number;
@@ -42,6 +45,7 @@ const SettingsContext = React.createContext<SettingsContextType>({
   settings: defaultSettings,
   updateSettings: async () => {},
   convertDistance: () => 0,
+  convertDistanceExplicit: () => 0,
   convertTemperature: () => 0,
   convertAltitude: () => 0,
   convertSpeed: () => 0,
@@ -109,10 +113,18 @@ export function SettingsProvider({ children }: Readonly<{ children: React.ReactN
     }
   };
 
-  // Conversion functions remain unchanged
-  const convertDistance = (distance: number, to?: 'yards' | 'meters') => {
+  // Distance conversion: yards to target unit (input assumed to be yards)
+  const convertDistance = (distanceYards: number, to?: 'yards' | 'meters') => {
     const unit = to || settings.distanceUnit;
-    return unit === 'meters' ? distance * 0.9144 : distance / 0.9144;
+    return unit === 'meters' ? distanceYards * 0.9144 : distanceYards;
+  };
+
+  // Explicit conversion between any units
+  const convertDistanceExplicit = (value: number, from: 'yards' | 'meters', to: 'yards' | 'meters') => {
+    if (from === to) return value;
+    if (from === 'yards' && to === 'meters') return value * 0.9144;
+    if (from === 'meters' && to === 'yards') return value / 0.9144;
+    return value;
   };
 
   const convertTemperature = (temp: number, to?: 'celsius' | 'fahrenheit') => {
@@ -162,6 +174,7 @@ export function SettingsProvider({ children }: Readonly<{ children: React.ReactN
         settings,
         updateSettings,
         convertDistance,
+        convertDistanceExplicit,
         convertTemperature,
         convertAltitude,
         convertSpeed,

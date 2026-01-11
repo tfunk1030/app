@@ -12,7 +12,6 @@ import {
   StyleSheet,
   ScrollView,
   RefreshControl,
-  Pressable,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, {
@@ -30,9 +29,36 @@ import { useRedesignTheme } from '@/src/theme/redesign';
 import { ResultCard } from '@/src/components/redesign/ResultCard';
 import { QuickAction } from '@/src/components/redesign/QuickAction';
 import { MetricPill } from '@/src/components/redesign/MetricPill';
-import { useSettings } from '@/src/core/context/settings';
+import { Slider } from '@/src/core/components/ui/slider';
+import { useSettings, Settings } from '@/src/core/context/settings';
 import { useEnhancedEnvironmental } from '@/src/providers/EnhancedEnvironmentalProvider';
 import { useClubSettings } from '@/src/features/settings/context/clubs';
+
+// =============================================================================
+// HELPER - Unit conversions
+// =============================================================================
+
+function convertTemperatureForDisplay(tempF: number, tempUnit: Settings['temperatureUnit']): number {
+  if (tempUnit === 'celsius') {
+    return Math.round((tempF - 32) * 5 / 9);
+  }
+  return Math.round(tempF);
+}
+
+function getTempUnitLabel(tempUnit: Settings['temperatureUnit']): string {
+  return tempUnit === 'celsius' ? '°C' : '°F';
+}
+
+function convertAltitudeForDisplay(altFt: number, distanceUnit: Settings['distanceUnit']): number {
+  if (distanceUnit === 'meters') {
+    return Math.round(altFt * 0.3048);
+  }
+  return Math.round(altFt);
+}
+
+function getAltitudeUnitLabel(distanceUnit: Settings['distanceUnit']): string {
+  return distanceUnit === 'meters' ? 'm' : 'ft';
+}
 
 // =============================================================================
 // TYPES
@@ -53,7 +79,7 @@ interface CalculationResult {
 
 export default function ShotScreen() {
   const { colors } = useRedesignTheme();
-  const { settings } = useSettings();
+  const { settings, convertDistance } = useSettings();
   const { clubs } = useClubSettings();
   const environmental = useEnhancedEnvironmental();
 
@@ -65,56 +91,91 @@ export default function ShotScreen() {
   // Animation
   const resultScale = useSharedValue(1);
 
-  // Quick presets
-  const presets = useMemo(() => [
-    { id: '100', label: '100', distance: 100 },
-    { id: '125', label: '125', distance: 125 },
-    { id: '150', label: '150', distance: 150 },
-    { id: '175', label: '175', distance: 175 },
-    { id: '200', label: '200', distance: 200 },
-  ], []);
+  // Unit labels
+  const unit = settings.distanceUnit === 'meters' ? 'm' : 'yds';
+  const tempUnit = getTempUnitLabel(settings.temperatureUnit);
+  const altUnit = getAltitudeUnitLabel(settings.distanceUnit);
+
+  // Distance bounds based on unit
+  const distMin = 50;
+  const distMax = settings.distanceUnit === 'yards' ? 350 : Math.round(convertDistance(350, 'meters'));
+
+  // Quick presets (convert to user's unit if metric)
+  const presets = useMemo(() => {
+    const baseYards = [100, 125, 150, 175, 200];
+    if (settings.distanceUnit === 'meters') {
+      return baseYards.map(y => {
+        const meters = Math.round(convertDistance(y, 'meters'));
+        return { id: String(meters), label: String(meters), distance: meters };
+      });
+    }
+    return baseYards.map(y => ({ id: String(y), label: String(y), distance: y }));
+  }, [settings.distanceUnit, convertDistance]);
 
   // FREE calculation - Environment only (NO WIND)
   const calculationResult = useMemo((): CalculationResult => {
-    const temperature = environmental.conditions?.temperature || 70;
+    const temperatureF = environmental.conditions?.temperature || 70;
     const humidity = environmental.conditions?.humidity || 50;
-    const altitude = environmental.conditions?.altitude || 0;
+    const altitudeFt = environmental.conditions?.altitude || 0;
 
-    // Temperature effect: ball flies further in warm air
-    const tempEffect = ((temperature - 70) / 10) * -2;
+    // Convert target distance to yards for calculation if in meters
+    const targetInYards = settings.distanceUnit === 'meters'
+      ? Math.round(convertDistance(targetDistance, 'yards'))
+      : targetDistance;
 
-    // Altitude effect: ball flies further at altitude
-    const altitudeEffect = (altitude / 1000) * targetDistance * -0.02;
+    // Temperature effect: ball flies further in warm air (calculated in yards)
+    const tempEffectYards = ((temperatureF - 70) / 10) * -2;
 
-    // Humidity effect: humid air is less dense
-    const humidityEffect = ((humidity - 50) / 25) * -1;
+    // Altitude effect: ball flies further at altitude (calculated in yards)
+    const altitudeEffectYards = (altitudeFt / 1000) * targetInYards * -0.02;
+
+    // Humidity effect: humid air is less dense (calculated in yards)
+    const humidityEffectYards = ((humidity - 50) / 25) * -1;
 
     // FREE tier: NO wind effect
-    const totalAdjustment = tempEffect + altitudeEffect + humidityEffect;
-    const adjustedDistance = Math.round(targetDistance + totalAdjustment);
+    const totalAdjustmentYards = tempEffectYards + altitudeEffectYards + humidityEffectYards;
+    const adjustedDistanceYards = Math.round(targetInYards + totalAdjustmentYards);
 
-    // Find the right club from user's bag
+    // Find the right club from user's bag (clubs are in yards)
     let selectedClub = '7-Iron';
 
     if (clubs.length > 0) {
       const sortedClubs = [...clubs].sort((a, b) => a.normalYardage - b.normalYardage);
       for (const c of sortedClubs) {
-        if (c.normalYardage >= adjustedDistance) {
+        if (c.normalYardage >= adjustedDistanceYards) {
           selectedClub = c.name;
           break;
         }
       }
     }
 
+    // Convert results back to user's unit for display
+    const isMetric = settings.distanceUnit === 'meters';
+    const playsLike = isMetric
+      ? Math.round(convertDistance(adjustedDistanceYards, 'meters'))
+      : adjustedDistanceYards;
+    const tempEffect = isMetric
+      ? Math.round(convertDistance(tempEffectYards, 'meters'))
+      : Math.round(tempEffectYards);
+    const altitudeEffect = isMetric
+      ? Math.round(convertDistance(altitudeEffectYards, 'meters'))
+      : Math.round(altitudeEffectYards);
+    const humidityEffect = isMetric
+      ? Math.round(convertDistance(humidityEffectYards, 'meters'))
+      : Math.round(humidityEffectYards);
+    const totalAdjustment = isMetric
+      ? Math.round(convertDistance(totalAdjustmentYards, 'meters'))
+      : Math.round(totalAdjustmentYards);
+
     return {
-      playsLike: adjustedDistance,
+      playsLike,
       club: selectedClub,
       tempEffect,
       altitudeEffect,
       humidityEffect,
       totalAdjustment,
     };
-  }, [targetDistance, environmental.conditions, clubs]);
+  }, [targetDistance, environmental.conditions, clubs, settings.distanceUnit, convertDistance]);
 
   // Handlers
   const handlePresetSelect = useCallback((preset: { id: string; distance: number }) => {
@@ -125,20 +186,6 @@ export default function ShotScreen() {
     // Animate result
     resultScale.value = withSequence(
       withSpring(1.02, { damping: 10 }),
-      withSpring(1, { damping: 15 })
-    );
-  }, []);
-
-  const handleDistanceChange = useCallback((delta: number) => {
-    setTargetDistance((prev) => {
-      const newValue = Math.max(50, Math.min(350, prev + delta));
-      return newValue;
-    });
-    setSelectedPreset(null);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-
-    resultScale.value = withSequence(
-      withSpring(1.01, { damping: 15 }),
       withSpring(1, { damping: 15 })
     );
   }, []);
@@ -157,7 +204,15 @@ export default function ShotScreen() {
     transform: [{ scale: resultScale.value }],
   }));
 
-  const unit = settings.distanceUnit === 'meters' ? 'm' : 'yds';
+  // Get display values for conditions
+  const temperatureDisplay = convertTemperatureForDisplay(
+    environmental.conditions?.temperature || 72,
+    settings.temperatureUnit
+  );
+  const altitudeDisplay = convertAltitudeForDisplay(
+    environmental.conditions?.altitude || 0,
+    settings.distanceUnit
+  );
 
   return (
     <SafeAreaView
@@ -195,12 +250,12 @@ export default function ShotScreen() {
             <MetricPill
               icon={<Thermometer size={14} color={colors.textMuted} />}
               label="Temp"
-              value={`${Math.round(environmental.conditions?.temperature || 72)}°F`}
+              value={`${temperatureDisplay}${tempUnit}`}
             />
             <MetricPill
               icon={<Mountain size={14} color={colors.textMuted} />}
               label="Altitude"
-              value={`${Math.round(environmental.conditions?.altitude || 0)} ft`}
+              value={`${altitudeDisplay} ${altUnit}`}
             />
             <MetricPill
               icon={<Droplets size={14} color={colors.textMuted} />}
@@ -210,46 +265,26 @@ export default function ShotScreen() {
             <MetricPill
               icon={<Gauge size={14} color={colors.textMuted} />}
               label="Density"
-              value={(environmental.conditions?.density || 1.225).toFixed(3)}
+              value={`${(environmental.conditions?.density || 1.225).toFixed(3)} kg/m³`}
             />
           </ScrollView>
         </Animated.View>
 
-        {/* Distance Input */}
-        <Animated.View entering={FadeInDown.delay(200)} style={styles.distanceSection}>
-          <Text style={[styles.sectionLabel, { color: colors.textMuted }]}>
-            TARGET DISTANCE
-          </Text>
-          <View style={styles.distanceRow}>
-            <Pressable
-              onPress={() => handleDistanceChange(-10)}
-              style={[styles.adjustButton, { backgroundColor: colors.surface }]}
-              accessibilityLabel="Decrease by 10"
-            >
-              <Text style={[styles.adjustButtonText, { color: colors.textPrimary }]}>
-                -10
-              </Text>
-            </Pressable>
-
-            <View style={styles.distanceValueContainer}>
-              <Text style={[styles.distanceValue, { color: colors.textPrimary }]}>
-                {targetDistance}
-              </Text>
-              <Text style={[styles.distanceUnit, { color: colors.textMuted }]}>
-                {unit}
-              </Text>
-            </View>
-
-            <Pressable
-              onPress={() => handleDistanceChange(10)}
-              style={[styles.adjustButton, { backgroundColor: colors.surface }]}
-              accessibilityLabel="Increase by 10"
-            >
-              <Text style={[styles.adjustButtonText, { color: colors.textPrimary }]}>
-                +10
-              </Text>
-            </Pressable>
-          </View>
+        {/* Distance Input with Slider */}
+        <Animated.View entering={FadeInDown.delay(200)} style={styles.sliderSection}>
+          <Slider
+            value={targetDistance}
+            onValueChange={(val) => {
+              setTargetDistance(val);
+              setSelectedPreset(null);
+            }}
+            min={distMin}
+            max={distMax}
+            step={1}
+            label="Target Distance"
+            unit={unit}
+            dense
+          />
         </Animated.View>
 
         {/* Quick Presets */}
@@ -282,6 +317,7 @@ export default function ShotScreen() {
             secondaryValue={calculationResult.club}
             tertiaryLabel="Adjustment"
             tertiaryValue={`${calculationResult.totalAdjustment > 0 ? '+' : ''}${Math.round(calculationResult.totalAdjustment)} ${unit}`}
+            tertiaryStatus={calculationResult.totalAdjustment > 0 ? 'negative' : calculationResult.totalAdjustment < 0 ? 'positive' : 'neutral'}
             variant="highlighted"
             style={styles.resultCard}
           />
@@ -298,7 +334,7 @@ export default function ShotScreen() {
             </Text>
             <View style={styles.adjustmentRow}>
               <Text style={[styles.adjustmentLabel, { color: colors.textSecondary }]}>
-                Temperature ({Math.round(environmental.conditions?.temperature || 70)}°F)
+                Temperature ({temperatureDisplay}{tempUnit})
               </Text>
               <Text
                 style={[
@@ -314,12 +350,12 @@ export default function ShotScreen() {
                 ]}
               >
                 {calculationResult.tempEffect > 0 ? '+' : ''}
-                {Math.round(calculationResult.tempEffect)} yds
+                {calculationResult.tempEffect} {unit}
               </Text>
             </View>
             <View style={styles.adjustmentRow}>
               <Text style={[styles.adjustmentLabel, { color: colors.textSecondary }]}>
-                Altitude ({Math.round(environmental.conditions?.altitude || 0)} ft)
+                Altitude ({altitudeDisplay} {altUnit})
               </Text>
               <Text
                 style={[
@@ -335,7 +371,7 @@ export default function ShotScreen() {
                 ]}
               >
                 {calculationResult.altitudeEffect > 0 ? '+' : ''}
-                {Math.round(calculationResult.altitudeEffect)} yds
+                {calculationResult.altitudeEffect} {unit}
               </Text>
             </View>
             <View style={styles.adjustmentRow}>
@@ -356,7 +392,7 @@ export default function ShotScreen() {
                 ]}
               >
                 {calculationResult.humidityEffect > 0 ? '+' : ''}
-                {Math.round(calculationResult.humidityEffect)} yds
+                {calculationResult.humidityEffect} {unit}
               </Text>
             </View>
           </Animated.View>
@@ -422,47 +458,10 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 
-  // Distance Input
-  distanceSection: {
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-
-  distanceRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-  },
-
-  adjustButton: {
-    width: 56,
-    height: 56,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  adjustButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-
-  distanceValueContainer: {
-    alignItems: 'center',
-    minWidth: 140,
-  },
-
-  distanceValue: {
-    fontSize: 64,
-    fontWeight: '700',
-    letterSpacing: -2,
-    lineHeight: 72,
-  },
-
-  distanceUnit: {
-    fontSize: 18,
-    fontWeight: '500',
-    marginTop: -4,
+  // Slider Section
+  sliderSection: {
+    marginBottom: 16,
+    paddingHorizontal: 4,
   },
 
   // Presets

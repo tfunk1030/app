@@ -55,6 +55,7 @@ export const compassStyles = StyleSheet.create({
     width: '100%',
     height: '100%',
     borderRadius: 999,
+    zIndex: 1,
   },
   ring: {
     position: 'absolute',
@@ -64,6 +65,7 @@ export const compassStyles = StyleSheet.create({
     position: 'absolute',
     borderRadius: 999,
     overflow: 'hidden',
+    zIndex: 2,
   },
   gradientRing: {
     position: 'absolute',
@@ -82,9 +84,11 @@ export const compassStyles = StyleSheet.create({
   innerRing: {
     position: 'absolute',
     borderRadius: 999,
+    zIndex: 3,
   },
   centerDot: {
     position: 'absolute',
+    zIndex: 4,
   },
   windLabelContainer: {
     position: 'absolute',
@@ -267,7 +271,7 @@ export const arrowStyles = StyleSheet.create({
 export const lockButtonStyles = StyleSheet.create({
   lockButtonContainer: {
     position: 'absolute',
-    zIndex: 20,
+    zIndex: 25, // Higher than windOriginIndicator (20) to prevent overlap
   },
   lockedChipTopContainer: {
     position: 'absolute',

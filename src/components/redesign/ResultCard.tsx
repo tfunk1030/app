@@ -48,6 +48,9 @@ interface ResultCardProps {
   /** Label for tertiary */
   tertiaryLabel?: string;
 
+  /** Tertiary value semantic color: 'positive' (green/shorter), 'negative' (red/longer), 'neutral' */
+  tertiaryStatus?: 'positive' | 'negative' | 'neutral';
+
   /** Card variant */
   variant?: 'default' | 'highlighted' | 'compact';
 
@@ -75,6 +78,7 @@ export const ResultCard = memo(function ResultCard({
   secondaryLabel = 'Club',
   tertiaryValue,
   tertiaryLabel = 'Adjustment',
+  tertiaryStatus = 'neutral',
   variant = 'default',
   onPress,
   style,
@@ -173,7 +177,16 @@ export const ResultCard = memo(function ResultCard({
               <Text style={[styles.detailLabel, { color: colors.textMuted }]}>
                 {tertiaryLabel}
               </Text>
-              <Text style={[styles.detailValue, { color: colors.textPrimary }]}>
+              <Text style={[
+                styles.detailValue,
+                {
+                  color: tertiaryStatus === 'positive'
+                    ? colors.success
+                    : tertiaryStatus === 'negative'
+                    ? colors.error
+                    : colors.textPrimary,
+                },
+              ]}>
                 {tertiaryValue}
               </Text>
             </View>

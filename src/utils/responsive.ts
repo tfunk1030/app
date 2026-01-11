@@ -461,13 +461,16 @@ export function getCompassScaledValue(
 /**
  * Get lock button position and size based on compass size
  * Returns position and size for proper placement relative to compass
+ * Positioned bottom-center to avoid corner overlap issues
  */
 export function getLockButtonMetrics(compassSize: number) {
+  const buttonSize = getCompassScaledValue(compassSize, 0.18, 44, 56);
   return {
     position: 'absolute' as const,
-    bottom: -getCompassScaledValue(compassSize, 0.18, 40, 50),
-    right: -getCompassScaledValue(compassSize, 0.12, 26, 34),
-    size: getCompassScaledValue(compassSize, 0.20, 48, 64),
+    // Center horizontally, position below compass with small overlap
+    bottom: -buttonSize / 2 - 4,
+    right: compassSize / 2 - buttonSize / 2,
+    size: buttonSize,
   };
 }
 
@@ -550,11 +553,25 @@ export function getCompassProgressiveFeatures(compassSize: number) {
 /**
  * Get the radius for positioning cardinal directions
  * Calculates optimal distance from compass center
+ * Scales proportionally for smaller compasses to prevent overlap
+ * Accounts for minimum container size clamping in getCardinalDirectionStyles
  */
 export function getCardinalDirectionRadius(compassSize: number): number {
-  // Position using formula: radius = compassSize/2 + (compassSize * 0.04)
-  // Cardinals positioned closer to the compass edge to reduce overlap
-  return compassSize / 2 + getCompassScaledValue(compassSize, 0.04, 10, 14);
+  // For small compasses (<240px), cardinals need to be closer to center
+  // because their container sizes are clamped to minimums
+  const isSmallCompass = compassSize < 240;
+  
+  // Calculate actual container size (accounting for clamping)
+  const sizeReduction = isSmallCompass ? 0.8 : 1;
+  const rawContainerSize = compassSize * 0.14 * sizeReduction;
+  const actualContainerSize = Math.max(26, Math.min(40, rawContainerSize));
+  
+  // Position cardinals so their center is at this radius from compass center
+  // Smaller offset for small compasses to keep cardinals inside the ring
+  const baseRadius = (compassSize - actualContainerSize) / 2;
+  const offset = isSmallCompass ? -2 : 2;
+  
+  return baseRadius + offset;
 }
 
 /**

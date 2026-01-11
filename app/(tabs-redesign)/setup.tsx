@@ -49,6 +49,7 @@ import { useRedesignTheme, ThemeMode } from '@/src/theme/redesign';
 import { QuickAction } from '@/src/components/redesign/QuickAction';
 import { useSettings } from '@/src/core/context/settings';
 import { useClubSettings } from '@/src/features/settings/context/clubs';
+import { ClubData } from '@/src/core/models/YardageModel';
 import { useNavigationPreference } from '@/src/stores/navigationPreference';
 import * as Updates from 'expo-updates';
 
@@ -343,12 +344,22 @@ export default function SetupScreen() {
           style: 'destructive',
           onPress: () => {
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-            removeClub(clubId);
+            // Handle fallback IDs for legacy clubs
+            if (clubId.startsWith('fallback-')) {
+              const indexStr = clubId.split('-').pop();
+              const index = parseInt(indexStr || '0', 10);
+              const club = clubs[index];
+              if (club?.id) {
+                removeClub(club.id);
+              }
+            } else {
+              removeClub(clubId);
+            }
           },
         },
       ]);
     },
-    [removeClub]
+    [removeClub, clubs]
   );
 
   const handleUnitChange = useCallback(
@@ -385,7 +396,17 @@ export default function SetupScreen() {
   // Open modal for editing an existing club
   const handleOpenEditModal = useCallback(
     (clubId: string) => {
-      const club = clubs.find((c) => c.id === clubId);
+      let club: ClubData | undefined;
+
+      // Handle fallback IDs for legacy clubs without proper IDs
+      if (clubId.startsWith('fallback-')) {
+        const indexStr = clubId.split('-').pop();
+        const index = parseInt(indexStr || '0', 10);
+        club = clubs[index];
+      } else {
+        club = clubs.find((c) => c.id === clubId);
+      }
+
       if (!club) return;
 
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -394,7 +415,8 @@ export default function SetupScreen() {
           ? Math.round(convertDistance(club.normalYardage, 'meters'))
           : Math.round(club.normalYardage);
 
-      setEditingClubId(clubId);
+      // Store the club's actual ID if it has one, otherwise store the fallback ID
+      setEditingClubId(club.id || clubId);
       setClubName(club.name);
       setClubDistance(displayYardage.toString());
       setModalVisible(true);
@@ -408,10 +430,12 @@ export default function SetupScreen() {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       setClubName(name);
       const displayYardage =
-        settings.distanceUnit === 'meters' ? Math.round(yardage * 0.9144) : yardage;
+        settings.distanceUnit === 'meters'
+          ? Math.round(convertDistance(yardage, 'meters'))
+          : yardage;
       setClubDistance(displayYardage.toString());
     },
-    [settings.distanceUnit]
+    [settings.distanceUnit, convertDistance]
   );
 
   // Save club (add or update)
@@ -536,6 +560,8 @@ export default function SetupScreen() {
                       <Pressable
                         onPress={() => handleDeleteClub(clubId, club.name)}
                         style={[styles.clubAction, { backgroundColor: colors.backgroundAlt }]}
+                        accessibilityLabel={`Delete ${club.name}`}
+                        accessibilityRole="button"
                       >
                         <Trash2 size={16} color={colors.error} />
                       </Pressable>

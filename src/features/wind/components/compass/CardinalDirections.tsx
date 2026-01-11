@@ -76,6 +76,7 @@ const CardinalDirections: React.FC<CardinalDirectionsProps> = ({
             <View
               style={[
                 styles.cardinalBackground,
+                { overflow: 'hidden' }, // Prevent text bleed on accessibility scaling
                 label === 'N' && {
                   backgroundColor: `${brandAltColor}15`,
                   borderColor: brandAltColor || badgeBorder,
