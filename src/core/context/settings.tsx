@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as React from 'react';
+import { errorNotificationService } from '@/src/services/notification/error-notification';
 
 export interface Settings {
   distanceUnit: 'yards' | 'meters';
@@ -107,6 +108,11 @@ export function SettingsProvider({ children }: Readonly<{ children: React.ReactN
         await AsyncStorage.setItem('userSettings', JSON.stringify(updated));
       } catch (error) {
         console.error('Failed to save settings to AsyncStorage:', error);
+        errorNotificationService.showToast({
+          message: 'Could not save settings. Changes may not persist.',
+          type: 'warning',
+          duration: 4000,
+        });
       }
     } catch (error) {
       console.error('Failed to update settings:', error);

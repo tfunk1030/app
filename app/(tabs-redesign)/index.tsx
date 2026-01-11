@@ -15,8 +15,6 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, {
-  FadeIn,
-  FadeInDown,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
@@ -26,13 +24,16 @@ import * as Haptics from 'expo-haptics';
 import { Thermometer, Droplets, Mountain, Gauge } from 'lucide-react-native';
 
 import { useRedesignTheme } from '@/src/theme/redesign';
+import { useAccessibleAnimations } from '@/src/hooks/useAccessibility';
 import { ResultCard } from '@/src/components/redesign/ResultCard';
 import { QuickAction } from '@/src/components/redesign/QuickAction';
 import { MetricPill } from '@/src/components/redesign/MetricPill';
 import { Slider } from '@/src/core/components/ui/slider';
+import { SkeletonScreen } from '@/src/core/components/ui/Skeleton';
 import { useSettings, Settings } from '@/src/core/context/settings';
 import { useEnhancedEnvironmental } from '@/src/providers/EnhancedEnvironmentalProvider';
 import { useClubSettings } from '@/src/features/settings/context/clubs';
+import { FeatureFlags } from '@/src/utils/FeatureFlags';
 
 // =============================================================================
 // HELPER - Unit conversions
@@ -82,6 +83,12 @@ export default function ShotScreen() {
   const { settings, convertDistance } = useSettings();
   const { clubs } = useClubSettings();
   const environmental = useEnhancedEnvironmental();
+  const { headerEntering, cardEntering } = useAccessibleAnimations();
+
+  // Detect initial loading state
+  const isInitialLoading = FeatureFlags.PHASE1_ACCESSIBILITY_ENHANCEMENTS &&
+    !environmental.conditions &&
+    !environmental.error;
 
   // State
   const [targetDistance, setTargetDistance] = useState(150);
@@ -214,6 +221,20 @@ export default function ShotScreen() {
     settings.distanceUnit
   );
 
+  // Show skeleton during initial load
+  if (isInitialLoading) {
+    return (
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        edges={['top']}
+      >
+        <View style={styles.scrollContent}>
+          <SkeletonScreen showHero={false} cardCount={1} />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
@@ -234,13 +255,13 @@ export default function ShotScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* Header */}
-        <Animated.View entering={FadeIn} style={styles.header}>
+        <Animated.View entering={headerEntering} style={styles.header}>
           <Text style={[styles.title, { color: colors.textPrimary }]}>Shot Calculator</Text>
           <Text style={[styles.subtitle, { color: colors.textMuted }]}>Environmental adjustments</Text>
         </Animated.View>
 
         {/* Conditions Bar - NO WIND (that's premium) */}
-        <Animated.View entering={FadeIn.delay(100)}>
+        <Animated.View entering={headerEntering}>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -271,7 +292,7 @@ export default function ShotScreen() {
         </Animated.View>
 
         {/* Distance Input with Slider */}
-        <Animated.View entering={FadeInDown.delay(200)} style={styles.sliderSection}>
+        <Animated.View entering={cardEntering(2)} style={styles.sliderSection}>
           <Slider
             value={targetDistance}
             onValueChange={(val) => {
@@ -288,7 +309,7 @@ export default function ShotScreen() {
         </Animated.View>
 
         {/* Quick Presets */}
-        <Animated.View entering={FadeInDown.delay(300)} style={styles.presetsSection}>
+        <Animated.View entering={cardEntering(3)} style={styles.presetsSection}>
           <Text style={[styles.sectionLabel, { color: colors.textMuted }]}>
             QUICK SELECT
           </Text>
@@ -308,7 +329,7 @@ export default function ShotScreen() {
         </Animated.View>
 
         {/* Result Card */}
-        <Animated.View entering={FadeInDown.delay(400)} style={resultAnimatedStyle}>
+        <Animated.View entering={cardEntering(4)} style={resultAnimatedStyle}>
           <ResultCard
             primaryLabel="Plays like"
             primaryValue={calculationResult.playsLike.toString()}
@@ -326,7 +347,7 @@ export default function ShotScreen() {
         {/* Adjustments Breakdown - Environment only */}
         {Math.abs(calculationResult.totalAdjustment) > 0.5 && (
           <Animated.View
-            entering={FadeInDown.delay(450)}
+            entering={cardEntering(4)}
             style={[styles.adjustmentsCard, { backgroundColor: colors.surface }]}
           >
             <Text style={[styles.adjustmentsTitle, { color: colors.textMuted }]}>
@@ -399,7 +420,7 @@ export default function ShotScreen() {
         )}
 
         {/* Info Note */}
-        <Animated.View entering={FadeInDown.delay(500)}>
+        <Animated.View entering={cardEntering(5)}>
           <Text style={[styles.infoNote, { color: colors.textMuted }]}>
             Use the Wind tab for wind-adjusted calculations with compass heading.
           </Text>

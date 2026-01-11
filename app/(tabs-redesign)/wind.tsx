@@ -22,15 +22,14 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, {
-  FadeIn,
-  FadeInDown,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
   withSequence,
 } from 'react-native-reanimated';
+import { useAccessibleAnimations } from '@/src/hooks/useAccessibility';
 import * as Haptics from 'expo-haptics';
-import { Wind, Compass, Lock, Crown, ChevronRight, Navigation } from 'lucide-react-native';
+import { Wind, Compass, Lock, Crown, ChevronRight, Navigation, AlertTriangle } from 'lucide-react-native';
 
 import { useRedesignTheme } from '@/src/theme/redesign';
 import { ResultCard } from '@/src/components/redesign/ResultCard';
@@ -44,6 +43,7 @@ import { useWindCalculator } from '@/src/features/wind/hooks/useWindCalculator';
 import { useSensorData } from '@/src/features/wind/context/sensor-data';
 import { CompassLockProvider, useCompassLock } from '@/src/features/wind/context/compass-lock';
 import WindDirectionCompass from '@/src/features/wind/components/compass';
+import { FeatureFlags } from '@/src/utils/FeatureFlags';
 
 // =============================================================================
 // TYPES
@@ -110,12 +110,13 @@ function getMaxWindSpeed(speedUnit: Settings['speedUnit']): number {
 // WIND CALCULATOR REDESIGN COMPONENT
 // =============================================================================
 
-function WindCalculatorRedesign() {
+function WindCalculatorRedesign({ sensorAvailable = true }: { sensorAvailable?: boolean }) {
   const { colors } = useRedesignTheme();
   const { settings, convertDistance } = useSettings();
   const environmental = useEnhancedEnvironmental();
   const { isLocked, relativeWindAngle } = useCompassLock();
   const { height: screenHeight } = useWindowDimensions();
+  const { headerEntering, cardEntering } = useAccessibleAnimations();
 
   // Adaptive compass sizing (180-240px based on screen height)
   // Smaller to make room for result card above the fold
@@ -302,13 +303,13 @@ function WindCalculatorRedesign() {
         showsVerticalScrollIndicator={false}
       >
         {/* Header */}
-        <Animated.View entering={FadeIn} style={styles.header}>
+        <Animated.View entering={headerEntering} style={styles.header}>
           <Text style={[styles.title, { color: colors.textPrimary }]}>Wind Calculator</Text>
           <Text style={[styles.subtitle, { color: colors.textMuted }]}>Aim adjustments for wind</Text>
         </Animated.View>
 
         {/* Conditions Bar */}
-        <Animated.View entering={FadeIn.delay(100)}>
+        <Animated.View entering={headerEntering}>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -337,15 +338,25 @@ function WindCalculatorRedesign() {
         </Animated.View>
 
         {/* Compass Section */}
-        <Animated.View entering={FadeInDown.delay(150)} style={styles.compassSection}>
+        <Animated.View entering={cardEntering(1)} style={styles.compassSection}>
           <View style={styles.compassWrapper}>
             <WindDirectionCompass size={compassSize} />
           </View>
         </Animated.View>
 
+        {/* Sensor Warning - Show when compass unavailable */}
+        {FeatureFlags.PHASE1_ACCESSIBILITY_ENHANCEMENTS && !sensorAvailable && (
+          <View style={styles.sensorWarning}>
+            <AlertTriangle size={16} color={colors.warning} />
+            <Text style={[styles.warningText, { color: colors.warning }]}>
+              Compass unavailable
+            </Text>
+          </View>
+        )}
+
         {/* Result Card - Show immediately with live updates */}
         {displayResult && (
-          <Animated.View entering={FadeInDown.delay(200)} style={resultAnimatedStyle}>
+          <Animated.View entering={cardEntering(2)} style={resultAnimatedStyle}>
             <ResultCard
               primaryLabel="Plays like"
               primaryValue={displayResult.playsLike.toString()}
@@ -362,7 +373,7 @@ function WindCalculatorRedesign() {
         )}
 
         {/* Target Distance Input with Slider */}
-        <Animated.View entering={FadeInDown.delay(250)} style={styles.sliderSection}>
+        <Animated.View entering={cardEntering(2)} style={styles.sliderSection}>
           <Slider
             value={targetDistance}
             onValueChange={(val) => {
@@ -379,7 +390,7 @@ function WindCalculatorRedesign() {
         </Animated.View>
 
         {/* Quick Presets */}
-        <Animated.View entering={FadeInDown.delay(300)} style={styles.presetsSection}>
+        <Animated.View entering={cardEntering(3)} style={styles.presetsSection}>
           <View style={styles.presetsRow}>
             {presets.map((preset) => (
               <QuickAction
@@ -396,7 +407,7 @@ function WindCalculatorRedesign() {
         </Animated.View>
 
         {/* Wind Speed Override with Slider */}
-        <Animated.View entering={FadeInDown.delay(350)} style={styles.sliderSection}>
+        <Animated.View entering={cardEntering(3)} style={styles.sliderSection}>
           <Slider
             value={effectiveWindSpeed}
             onValueChange={(val) => setWindSpeedOverride(val)}
@@ -427,7 +438,7 @@ function WindCalculatorRedesign() {
         {/* Wind Effects Breakdown - Only show if there's meaningful adjustment */}
         {displayResult && Math.abs(displayResult.totalAdjustment) > 0.5 && (
           <Animated.View
-            entering={FadeInDown.delay(150)}
+            entering={cardEntering(1)}
             style={[styles.adjustmentsCard, { backgroundColor: colors.surface }]}
           >
             <Text style={[styles.adjustmentsTitle, { color: colors.textMuted }]}>
@@ -502,14 +513,14 @@ function WindCalculatorRedesign() {
 
 function WindCalculatorWithCompass() {
   const environmental = useEnhancedEnvironmental();
-  const { heading } = useSensorData();
+  const { heading, isAvailable: sensorAvailable } = useSensorData();
 
   return (
     <CompassLockProvider
       currentHeading={heading || 0}
       windDirection={environmental.conditions?.windDirection || 0}
     >
-      <WindCalculatorRedesign />
+      <WindCalculatorRedesign sensorAvailable={sensorAvailable} />
     </CompassLockProvider>
   );
 }
@@ -521,6 +532,7 @@ function WindCalculatorWithCompass() {
 function PremiumUpgradePrompt() {
   const { colors } = useRedesignTheme();
   const { setShowUpgradeModal } = usePremium();
+  const { headerEntering, cardEntering } = useAccessibleAnimations();
 
   const handleUpgrade = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -530,7 +542,7 @@ function PremiumUpgradePrompt() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       <View style={[styles.content, { paddingBottom: 80 }]}>
-        <Animated.View entering={FadeIn} style={styles.upgradeHeader}>
+        <Animated.View entering={headerEntering} style={styles.upgradeHeader}>
           <View style={[styles.iconContainer, { backgroundColor: colors.brandMuted }]}>
             <Wind size={48} color={colors.brand} />
           </View>
@@ -540,7 +552,7 @@ function PremiumUpgradePrompt() {
           </Text>
         </Animated.View>
 
-        <Animated.View entering={FadeInDown.delay(200)} style={[styles.card, { backgroundColor: colors.surface }]}>
+        <Animated.View entering={cardEntering(2)} style={[styles.card, { backgroundColor: colors.surface }]}>
           <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>
             Unlock Advanced Wind Analysis
           </Text>
@@ -570,7 +582,7 @@ function PremiumUpgradePrompt() {
           </View>
         </Animated.View>
 
-        <Animated.View entering={FadeInDown.delay(400)}>
+        <Animated.View entering={cardEntering(4)}>
           <Pressable
             onPress={handleUpgrade}
             style={[styles.upgradeButton, { backgroundColor: colors.brand }]}
@@ -585,7 +597,7 @@ function PremiumUpgradePrompt() {
           </Pressable>
         </Animated.View>
 
-        <Animated.View entering={FadeInDown.delay(500)}>
+        <Animated.View entering={cardEntering(5)}>
           <Text style={[styles.note, { color: colors.textMuted }]}>
             The free Shot Calculator includes temperature, altitude, and humidity adjustments.
           </Text>
@@ -668,6 +680,24 @@ const styles = StyleSheet.create({
 
   compassWrapper: {
     marginVertical: 8,
+  },
+
+  // Sensor Warning
+  sensorWarning: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+    borderRadius: 8,
+    gap: 6,
+    marginBottom: 8,
+  },
+
+  warningText: {
+    fontSize: 13,
+    fontWeight: '500',
   },
 
   // Slider Sections

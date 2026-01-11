@@ -131,6 +131,9 @@ const PresetItem = memo(({ preset, onLoad, onDelete, isSelected }: PresetItemPro
               : t.colors.border,
           },
         ]}
+        accessibilityLabel={`Load preset: ${preset.name}`}
+        accessibilityRole="button"
+        accessibilityState={{ selected: isSelected }}
       >
         <View style={styles.presetItemContent}>
           <View style={styles.presetItemLeft}>
@@ -158,6 +161,8 @@ const PresetItem = memo(({ preset, onLoad, onDelete, isSelected }: PresetItemPro
             onPress={() => onDelete(preset)}
             style={[styles.deleteButton, { backgroundColor: 'rgba(239, 68, 68, 0.1)' }]}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            accessibilityLabel={`Delete preset: ${preset.name}`}
+            accessibilityRole="button"
           >
             <Trash2 size={16} color={t.colors.danger} />
           </Pressable>
@@ -245,7 +250,12 @@ const SavePresetModal = memo(({
             <Text style={[styles.modalTitle, { color: t.colors.textPrimary }]}>
               Save Preset
             </Text>
-            <Pressable onPress={handleClose} hitSlop={8}>
+            <Pressable
+              onPress={handleClose}
+              hitSlop={8}
+              accessibilityLabel="Close save preset dialog"
+              accessibilityRole="button"
+            >
               <X size={24} color={t.colors.textMuted} />
             </Pressable>
           </View>
@@ -426,6 +436,9 @@ export const PresetSelector = memo(({
               borderColor: t.colors.border,
             },
           ]}
+          accessibilityLabel={`${isExpanded ? 'Hide' : 'Show'} saved presets, ${filteredPresets.length} available`}
+          accessibilityRole="button"
+          accessibilityState={{ expanded: isExpanded }}
         >
           <View style={styles.buttonContent}>
             <FolderOpen size={16} color={t.colors.textPrimary} />

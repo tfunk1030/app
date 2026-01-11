@@ -22,7 +22,8 @@ import {
   TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
+import { useAccessibleAnimations } from '@/src/hooks/useAccessibility';
 import * as Haptics from 'expo-haptics';
 import {
   ChevronRight,
@@ -234,6 +235,7 @@ const ThemeSelector = memo(function ThemeSelector({
 const NavigationStyleSection = memo(function NavigationStyleSection() {
   const { colors } = useRedesignTheme();
   const { style: navStyle, setStyle } = useNavigationPreference();
+  const { cardEntering } = useAccessibleAnimations();
 
   const handleToggle = async (newStyle: 'classic' | 'redesign') => {
     await setStyle(newStyle);
@@ -257,7 +259,7 @@ const NavigationStyleSection = memo(function NavigationStyleSection() {
   };
 
   return (
-    <Animated.View entering={FadeInDown.delay(350)}>
+    <Animated.View entering={cardEntering(3)}>
       <SectionHeader title="NAVIGATION STYLE" />
       <View style={[styles.section, { backgroundColor: colors.surface }]}>
         <View style={styles.unitSelector}>
@@ -328,6 +330,7 @@ export default function SetupScreen() {
   const { colors, mode, setMode, tokens } = useRedesignTheme();
   const { settings, updateSettings, convertDistance } = useSettings();
   const { clubs, addClub, updateClub, removeClub } = useClubSettings();
+  const { headerEntering, cardEntering } = useAccessibleAnimations();
 
   // Club modal state
   const [modalVisible, setModalVisible] = useState(false);
@@ -505,7 +508,7 @@ export default function SetupScreen() {
         </View>
 
         {/* My Bag */}
-        <Animated.View entering={FadeIn}>
+        <Animated.View entering={headerEntering}>
           <SectionHeader
             title="MY BAG"
             action="Add Club"
@@ -574,7 +577,7 @@ export default function SetupScreen() {
         </Animated.View>
 
         {/* Appearance */}
-        <Animated.View entering={FadeInDown.delay(100)}>
+        <Animated.View entering={cardEntering(1)}>
           <SectionHeader title="APPEARANCE" />
           <View style={[styles.section, { backgroundColor: colors.surface }]}>
             <View style={[styles.settingRow, { borderBottomColor: colors.divider }]}>
@@ -589,7 +592,7 @@ export default function SetupScreen() {
         </Animated.View>
 
         {/* Units */}
-        <Animated.View entering={FadeInDown.delay(200)}>
+        <Animated.View entering={cardEntering(2)}>
           <SectionHeader title="UNITS" />
           <View style={[styles.section, { backgroundColor: colors.surface }]}>
             <View style={styles.unitSelector}>
@@ -602,6 +605,9 @@ export default function SetupScreen() {
                     borderColor: !isMetric ? colors.brand : colors.border,
                   },
                 ]}
+                accessibilityLabel="Imperial units: Yards, Fahrenheit, mph"
+                accessibilityRole="button"
+                accessibilityState={{ selected: !isMetric }}
               >
                 <Text
                   style={[
@@ -625,6 +631,9 @@ export default function SetupScreen() {
                     borderColor: isMetric ? colors.brand : colors.border,
                   },
                 ]}
+                accessibilityLabel="Metric units: Meters, Celsius, km/h"
+                accessibilityRole="button"
+                accessibilityState={{ selected: isMetric }}
               >
                 <Text
                   style={[
@@ -643,7 +652,7 @@ export default function SetupScreen() {
         </Animated.View>
 
         {/* Permissions */}
-        <Animated.View entering={FadeInDown.delay(300)}>
+        <Animated.View entering={cardEntering(3)}>
           <SectionHeader title="PERMISSIONS" />
           <View style={[styles.section, { backgroundColor: colors.surface }]}>
             <SettingRow
@@ -698,7 +707,7 @@ export default function SetupScreen() {
         <NavigationStyleSection />
 
         {/* Premium */}
-        <Animated.View entering={FadeInDown.delay(400)}>
+        <Animated.View entering={cardEntering(4)}>
           <SectionHeader title="PREMIUM" />
           <Pressable
             style={[
@@ -722,7 +731,7 @@ export default function SetupScreen() {
         </Animated.View>
 
         {/* Support */}
-        <Animated.View entering={FadeInDown.delay(500)}>
+        <Animated.View entering={cardEntering(5)}>
           <SectionHeader title="SUPPORT" />
           <View style={[styles.section, { backgroundColor: colors.surface }]}>
             <SettingRow
@@ -971,9 +980,9 @@ const styles = StyleSheet.create({
   },
 
   clubAction: {
-    width: 36,
-    height: 36,
-    borderRadius: 8,
+    width: 48,
+    height: 48,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },

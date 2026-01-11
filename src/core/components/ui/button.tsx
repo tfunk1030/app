@@ -67,6 +67,10 @@ export interface ButtonProps extends PressableProps {
   textStyle?: TextStyle;
   title?: string;
   glow?: boolean; // Enable glow effect on brand buttons
+  /** Accessibility label for screen readers - defaults to title if not provided */
+  accessibilityLabel?: string;
+  /** Accessibility role - defaults to 'button' */
+  accessibilityRole?: 'button' | 'link' | 'none';
 }
 
 const Button = ({
@@ -77,6 +81,8 @@ const Button = ({
   style,
   textStyle,
   glow = false,
+  accessibilityLabel,
+  accessibilityRole = 'button',
   ...props
 }: ButtonProps) => {
   const t = useTokens();
@@ -265,6 +271,8 @@ const Button = ({
   };
 
   const buttonText = title || children;
+  const effectiveAccessibilityLabel = accessibilityLabel ?? 
+    (typeof buttonText === 'string' ? buttonText : undefined);
   const textFontSize = size === 'sm' ? 14 : size === 'lg' ? 18 : 16;
   const isNeon = variant === 'neon';
 
@@ -339,6 +347,8 @@ const Button = ({
         onPressOut={handlePressOut}
         android_ripple={{ color: rippleColor, borderless: false }}
         style={[animatedStyle, style]}
+        accessibilityLabel={effectiveAccessibilityLabel}
+        accessibilityRole={accessibilityRole}
       >
         <View style={[styles.neonContainer, getShadowStyle()]}>
           <LinearGradient
@@ -377,6 +387,8 @@ const Button = ({
         onPressOut={handlePressOut}
         android_ripple={{ color: rippleColor, borderless: false }}
         style={[animatedStyle, style]}
+        accessibilityLabel={effectiveAccessibilityLabel}
+        accessibilityRole={accessibilityRole}
       >
         <LinearGradient
           colors={gradientColors}
@@ -403,6 +415,8 @@ const Button = ({
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
       android_ripple={{ color: rippleColor, borderless: false }}
+      accessibilityLabel={effectiveAccessibilityLabel}
+      accessibilityRole={accessibilityRole}
       style={[
         styles.base,
         getSizeStyle(),
