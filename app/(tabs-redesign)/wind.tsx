@@ -217,42 +217,35 @@ function WindCalculatorRedesign({ sensorAvailable = true }: { sensorAvailable?: 
     };
   }, [result, settings.distanceUnit, convertDistance, unit]);
 
-  // Core calculation logic (extracted for reuse)
-  const runCalculation = useCallback((distance: number) => {
-    // Convert wind speed to mph for calculation (calculator expects mph)
-    const windSpeedMph = Math.round(convertToMph(effectiveWindSpeed, settings.speedUnit));
-
-    // Convert target distance to yards for calculation if in meters
-    const targetInYards = settings.distanceUnit === 'meters'
-      ? Math.round(distance / 0.9144) // meters to yards
-      : distance;
-
-    // Ensure the hook has the latest values (in yards/mph for calculation)
-    setWindSpeed(windSpeedMph);
-    setTargetYardage(targetInYards);
-
-    // Run calculation with the relative wind angle
-    calculate(relativeWindAngle);
-
-    // Subtle animation on result update
-    resultScale.value = withSequence(
-      withSpring(1.02, { damping: 12 }),
-      withSpring(1, { damping: 15 })
-    );
-  }, [effectiveWindSpeed, relativeWindAngle, calculate, setWindSpeed, setTargetYardage, resultScale, settings.speedUnit, settings.distanceUnit]);
-
-  // Auto-calculate when inputs change (debounced for slider)
+  // Auto-calculate when inputs change (debounced)
   const triggerCalculation = useCallback(() => {
     // Clear any pending calculation
     if (calcTimeoutRef.current) {
       clearTimeout(calcTimeoutRef.current);
     }
 
-    // Debounce calculation by 150ms (reduced from 200ms)
+    // Debounce calculation by 150ms
     calcTimeoutRef.current = setTimeout(() => {
-      runCalculation(targetDistance);
+      // Convert wind speed to mph for calculation (calculator expects mph)
+      const windSpeedMph = Math.round(convertToMph(effectiveWindSpeed, settings.speedUnit));
+
+      // Convert target distance to yards for calculation if in meters
+      const targetInYards = settings.distanceUnit === 'meters'
+        ? Math.round(targetDistance / 0.9144) // meters to yards
+        : targetDistance;
+
+      // Update hook state and run calculation
+      setWindSpeed(windSpeedMph);
+      setTargetYardage(targetInYards);
+      calculate(relativeWindAngle);
+
+      // Subtle animation on result update
+      resultScale.value = withSequence(
+        withSpring(1.02, { damping: 12 }),
+        withSpring(1, { damping: 15 })
+      );
     }, 150);
-  }, [targetDistance, runCalculation]);
+  }, [targetDistance, effectiveWindSpeed, relativeWindAngle, calculate, setWindSpeed, setTargetYardage, resultScale, settings.speedUnit, settings.distanceUnit]);
 
   // Trigger calculation on input changes
   React.useEffect(() => {
@@ -270,16 +263,11 @@ function WindCalculatorRedesign({ sensorAvailable = true }: { sensorAvailable?: 
 
   // Handlers
   const handlePresetSelect = useCallback((preset: { id: string; distance: number }) => {
-    // Clear any pending debounced calculation
-    if (calcTimeoutRef.current) {
-      clearTimeout(calcTimeoutRef.current);
-    }
     setSelectedPreset(preset.id);
     setTargetDistance(preset.distance);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    // Calculate immediately for button presses (no debounce)
-    runCalculation(preset.distance);
-  }, [runCalculation]);
+    // Calculation triggers via useEffect when targetDistance changes
+  }, []);
 
   const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
