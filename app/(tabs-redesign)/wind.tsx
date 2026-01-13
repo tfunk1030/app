@@ -11,7 +11,6 @@
  */
 
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   View,
   Text,
@@ -44,6 +43,7 @@ import { useWindCalculator } from '@/src/features/wind/hooks/useWindCalculator';
 import { useSensorData } from '@/src/features/wind/context/sensor-data';
 import { CompassLockProvider, useCompassLock } from '@/src/features/wind/context/compass-lock';
 import WindDirectionCompass from '@/src/features/wind/components/compass';
+import { WindHourlyForecastBar } from '@/src/features/wind/components/WindHourlyForecastBar';
 import { FeatureFlags } from '@/src/utils/FeatureFlags';
 
 // =============================================================================
@@ -138,36 +138,11 @@ function WindCalculatorRedesign({ sensorAvailable = true }: { sensorAvailable?: 
   const [windSpeedOverride, setWindSpeedOverride] = useState<number | null>(null);
   const [selectedPreset, setSelectedPreset] = useState<string | null>('150');
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [showTutorial, setShowTutorial] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
   const calcTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Animation
   const resultScale = useSharedValue(1);
-
-  // Check if user has seen compass tutorial
-  useEffect(() => {
-    const checkTutorial = async () => {
-      try {
-        const hasSeen = await AsyncStorage.getItem('hasSeenCompassTutorial');
-        if (!hasSeen) {
-          setTimeout(() => setShowTutorial(true), 1500);
-        }
-      } catch (error) {
-        console.error('Failed to check tutorial state:', error);
-      }
-    };
-    checkTutorial();
-  }, []);
-
-  const dismissTutorial = useCallback(async () => {
-    setShowTutorial(false);
-    try {
-      await AsyncStorage.setItem('hasSeenCompassTutorial', 'true');
-    } catch (error) {
-      console.error('Failed to save tutorial state:', error);
-    }
-  }, []);
 
   // Get current wind data (convert from mph to user's unit)
   const currentWindSpeedMph = environmental.conditions?.windSpeed || 0;
@@ -223,16 +198,18 @@ function WindCalculatorRedesign({ sensorAvailable = true }: { sensorAvailable?: 
       ? Math.round(convertDistance(headwindYards, 'meters'))
       : Math.round(headwindYards);
 
+    // crosswindYards > 0 = ball pushed RIGHT, so aim LEFT to compensate
+    // crosswindYards < 0 = ball pushed LEFT, so aim RIGHT to compensate
     let aimDirection = '';
     if (Math.abs(crosswindYards) > 0.5) {
-      aimDirection = crosswindYards > 0 ? 'right' : 'left';
+      aimDirection = crosswindYards > 0 ? 'LEFT' : 'RIGHT';
     }
 
     return {
       playsLike,
       club: result.finalClub,
       aimAdjustment: Math.abs(crosswindYards) > 0.5
-        ? `${crosswind} ${unit} ${aimDirection}`
+        ? `Aim ${crosswind} ${unit} ${aimDirection}`
         : 'On line',
       headwindEffect,
       crosswindEffect: crosswindYards > 0 ? crosswind : -crosswind,
@@ -240,37 +217,42 @@ function WindCalculatorRedesign({ sensorAvailable = true }: { sensorAvailable?: 
     };
   }, [result, settings.distanceUnit, convertDistance, unit]);
 
-  // Auto-calculate when inputs change (debounced)
+  // Core calculation logic (extracted for reuse)
+  const runCalculation = useCallback((distance: number) => {
+    // Convert wind speed to mph for calculation (calculator expects mph)
+    const windSpeedMph = Math.round(convertToMph(effectiveWindSpeed, settings.speedUnit));
+
+    // Convert target distance to yards for calculation if in meters
+    const targetInYards = settings.distanceUnit === 'meters'
+      ? Math.round(distance / 0.9144) // meters to yards
+      : distance;
+
+    // Ensure the hook has the latest values (in yards/mph for calculation)
+    setWindSpeed(windSpeedMph);
+    setTargetYardage(targetInYards);
+
+    // Run calculation with the relative wind angle
+    calculate(relativeWindAngle);
+
+    // Subtle animation on result update
+    resultScale.value = withSequence(
+      withSpring(1.02, { damping: 12 }),
+      withSpring(1, { damping: 15 })
+    );
+  }, [effectiveWindSpeed, relativeWindAngle, calculate, setWindSpeed, setTargetYardage, resultScale, settings.speedUnit, settings.distanceUnit]);
+
+  // Auto-calculate when inputs change (debounced for slider)
   const triggerCalculation = useCallback(() => {
     // Clear any pending calculation
     if (calcTimeoutRef.current) {
       clearTimeout(calcTimeoutRef.current);
     }
 
-    // Debounce calculation by 200ms
+    // Debounce calculation by 150ms (reduced from 200ms)
     calcTimeoutRef.current = setTimeout(() => {
-      // Convert wind speed to mph for calculation (calculator expects mph)
-      const windSpeedMph = Math.round(convertToMph(effectiveWindSpeed, settings.speedUnit));
-
-      // Convert target distance to yards for calculation if in meters
-      const targetInYards = settings.distanceUnit === 'meters'
-        ? Math.round(targetDistance / 0.9144) // meters to yards
-        : targetDistance;
-
-      // Ensure the hook has the latest values (in yards/mph for calculation)
-      setWindSpeed(windSpeedMph);
-      setTargetYardage(targetInYards);
-
-      // Run calculation with the relative wind angle
-      calculate(relativeWindAngle);
-
-      // Subtle animation on result update
-      resultScale.value = withSequence(
-        withSpring(1.02, { damping: 12 }),
-        withSpring(1, { damping: 15 })
-      );
-    }, 200);
-  }, [effectiveWindSpeed, targetDistance, relativeWindAngle, calculate, setWindSpeed, setTargetYardage, resultScale, settings.speedUnit, settings.distanceUnit]);
+      runCalculation(targetDistance);
+    }, 150);
+  }, [targetDistance, runCalculation]);
 
   // Trigger calculation on input changes
   React.useEffect(() => {
@@ -288,10 +270,16 @@ function WindCalculatorRedesign({ sensorAvailable = true }: { sensorAvailable?: 
 
   // Handlers
   const handlePresetSelect = useCallback((preset: { id: string; distance: number }) => {
+    // Clear any pending debounced calculation
+    if (calcTimeoutRef.current) {
+      clearTimeout(calcTimeoutRef.current);
+    }
     setSelectedPreset(preset.id);
     setTargetDistance(preset.distance);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-  }, []);
+    // Calculate immediately for button presses (no debounce)
+    runCalculation(preset.distance);
+  }, [runCalculation]);
 
   const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
@@ -363,31 +351,16 @@ function WindCalculatorRedesign({ sensorAvailable = true }: { sensorAvailable?: 
           </ScrollView>
         </Animated.View>
 
+        {/* 5-Hour Wind Forecast */}
+        <Animated.View entering={cardEntering(1)} style={styles.forecastSection}>
+          <WindHourlyForecastBar />
+        </Animated.View>
+
         {/* Compass Section */}
         <Animated.View entering={cardEntering(1)} style={styles.compassSection}>
           <View style={styles.compassWrapper}>
             <WindDirectionCompass size={compassSize} />
           </View>
-
-          {/* First-Use Tutorial Tooltip */}
-          {showTutorial && (
-            <Pressable
-              onPress={dismissTutorial}
-              style={[
-                styles.tutorialTooltip,
-                { backgroundColor: colors.surface, borderColor: colors.brand },
-              ]}
-              accessibilityLabel="Tutorial: Tap to lock your shot direction. Tap to dismiss."
-              accessibilityRole="button"
-            >
-              <View style={styles.tutorialTextContainer}>
-                <Lock size={16} color={colors.brand} />
-                <Text style={[styles.tutorialText, { color: colors.textPrimary }]}>
-                  Tap the lock button to freeze your shot direction
-                </Text>
-              </View>
-            </Pressable>
-          )}
         </Animated.View>
 
         {/* Sensor Warning - Show when compass unavailable */}
@@ -449,9 +422,9 @@ function WindCalculatorRedesign({ sensorAvailable = true }: { sensorAvailable?: 
               primaryUnit={unit}
               secondaryLabel="Club"
               secondaryValue={displayResult.club}
-              tertiaryLabel="Adjustment"
-              tertiaryValue={`${displayResult.totalAdjustment > 0 ? '+' : ''}${displayResult.totalAdjustment} ${unit}`}
-              tertiaryStatus={displayResult.totalAdjustment > 0 ? 'negative' : displayResult.totalAdjustment < 0 ? 'positive' : 'neutral'}
+              tertiaryLabel="Aim"
+              tertiaryValue={displayResult.aimAdjustment}
+              tertiaryStatus="neutral"
               variant="highlighted"
               style={styles.resultCard}
             />
@@ -521,73 +494,6 @@ function WindCalculatorRedesign({ sensorAvailable = true }: { sensorAvailable?: 
           )}
         </Animated.View>
 
-        {/* Wind Effects Breakdown - Only show if there's meaningful adjustment */}
-        {displayResult && Math.abs(displayResult.totalAdjustment) > 0.5 && (
-          <Animated.View
-            entering={cardEntering(1)}
-            style={[styles.adjustmentsCard, { backgroundColor: colors.surface }]}
-          >
-            <Text style={[styles.adjustmentsTitle, { color: colors.textMuted }]}>
-              WIND EFFECTS
-            </Text>
-            <View style={styles.adjustmentRow}>
-              <Text style={[styles.adjustmentLabel, { color: colors.textSecondary }]}>
-                Headwind/Tailwind
-              </Text>
-              <Text
-                style={[
-                  styles.adjustmentValue,
-                  {
-                    color:
-                      displayResult.headwindEffect > 0
-                        ? colors.error
-                        : displayResult.headwindEffect < 0
-                        ? colors.success
-                        : colors.textPrimary,
-                  },
-                ]}
-              >
-                {displayResult.headwindEffect > 0 ? '+' : ''}
-                {displayResult.headwindEffect} {unit}
-              </Text>
-            </View>
-            <View style={styles.adjustmentRow}>
-              <Text style={[styles.adjustmentLabel, { color: colors.textSecondary }]}>
-                Crosswind (Left/Right)
-              </Text>
-              <Text
-                style={[
-                  styles.adjustmentValue,
-                  { color: colors.textPrimary },
-                ]}
-              >
-                {Math.abs(displayResult.crosswindEffect)} {unit} {displayResult.crosswindEffect > 0 ? 'R' : displayResult.crosswindEffect < 0 ? 'L' : ''}
-              </Text>
-            </View>
-            <View style={[styles.adjustmentRow, styles.totalRow]}>
-              <Text style={[styles.adjustmentLabel, { color: colors.textPrimary, fontWeight: '600' }]}>
-                Total Distance Effect
-              </Text>
-              <Text
-                style={[
-                  styles.adjustmentValue,
-                  {
-                    color:
-                      displayResult.totalAdjustment > 0
-                        ? colors.error
-                        : displayResult.totalAdjustment < 0
-                        ? colors.success
-                        : colors.textPrimary,
-                    fontWeight: '700',
-                  },
-                ]}
-              >
-                {displayResult.totalAdjustment > 0 ? '+' : ''}
-                {displayResult.totalAdjustment} {unit}
-              </Text>
-            </View>
-          </Animated.View>
-        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -749,6 +655,11 @@ const styles = StyleSheet.create({
     gap: 8,
   },
 
+  // Forecast
+  forecastSection: {
+    marginBottom: 16,
+  },
+
   // Sections
   sectionLabel: {
     fontSize: 12,
@@ -784,35 +695,6 @@ const styles = StyleSheet.create({
   warningText: {
     fontSize: 13,
     fontWeight: '500',
-  },
-
-  // Tutorial Tooltip
-  tutorialTooltip: {
-    position: 'absolute',
-    bottom: -8,
-    left: 24,
-    right: 24,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    borderWidth: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-
-  tutorialTextContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-
-  tutorialText: {
-    fontSize: 14,
-    fontWeight: '500',
-    flex: 1,
   },
 
   // Manual Heading Fallback
@@ -1018,44 +900,6 @@ const styles = StyleSheet.create({
   // Result
   resultCard: {
     marginBottom: 16,
-  },
-
-  // Adjustments
-  adjustmentsCard: {
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
-  },
-
-  adjustmentsTitle: {
-    fontSize: 12,
-    fontWeight: '600',
-    letterSpacing: 1,
-    marginBottom: 12,
-  },
-
-  adjustmentRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 8,
-  },
-
-  totalRow: {
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(0,0,0,0.1)',
-    marginTop: 8,
-    paddingTop: 16,
-  },
-
-  adjustmentLabel: {
-    fontSize: 15,
-  },
-
-  adjustmentValue: {
-    fontSize: 15,
-    fontWeight: '600',
-    fontVariant: ['tabular-nums'],
   },
 
   // Premium Upgrade Prompt Styles

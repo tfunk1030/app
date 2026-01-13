@@ -81,8 +81,7 @@ const WindDirectionCompass: React.FC<WindDirectionCompassProps> = ({
   shotDirection,
   onChange,
   lockShot,
-  windSpeed: propWindSpeed,
-  speedUnit: propSpeedUnit,
+  // windSpeed and speedUnit props preserved for backwards compatibility but no longer displayed
 }) => {
   // Use responsive size calculation
   const size = propSize || getResponsiveCompassSize();
@@ -94,11 +93,7 @@ const WindDirectionCompass: React.FC<WindDirectionCompassProps> = ({
   const { mode } = useThemeMode();
   const { settings } = useSettings();
 
-  // Wind speed and unit (use props or fall back to conditions)
-  const windSpeed = propWindSpeed ?? conditions?.windSpeed ?? 0;
-  const speedUnit = propSpeedUnit ?? 'mph';
-  const windDirectionDegrees = conditions?.windDirection ?? 0;
-  const cardinalDirection = getCardinalDirection(windDirectionDegrees);
+  // Wind direction and relationship
   const windRelationship = getWindRelationship(relativeWindAngle);
 
   // Animation values
@@ -283,18 +278,6 @@ const WindDirectionCompass: React.FC<WindDirectionCompassProps> = ({
             ]}
           />
 
-          {/* Wind Speed Display - Simplified, below center */}
-          <View
-            style={[styles.windInfoContainer, { bottom: Math.max(size * 0.24, 52) }]}
-            pointerEvents="none"
-            accessibilityRole="text"
-            accessibilityLabel={`Wind ${Math.round(windSpeed)} ${speedUnit}`}
-          >
-            <Text style={[styles.windSpeedText, { color: tokens.colors.brandAlt, fontSize: Math.max(16, Math.min(20, size * 0.08)) }]}>
-              {Math.round(windSpeed)} {speedUnit}
-            </Text>
-            {/* Removed "from NW" - already shown in MetricPills */}
-          </View>
         </View>
 
         <CardinalDirections
