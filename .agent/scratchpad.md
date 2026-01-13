@@ -4,15 +4,15 @@
 
 ### Active Component: UI-002 (Setup Screen)
 **File:** `src/features/redesign/screens/SetupScreen.tsx`
-**Current Phase:** gpt-cross-review (Phase 2)
-**Previous Phase:** rams-review (COMPLETE)
+**Current Phase:** skills-synthesis (Phase 3)
+**Previous Phase:** gpt-cross-review (COMPLETE)
 
 ### Completed Components
 - [x] UI-001 (Play Screen) - All phases complete, passes: true
 
 ### Phase Progress for UI-002
 - [x] Phase 1: rams-review - COMPLETE (output: UI-002-rams-initial.md)
-- [ ] Phase 2: gpt-cross-review - PENDING
+- [x] Phase 2: gpt-cross-review - COMPLETE (output: UI-002-gpt-cross-review.md)
 - [ ] Phase 3: skills-synthesis - PENDING
 - [ ] Phase 4: final-plan - PENDING
 - [ ] Phase 5: implementation - PENDING
@@ -20,33 +20,37 @@
 - [ ] Phase 7: gpt-verification - PENDING
 - [ ] Phase 8: fixes - PENDING
 
-### Key Findings from RAMS Review (UI-002)
+### Key Findings from GPT Cross-Review
 
-**Score:** 68/100
+**Validated by GPT:**
+- Switches lack explicit labels (P0 confirmed)
+- Club action icons 36x36 below guideline (P1 confirmed)
+- Premium card broken affordance (P1 confirmed)
+- ClubRow missing accessibilityRole (valid but P2/P1)
 
-**Critical (P0):**
-1. Switch components missing accessibilityLabel (3 instances)
-2. ClubRow action buttons missing accessibilityRole
-3. SectionHeader action missing accessibilityLabel
+**Over-Prioritized (drop to P2):**
+- Theme/Unit "missing accessibilityLabel" - visible text usually becomes label
 
-**Serious (P1):**
-1. Club action buttons 36x36 < 44x44 minimum
-2. ThemeSelector radio buttons missing a11y labels
-3. Unit selector radio buttons missing a11y labels
-4. Page title missing heading role
-5. Premium card non-functional (no onPress)
+**Blind Spots GPT Found (NEW):**
+1. **Missing radiogroup role** - Theme/Unit containers need `accessibilityRole="radiogroup"`
+2. **Switch rows not fully tappable** - Only toggle is tappable, whole row should be
+3. **Missing header structure** - Title/section headers plain Text, need `accessibilityRole="header"`
+4. **Small text for outdoor** - 12-13px washes out in sunlight, need 14-16px minimum
+5. **Premium card disabled state** - Should mark as disabled if non-functional
+6. **Missing hitSlop on icon actions** - Helps on bumpy course conditions
 
-**Moderate (P2):**
-1. Hardcoded spacing throughout (14, 10, 2 not on scale)
-2. Typography magic numbers
-3. Non-standard gap values
+**Golf-Specific Recommendations:**
+- Touch targets 48dp+ ideal, row-level for toggles
+- Typography scale increase for sunlight
+- One-hand operation: align actions to right
+- No fake CTAs on-course
 
 ### Next Action
-Execute Phase 2: GPT Cross-Review
-1. Read UI-002-rams-initial.md
-2. Call mcp__codex__codex with RAMS review content
-3. Save GPT response to UI-002-gpt-cross-review.md
-4. Update prd.json phase status
+Execute Phase 3: Skills Synthesis
+1. Search ui-ux-pro-max for relevant patterns
+2. Create synthesis document combining RAMS + GPT findings
+3. Identify consensus vs disputed issues
+4. Map issues to design patterns
 
 ### Files Reference
 - prd.json: `scripts/ralph/ui-pipeline/prd.json`

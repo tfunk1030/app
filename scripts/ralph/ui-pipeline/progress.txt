@@ -103,3 +103,38 @@ npx tsc --noEmit
 **Next:** Phase 2 (gpt-cross-review) - Send to GPT for blind spot analysis
 
 ---
+
+### Iteration - 2026-01-13 (UI-002 Phase 2)
+**Component:** UI-002 (Setup Screen)
+**Phase:** gpt-cross-review
+**Status:** COMPLETE
+
+**GPT Validation Results:**
+- Switches missing accessibilityLabel: CONFIRMED P0
+- Club action icons 36x36: CONFIRMED P1
+- Premium card broken affordance: CONFIRMED P1
+- ClubRow missing accessibilityRole: Valid, P2/P1
+
+**Over-Prioritized (GPT suggests drop to P2):**
+- Theme/Unit radio "missing accessibilityLabel" - visible text usually becomes label
+
+**NEW Blind Spots Found by GPT:**
+1. Missing `accessibilityRole="radiogroup"` on Theme/Unit containers
+2. Switch rows not fully tappable (only toggle, not row label)
+3. Missing header structure (`accessibilityRole="header"` on title/sections)
+4. Small text (12-13px) risky for outdoor/sunlight - need 14-16px
+5. Premium card needs disabled state if non-functional
+6. Missing hitSlop on icon-only actions
+
+**Golf-Specific Insights:**
+- Touch targets 48dp+ ideal for gloves
+- Row-level tap targets for toggles
+- Typography scale increase for sunlight readability
+- One-hand operation: align primary actions to right side
+- No fake CTAs on-course
+
+**Output:** `reviews/UI-002-gpt-cross-review.md`
+
+**Next:** Phase 3 (skills-synthesis) - Research patterns and create synthesis document
+
+---

@@ -2,7 +2,11 @@
   "branchName": "ui/multi-agent-polish",
   "pipelineConfig": {
     "strategy": "per-component-then-global",
-    "reviewers": ["rams", "gpt-moderator", "ui-ux-pro-max"],
+    "reviewers": [
+      "rams",
+      "gpt-moderator",
+      "ui-ux-pro-max"
+    ],
     "autoCommit": true,
     "requireAllReviewersPass": true
   },
@@ -22,14 +26,38 @@
         "src/components/redesign/ResultCard.tsx"
       ],
       "phases": {
-        "rams-review": { "status": "complete", "output": "UI-001-rams-initial.md" },
-        "gpt-cross-review": { "status": "complete", "output": "UI-001-gpt-cross-review.md" },
-        "skills-synthesis": { "status": "complete", "output": "UI-001-synthesis.md" },
-        "final-plan": { "status": "complete", "output": "UI-001-plan.md" },
-        "implementation": { "status": "complete", "output": "UI-001-changes.md" },
-        "post-review": { "status": "complete", "output": "UI-001-post-review.md" },
-        "gpt-verification": { "status": "complete", "output": "UI-001-gpt-verify.md" },
-        "fixes": { "status": "complete", "output": null }
+        "rams-review": {
+          "status": "complete",
+          "output": "UI-001-rams-initial.md"
+        },
+        "gpt-cross-review": {
+          "status": "complete",
+          "output": "UI-001-gpt-cross-review.md"
+        },
+        "skills-synthesis": {
+          "status": "complete",
+          "output": "UI-001-synthesis.md"
+        },
+        "final-plan": {
+          "status": "complete",
+          "output": "UI-001-plan.md"
+        },
+        "implementation": {
+          "status": "complete",
+          "output": "UI-001-changes.md"
+        },
+        "post-review": {
+          "status": "complete",
+          "output": "UI-001-post-review.md"
+        },
+        "gpt-verification": {
+          "status": "complete",
+          "output": "UI-001-gpt-verify.md"
+        },
+        "fixes": {
+          "status": "complete",
+          "output": null
+        }
       },
       "currentPhase": "complete",
       "priority": 1,
@@ -45,16 +73,40 @@
         "src/core/components/ui/SectionHeader.tsx"
       ],
       "phases": {
-        "rams-review": { "status": "complete", "output": "UI-002-rams-initial.md" },
-        "gpt-cross-review": { "status": "pending", "output": null },
-        "skills-synthesis": { "status": "pending", "output": null },
-        "final-plan": { "status": "pending", "output": null },
-        "implementation": { "status": "pending", "output": null },
-        "post-review": { "status": "pending", "output": null },
-        "gpt-verification": { "status": "pending", "output": null },
-        "fixes": { "status": "pending", "output": null }
+        "rams-review": {
+          "status": "complete",
+          "output": "UI-002-rams-initial.md"
+        },
+        "gpt-cross-review": {
+          "status": "complete",
+          "output": "UI-002-gpt-cross-review.md"
+        },
+        "skills-synthesis": {
+          "status": "pending",
+          "output": null
+        },
+        "final-plan": {
+          "status": "pending",
+          "output": null
+        },
+        "implementation": {
+          "status": "pending",
+          "output": null
+        },
+        "post-review": {
+          "status": "pending",
+          "output": null
+        },
+        "gpt-verification": {
+          "status": "pending",
+          "output": null
+        },
+        "fixes": {
+          "status": "pending",
+          "output": null
+        }
       },
-      "currentPhase": "gpt-cross-review",
+      "currentPhase": "skills-synthesis",
       "priority": 2,
       "passes": false
     },
@@ -67,14 +119,38 @@
         "src/core/components/ui/MetricTile.tsx"
       ],
       "phases": {
-        "rams-review": { "status": "pending", "output": null },
-        "gpt-cross-review": { "status": "pending", "output": null },
-        "skills-synthesis": { "status": "pending", "output": null },
-        "final-plan": { "status": "pending", "output": null },
-        "implementation": { "status": "pending", "output": null },
-        "post-review": { "status": "pending", "output": null },
-        "gpt-verification": { "status": "pending", "output": null },
-        "fixes": { "status": "pending", "output": null }
+        "rams-review": {
+          "status": "pending",
+          "output": null
+        },
+        "gpt-cross-review": {
+          "status": "pending",
+          "output": null
+        },
+        "skills-synthesis": {
+          "status": "pending",
+          "output": null
+        },
+        "final-plan": {
+          "status": "pending",
+          "output": null
+        },
+        "implementation": {
+          "status": "pending",
+          "output": null
+        },
+        "post-review": {
+          "status": "pending",
+          "output": null
+        },
+        "gpt-verification": {
+          "status": "pending",
+          "output": null
+        },
+        "fixes": {
+          "status": "pending",
+          "output": null
+        }
       },
       "currentPhase": "rams-review",
       "priority": 3,
@@ -91,14 +167,38 @@
         "src/features/wind/components/results/EffectsGrid.tsx"
       ],
       "phases": {
-        "rams-review": { "status": "pending", "output": null },
-        "gpt-cross-review": { "status": "pending", "output": null },
-        "skills-synthesis": { "status": "pending", "output": null },
-        "final-plan": { "status": "pending", "output": null },
-        "implementation": { "status": "pending", "output": null },
-        "post-review": { "status": "pending", "output": null },
-        "gpt-verification": { "status": "pending", "output": null },
-        "fixes": { "status": "pending", "output": null }
+        "rams-review": {
+          "status": "pending",
+          "output": null
+        },
+        "gpt-cross-review": {
+          "status": "pending",
+          "output": null
+        },
+        "skills-synthesis": {
+          "status": "pending",
+          "output": null
+        },
+        "final-plan": {
+          "status": "pending",
+          "output": null
+        },
+        "implementation": {
+          "status": "pending",
+          "output": null
+        },
+        "post-review": {
+          "status": "pending",
+          "output": null
+        },
+        "gpt-verification": {
+          "status": "pending",
+          "output": null
+        },
+        "fixes": {
+          "status": "pending",
+          "output": null
+        }
       },
       "currentPhase": "rams-review",
       "priority": 4,
@@ -113,14 +213,38 @@
         "src/core/components/ui/button.tsx"
       ],
       "phases": {
-        "rams-review": { "status": "pending", "output": null },
-        "gpt-cross-review": { "status": "pending", "output": null },
-        "skills-synthesis": { "status": "pending", "output": null },
-        "final-plan": { "status": "pending", "output": null },
-        "implementation": { "status": "pending", "output": null },
-        "post-review": { "status": "pending", "output": null },
-        "gpt-verification": { "status": "pending", "output": null },
-        "fixes": { "status": "pending", "output": null }
+        "rams-review": {
+          "status": "pending",
+          "output": null
+        },
+        "gpt-cross-review": {
+          "status": "pending",
+          "output": null
+        },
+        "skills-synthesis": {
+          "status": "pending",
+          "output": null
+        },
+        "final-plan": {
+          "status": "pending",
+          "output": null
+        },
+        "implementation": {
+          "status": "pending",
+          "output": null
+        },
+        "post-review": {
+          "status": "pending",
+          "output": null
+        },
+        "gpt-verification": {
+          "status": "pending",
+          "output": null
+        },
+        "fixes": {
+          "status": "pending",
+          "output": null
+        }
       },
       "currentPhase": "rams-review",
       "priority": 5,
@@ -139,14 +263,38 @@
         "src/core/components/ui/BoldTabBar.tsx"
       ],
       "phases": {
-        "rams-review": { "status": "pending", "output": null },
-        "gpt-cross-review": { "status": "pending", "output": null },
-        "skills-synthesis": { "status": "pending", "output": null },
-        "final-plan": { "status": "pending", "output": null },
-        "implementation": { "status": "pending", "output": null },
-        "post-review": { "status": "pending", "output": null },
-        "gpt-verification": { "status": "pending", "output": null },
-        "fixes": { "status": "pending", "output": null }
+        "rams-review": {
+          "status": "pending",
+          "output": null
+        },
+        "gpt-cross-review": {
+          "status": "pending",
+          "output": null
+        },
+        "skills-synthesis": {
+          "status": "pending",
+          "output": null
+        },
+        "final-plan": {
+          "status": "pending",
+          "output": null
+        },
+        "implementation": {
+          "status": "pending",
+          "output": null
+        },
+        "post-review": {
+          "status": "pending",
+          "output": null
+        },
+        "gpt-verification": {
+          "status": "pending",
+          "output": null
+        },
+        "fixes": {
+          "status": "pending",
+          "output": null
+        }
       },
       "currentPhase": "rams-review",
       "priority": 6,
@@ -160,14 +308,38 @@
         "app/(tabs-redesign)/_layout.tsx"
       ],
       "phases": {
-        "rams-review": { "status": "pending", "output": null },
-        "gpt-cross-review": { "status": "pending", "output": null },
-        "skills-synthesis": { "status": "pending", "output": null },
-        "final-plan": { "status": "pending", "output": null },
-        "implementation": { "status": "pending", "output": null },
-        "post-review": { "status": "pending", "output": null },
-        "gpt-verification": { "status": "pending", "output": null },
-        "fixes": { "status": "pending", "output": null }
+        "rams-review": {
+          "status": "pending",
+          "output": null
+        },
+        "gpt-cross-review": {
+          "status": "pending",
+          "output": null
+        },
+        "skills-synthesis": {
+          "status": "pending",
+          "output": null
+        },
+        "final-plan": {
+          "status": "pending",
+          "output": null
+        },
+        "implementation": {
+          "status": "pending",
+          "output": null
+        },
+        "post-review": {
+          "status": "pending",
+          "output": null
+        },
+        "gpt-verification": {
+          "status": "pending",
+          "output": null
+        },
+        "fixes": {
+          "status": "pending",
+          "output": null
+        }
       },
       "currentPhase": "rams-review",
       "priority": 7,
@@ -188,9 +360,19 @@
         "Dark mode consistency"
       ],
       "phases": {
-        "global-review": { "status": "blocked", "output": null, "blockedBy": "all-components" },
-        "final-fixes": { "status": "pending", "output": null },
-        "commit": { "status": "pending", "output": null }
+        "global-review": {
+          "status": "blocked",
+          "output": null,
+          "blockedBy": "all-components"
+        },
+        "final-fixes": {
+          "status": "pending",
+          "output": null
+        },
+        "commit": {
+          "status": "pending",
+          "output": null
+        }
       },
       "currentPhase": "global-review",
       "priority": 99,
