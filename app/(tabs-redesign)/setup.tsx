@@ -56,6 +56,7 @@ import { useRedesignTheme, ThemeMode } from '@/src/theme/redesign';
 import { QuickAction } from '@/src/components/redesign/QuickAction';
 import { useSettings } from '@/src/core/context/settings';
 import { useClubSettings } from '@/src/features/settings/context/clubs';
+import { usePremium } from '@/src/features/settings/context/premium';
 import { ClubData } from '@/src/core/models/YardageModel';
 import { useNavigationPreference } from '@/src/stores/navigationPreference';
 import * as Updates from 'expo-updates';
@@ -119,7 +120,11 @@ const SectionHeader = memo(function SectionHeader({
         </Text>
       </View>
       {action && onAction && (
-        <Pressable onPress={onAction}>
+        <Pressable
+          onPress={onAction}
+          accessibilityRole="button"
+          accessibilityLabel={action}
+        >
           <Text style={[styles.sectionAction, { color: colors.brand }]}>
             {action}
           </Text>
@@ -188,6 +193,8 @@ const SettingRow = memo(function SettingRow({
           onPress();
         }}
         style={[styles.settingRow, { borderBottomColor: colors.divider }]}
+        accessibilityRole="button"
+        accessibilityLabel={label}
       >
         {content}
       </Pressable>
@@ -224,6 +231,9 @@ const ThemeSelector = memo(function ThemeSelector({
             borderColor: value === 'light' ? colors.brand : colors.border,
           },
         ]}
+        accessibilityRole="button"
+        accessibilityLabel="Light theme"
+        accessibilityState={{ selected: value === 'light' }}
       >
         <Sun size={18} color={value === 'light' ? colors.brand : colors.textMuted} />
         <Text
@@ -248,6 +258,9 @@ const ThemeSelector = memo(function ThemeSelector({
             borderColor: value === 'dark' ? colors.brand : colors.border,
           },
         ]}
+        accessibilityRole="button"
+        accessibilityLabel="Dark theme"
+        accessibilityState={{ selected: value === 'dark' }}
       >
         <Moon size={18} color={value === 'dark' ? colors.brand : colors.textMuted} />
         <Text
@@ -303,6 +316,9 @@ const NavigationStyleSection = memo(function NavigationStyleSection() {
                 borderColor: navStyle === 'redesign' ? colors.brand : colors.border,
               },
             ]}
+            accessibilityRole="button"
+            accessibilityLabel="New 3-tab layout: Play, Stats, Setup"
+            accessibilityState={{ selected: navStyle === 'redesign' }}
           >
             <LayoutGrid
               size={20}
@@ -330,6 +346,9 @@ const NavigationStyleSection = memo(function NavigationStyleSection() {
                 borderColor: navStyle === 'classic' ? colors.brand : colors.border,
               },
             ]}
+            accessibilityRole="button"
+            accessibilityLabel="Classic 5-tab layout: Weather, Shot, Wind"
+            accessibilityState={{ selected: navStyle === 'classic' }}
           >
             <LayoutGrid
               size={20}
@@ -361,6 +380,7 @@ export default function SetupScreen() {
   const { colors, mode, setMode } = useRedesignTheme();
   const { settings, updateSettings, convertDistance } = useSettings();
   const { clubs, addClub, updateClub, removeClub } = useClubSettings();
+  const { setShowUpgradeModal } = usePremium();
   const { headerEntering, cardEntering } = useAccessibleAnimations();
 
   // Club modal state
@@ -857,6 +877,7 @@ export default function SetupScreen() {
                     }}
                     trackColor={{ false: colors.border, true: colors.brand }}
                     thumbColor={colors.surface}
+                    accessibilityLabel="Location permission toggle"
                   />
                 }
               />
@@ -872,6 +893,7 @@ export default function SetupScreen() {
                     }}
                     trackColor={{ false: colors.border, true: colors.brand }}
                     thumbColor={colors.surface}
+                    accessibilityLabel="Compass permission toggle"
                   />
                 }
               />
@@ -887,6 +909,7 @@ export default function SetupScreen() {
                     }}
                     trackColor={{ false: colors.border, true: colors.brand }}
                     thumbColor={colors.surface}
+                    accessibilityLabel="Notifications permission toggle"
                   />
                 }
               />
@@ -952,10 +975,16 @@ export default function SetupScreen() {
         <Animated.View entering={cardEntering(4)}>
           <SectionHeader title="PREMIUM" />
           <Pressable
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              setShowUpgradeModal(true);
+            }}
             style={[
               styles.premiumCard,
               { backgroundColor: colors.brandMuted, borderColor: colors.brand },
             ]}
+            accessibilityRole="button"
+            accessibilityLabel="Upgrade to Premium. Unlock advanced features"
           >
             <View style={styles.premiumCardLeft}>
               <Crown size={24} color={colors.brand} />
@@ -1043,6 +1072,8 @@ export default function SetupScreen() {
                       key={preset.name}
                       onPress={() => handleQuickAdd(preset.name, preset.yardage)}
                       style={[styles.quickAddChip, { backgroundColor: colors.backgroundAlt, borderColor: colors.border }]}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Quick add ${preset.name}, ${preset.yardage} yards`}
                     >
                       <Text style={[styles.quickAddChipText, { color: colors.textPrimary }]}>
                         {preset.name}

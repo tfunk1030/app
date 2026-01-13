@@ -439,6 +439,7 @@ export function Slider({
             onBlur={handleInputBlur}
             selectTextOnFocus
             placeholderTextColor={t.colors.textMuted}
+            accessibilityLabel={label ? `${label} value input` : 'Slider value input'}
           />
           {unit && (
             <Text
