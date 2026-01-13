@@ -431,6 +431,30 @@ function WindCalculatorRedesign({ sensorAvailable = true }: { sensorAvailable?: 
           </Animated.View>
         )}
 
+        {/* Gust Warning Banner - Show when gust significantly higher than base wind */}
+        {currentWindGustDisplay && currentWindGustDisplay > currentWindSpeedDisplay + 2 && (
+          <Animated.View entering={cardEntering(2)} style={styles.gustBanner}>
+            <View style={[styles.gustBannerContent, { backgroundColor: colors.surface, borderColor: colors.warning }]}>
+              <View style={styles.gustInfo}>
+                <Text style={[styles.gustLabel, { color: colors.warning }]}>
+                  GUST WARNING
+                </Text>
+                <Text style={[styles.gustText, { color: colors.textSecondary }]}>
+                  Gusts up to {currentWindGustDisplay} {speedUnitLabel} (+{currentWindGustDisplay - currentWindSpeedDisplay} {speedUnitLabel})
+                </Text>
+              </View>
+              <Pressable
+                style={[styles.useGustButton, { backgroundColor: colors.warning }]}
+                onPress={() => setWindSpeedOverride(currentWindGustDisplay)}
+                accessibilityLabel={`Calculate with gust speed ${currentWindGustDisplay} ${speedUnitLabel}`}
+                accessibilityRole="button"
+              >
+                <Text style={styles.useGustButtonText}>Use Gust</Text>
+              </Pressable>
+            </View>
+          </Animated.View>
+        )}
+
         {/* Target Distance Input with Slider */}
         <Animated.View entering={cardEntering(2)} style={styles.sliderSection}>
           <Slider
@@ -477,21 +501,58 @@ function WindCalculatorRedesign({ sensorAvailable = true }: { sensorAvailable?: 
             unit={speedUnitLabel}
             dense
           />
-          {windSpeedOverride !== null && (
+          {/* Quick wind speed buttons */}
+          <View style={styles.windSpeedButtons}>
             <Pressable
               onPress={() => {
                 setWindSpeedOverride(null);
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               }}
-              style={styles.resetButton}
-              accessibilityLabel="Reset to actual wind speed"
+              style={[
+                styles.windSpeedButton,
+                {
+                  backgroundColor: windSpeedOverride === null ? colors.brand : colors.surfaceElevated,
+                  borderColor: colors.border,
+                },
+              ]}
+              accessibilityLabel={`Use actual wind speed ${currentWindSpeedDisplay} ${speedUnitLabel}`}
               accessibilityRole="button"
+              accessibilityState={{ selected: windSpeedOverride === null }}
             >
-              <Text style={[styles.resetButtonText, { color: colors.brand }]}>
-                Reset to actual ({currentWindSpeedDisplay} {speedUnitLabel})
+              <Text style={[
+                styles.windSpeedButtonText,
+                { color: windSpeedOverride === null ? '#FFFFFF' : colors.textSecondary },
+              ]}>
+                Actual: {currentWindSpeedDisplay}
               </Text>
             </Pressable>
-          )}
+
+            {currentWindGustDisplay && currentWindGustDisplay > currentWindSpeedDisplay && (
+              <Pressable
+                onPress={() => {
+                  setWindSpeedOverride(currentWindGustDisplay);
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                }}
+                style={[
+                  styles.windSpeedButton,
+                  {
+                    backgroundColor: windSpeedOverride === currentWindGustDisplay ? colors.warning : colors.surfaceElevated,
+                    borderColor: colors.border,
+                  },
+                ]}
+                accessibilityLabel={`Use gust wind speed ${currentWindGustDisplay} ${speedUnitLabel}`}
+                accessibilityRole="button"
+                accessibilityState={{ selected: windSpeedOverride === currentWindGustDisplay }}
+              >
+                <Text style={[
+                  styles.windSpeedButtonText,
+                  { color: windSpeedOverride === currentWindGustDisplay ? '#FFFFFF' : colors.textSecondary },
+                ]}>
+                  Gust: {currentWindGustDisplay}
+                </Text>
+              </Pressable>
+            )}
+          </View>
         </Animated.View>
 
       </ScrollView>
@@ -897,9 +958,71 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
 
+  windSpeedButtons: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 12,
+  },
+
+  windSpeedButton: {
+    flex: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignItems: 'center',
+  },
+
+  windSpeedButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+
   // Result
   resultCard: {
     marginBottom: 16,
+  },
+
+  // Gust Banner
+  gustBanner: {
+    marginBottom: 16,
+  },
+
+  gustBannerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+
+  gustInfo: {
+    flex: 1,
+  },
+
+  gustLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 1,
+    marginBottom: 2,
+  },
+
+  gustText: {
+    fontSize: 14,
+  },
+
+  useGustButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    marginLeft: 12,
+  },
+
+  useGustButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
   },
 
   // Premium Upgrade Prompt Styles
