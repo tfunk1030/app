@@ -1,0 +1,105 @@
+# UI Pipeline Progress Log
+Started: 2026-01-13
+
+## Codebase Patterns
+
+### AICaddyPro Design System
+- Dark theme primary: Golf green gradient backgrounds
+- Spacing scale: 4, 8, 12, 16, 24, 32, 48
+- Typography: System fonts with specific weights
+- Cards: GlassCard for elevated content, BoldCard for emphasis
+- Touch targets: Minimum 44x44 points
+
+### Key Files Reference
+- Design tokens: `src/theme/tokens.ts`
+- Typography: `src/theme/typography.ts`
+- Gradients: `src/theme/gradients.ts`
+- Animations: `src/theme/animations.ts`
+
+### Typecheck Command
+```bash
+npx tsc --noEmit
+```
+
+### Component Structure
+- Screens: `src/features/*/screen.tsx` or `src/features/redesign/screens/*.tsx`
+- Core UI: `src/core/components/ui/*.tsx`
+- Feature components: `src/features/*/components/*.tsx`
+
+### React Native Patterns
+- Use StyleSheet.create() not inline styles
+- Prefer useCallback/useMemo for performance
+- Avoid anonymous functions in render
+- Use accessibilityLabel for all interactive elements
+
+### Golf App Specifics
+- Outdoor readability: High contrast required
+- One-handed operation: Bottom-focused interactions
+- Glanceable info: Large numbers, minimal text
+- Weather context: Adapt to conditions display
+
+---
+
+## Iteration Log
+
+### Iteration 1 - 2026-01-13
+**Component:** UI-001 (Play Screen)
+**Phase:** rams-review
+**Status:** COMPLETE
+
+**Findings Summary:**
+- 12 issues identified (3 CRITICAL, 5 HIGH, 4 MEDIUM)
+- Key issues: ConditionsBar missing a11y props, hardcoded RGBA in QuickAction, spacing inconsistencies
+- Output: `reviews/UI-001-rams-initial.md`
+
+**Next:** Phase 2 (gpt-cross-review) - Send RAMS review to GPT for blind spot analysis
+
+---
+
+### Pipeline Fix - 2026-01-13
+**Issue:** Pipeline prompt.md referenced non-existent `/moderator gpt` command
+**Fix:** Updated to use `mcp__codex__codex` MCP tool for GPT delegation
+**Additional Fixes:**
+- Changed `python3` to `python` for Windows compatibility
+- Added "Available Tools" section to prompt.md with examples
+- Updated `.claude/commands/ui-review-pipeline.md` with same fixes
+- Verified search.py script works correctly on Windows
+
+**Files Modified:**
+- `scripts/ralph/ui-pipeline/prompt.md`
+- `.claude/commands/ui-review-pipeline.md`
+
+---
+
+### Iteration - 2026-01-13 (UI-002 Phase 1)
+**Component:** UI-002 (Setup Screen)
+**Phase:** rams-review
+**Status:** COMPLETE
+
+**Findings Summary:**
+- 14 issues identified (3 CRITICAL, 5 SERIOUS, 6 MODERATE)
+- Score: 68/100
+
+**Critical Issues:**
+1. SectionHeader action button missing accessibilityLabel
+2. Switch components (Location, Compass, Notifications) missing accessibilityLabel
+3. ClubRow action buttons missing accessibilityRole="button"
+
+**Serious Issues:**
+1. Club action buttons 36x36 - below 44x44 minimum touch target
+2. ThemeSelector radio buttons missing accessibilityLabel
+3. Unit selector radio buttons missing accessibilityLabel
+4. Missing semantic heading role on page title
+5. Premium card has no onPress handler
+
+**Key Patterns Found:**
+- Extensive hardcoded spacing values (14, 2, 10) not on design scale
+- Multiple places using magic numbers instead of tokens
+- Good use of memo() for sub-components
+- Haptic feedback implemented correctly
+
+**Output:** `reviews/UI-002-rams-initial.md`
+
+**Next:** Phase 2 (gpt-cross-review) - Send to GPT for blind spot analysis
+
+---
