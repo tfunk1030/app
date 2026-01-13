@@ -1,0 +1,27 @@
+# Ralph Orchestrator Configuration - AICaddyPro UI Pipeline
+agent: claude
+prompt_file: PROMPT.md
+# Completion detection - uses checkbox marker format per FAQ recommendation
+# Claude should add checkbox marker to scratchpad when done
+completion_promise: "- [x] PIPELINE_COMPLETE"
+max_iterations: 50
+max_runtime: 7200  # 2 hours max
+verbose: true
+
+# Checkpointing - save git state periodically
+checkpoint_interval: 5
+
+# Adapter configurations
+adapters:
+  claude:
+    enabled: true
+    timeout: 600  # 10 min per iteration for complex UI reviews
+    # Claude will use --dangerously-skip-permissions for full autonomy
+  kiro:
+    enabled: false
+  q:
+    enabled: false
+  gemini:
+    enabled: false
+  acp:
+    enabled: false

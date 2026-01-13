@@ -142,6 +142,7 @@ export const ResultCard = memo(function ResultCard({
             ]}
             numberOfLines={1}
             adjustsFontSizeToFit
+            minimumFontScale={0.5}
           >
             {primaryValue}
           </Text>

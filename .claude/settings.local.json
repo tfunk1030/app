@@ -25,13 +25,39 @@
       "Bash(npx tsc:*)",
       "Bash(npx expo lint:*)",
       "mcp__spawner__spawner_orchestrate",
-      "Bash(dir /b \"C:\\\\dev\\\\aicaddypro\")",
       "Bash(findstr:*)",
       "Bash(yarn add:*)",
       "Bash(bash -c:*)",
       "Bash(dir:*)",
       "Bash(git checkout:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(npx expo-doctor:*)",
+      "Bash(yarn list:*)",
+      "mcp__codex__codex",
+      "WebSearch",
+      "Bash(powershell -Command:*)",
+      "Skill(premortem)",
+      "Skill(braintrust-tracing)",
+      "Bash(dir /s /b \"C:\\\\dev\\\\opc\\\\*braintrust*\")",
+      "Bash(chmod:*)",
+      "Bash(bash:*)",
+      "Bash(echo:*)",
+      "Bash(export TRACE_TO_BRAINTRUST=true)",
+      "Bash(export BRAINTRUST_API_KEY=sk-XNjGCPfYKLcBXsEdLcMHG1PmrwkP1zLEna58KAHTPWf4Cboo)",
+      "Bash(curl:*)",
+      "Bash(pip install:*)",
+      "Bash(uv tool install:*)",
+      "Bash(ralph init:*)",
+      "Bash(PYTHONIOENCODING=utf-8 ralph init:*)",
+      "Bash(PYTHONIOENCODING=utf-8 ralph status:*)",
+      "Bash(PYTHONIOENCODING=utf-8 ralph:*)",
+      "Bash(where:*)",
+      "Bash(claude --version)",
+      "Bash(test:*)"
     ]
-  }
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "spawner"
+  ]
 }

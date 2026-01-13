@@ -194,6 +194,7 @@ const ConditionsBar = memo(function ConditionsBar({
       showsHorizontalScrollIndicator={false}
       style={styles.conditionsScroll}
       contentContainerStyle={styles.conditionsContainer}
+      accessibilityLabel="Weather conditions - swipe to see more"
     >
       <MetricPill
         icon={<Wind size={14} color={colors.textMuted} />}
@@ -384,9 +385,14 @@ export function PlayScreen() {
         {/* Wind Details (expandable) */}
         <Animated.View entering={FadeInDown.delay(500)}>
           <Pressable
+            onPress={() => {
+              // TODO: Navigate to wind details or expand section
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            }}
             style={[styles.windDetails, { backgroundColor: colors.surface }]}
             accessibilityRole="button"
-            accessibilityLabel="View wind analysis details"
+            accessibilityLabel="Wind analysis summary"
+            accessibilityHint="Detailed view coming soon"
           >
             <View style={styles.windDetailsLeft}>
               <Wind size={20} color={colors.brand} />
@@ -433,7 +439,7 @@ const styles = StyleSheet.create({
   },
 
   header: {
-    marginBottom: 20,
+    marginBottom: 24, // spacing.lg
   },
 
   title: {
@@ -522,7 +528,7 @@ const styles = StyleSheet.create({
 
   presetsRow: {
     flexDirection: 'row',
-    gap: 10,
+    gap: 8, // spacing.sm
   },
 
   presetButton: {
