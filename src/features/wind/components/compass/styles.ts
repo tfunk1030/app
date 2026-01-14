@@ -8,7 +8,8 @@ export const compassStyles = StyleSheet.create({
   wrapper: {
     alignItems: 'center',
     position: 'relative',
-    paddingVertical: 8,
+    paddingTop: 8,
+    paddingBottom: 72, // Extra space for lock button positioned below compass
   },
   headingDisplay: {
     flexDirection: 'row',
@@ -39,6 +40,7 @@ export const compassStyles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative',
+    overflow: 'visible', // Allow lock button to be visible below compass
   },
   compassBackground: {
     width: '100%',

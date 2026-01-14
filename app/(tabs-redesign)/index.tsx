@@ -12,6 +12,7 @@ import {
   StyleSheet,
   ScrollView,
   RefreshControl,
+  Pressable,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, {
@@ -93,6 +94,7 @@ export default function ShotScreen() {
   const [targetDistance, setTargetDistance] = useState(150);
   const [selectedPreset, setSelectedPreset] = useState<string | null>('150');
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [calculationResult, setCalculationResult] = useState<CalculationResult | null>(null);
 
   // Animation
   const resultScale = useSharedValue(1);
@@ -119,7 +121,8 @@ export default function ShotScreen() {
   }, [settings.distanceUnit, convertDistance]);
 
   // FREE calculation - Environment only (NO WIND)
-  const calculationResult = useMemo((): CalculationResult => {
+  // Triggered by Calculate button press
+  const handleCalculate = useCallback(() => {
     const temperatureF = environmental.conditions?.temperature ?? 70;
     const humidity = environmental.conditions?.humidity ?? 50;
     const altitudeFt = environmental.conditions?.altitude ?? 0;
@@ -128,9 +131,8 @@ export default function ShotScreen() {
     const safeTargetDistance = targetDistance > 0 ? targetDistance : 150;
 
     // Convert target distance to yards for calculation if in meters
-    // Use explicit conversion to avoid default context returning 0
     const targetInYards = settings.distanceUnit === 'meters'
-      ? Math.round(safeTargetDistance / 0.9144) // meters to yards directly
+      ? Math.round(safeTargetDistance / 0.9144)
       : safeTargetDistance;
 
     // Temperature effect: ball flies further in warm air (calculated in yards)
@@ -157,17 +159,15 @@ export default function ShotScreen() {
           break;
         }
       }
-      // If no club found (distance longer than all clubs), use the longest
       if (selectedClub === '7-Iron' && sortedClubs.length > 0) {
         selectedClub = sortedClubs[sortedClubs.length - 1].name;
       }
     }
 
     // Convert results back to user's unit for display
-    // Use direct conversion to avoid default context issues
     const isMetric = settings.distanceUnit === 'meters';
     const playsLike = isMetric
-      ? Math.round(adjustedDistanceYards * 0.9144) // yards to meters directly
+      ? Math.round(adjustedDistanceYards * 0.9144)
       : adjustedDistanceYards;
     const tempEffect = isMetric
       ? Math.round(tempEffectYards * 0.9144)
@@ -182,7 +182,7 @@ export default function ShotScreen() {
       ? Math.round(totalAdjustmentYards * 0.9144)
       : Math.round(totalAdjustmentYards);
 
-    return {
+    const result: CalculationResult = {
       playsLike,
       club: selectedClub,
       tempEffect,
@@ -190,12 +190,8 @@ export default function ShotScreen() {
       humidityEffect,
       totalAdjustment,
     };
-  }, [targetDistance, environmental.conditions, clubs, settings.distanceUnit]);
 
-  // Handlers
-  const handlePresetSelect = useCallback((preset: { id: string; distance: number }) => {
-    setSelectedPreset(preset.id);
-    setTargetDistance(preset.distance);
+    setCalculationResult(result);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
     // Animate result
@@ -203,6 +199,13 @@ export default function ShotScreen() {
       withSpring(1.02, { damping: 10 }),
       withSpring(1, { damping: 15 })
     );
+  }, [targetDistance, environmental.conditions, clubs, settings.distanceUnit, resultScale]);
+
+  // Handlers
+  const handlePresetSelect = useCallback((preset: { id: string; distance: number }) => {
+    setSelectedPreset(preset.id);
+    setTargetDistance(preset.distance);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }, []);
 
   const handleRefresh = useCallback(async () => {
@@ -264,7 +267,12 @@ export default function ShotScreen() {
       >
         {/* Header */}
         <Animated.View entering={headerEntering} style={styles.header}>
-          <Text style={[styles.title, { color: colors.textPrimary }]}>Shot Calculator</Text>
+          <Text
+            style={[styles.title, { color: colors.textPrimary }]}
+            accessibilityRole="header"
+          >
+            Shot Calculator
+          </Text>
           <Text style={[styles.subtitle, { color: colors.textMuted }]}>Environmental adjustments</Text>
         </Animated.View>
 
@@ -336,24 +344,40 @@ export default function ShotScreen() {
           </View>
         </Animated.View>
 
-        {/* Result Card */}
-        <Animated.View entering={cardEntering(4)} style={resultAnimatedStyle}>
-          <ResultCard
-            primaryLabel="Plays like"
-            primaryValue={calculationResult.playsLike.toString()}
-            primaryUnit={unit}
-            secondaryLabel="Club"
-            secondaryValue={calculationResult.club}
-            tertiaryLabel="Adjustment"
-            tertiaryValue={`${calculationResult.totalAdjustment > 0 ? '+' : ''}${Math.round(calculationResult.totalAdjustment)} ${unit}`}
-            tertiaryStatus={calculationResult.totalAdjustment > 0 ? 'negative' : calculationResult.totalAdjustment < 0 ? 'positive' : 'neutral'}
-            variant="highlighted"
-            style={styles.resultCard}
-          />
+        {/* Calculate Button */}
+        <Animated.View entering={cardEntering(4)} style={styles.calculateSection}>
+          <Pressable
+            onPress={handleCalculate}
+            style={[styles.calculateButton, { backgroundColor: colors.brand }]}
+            accessibilityLabel="Calculate shot adjustment"
+            accessibilityRole="button"
+          >
+            <Text style={[styles.calculateButtonText, { color: colors.textInverse }]}>
+              Calculate
+            </Text>
+          </Pressable>
         </Animated.View>
 
+        {/* Result Card - Shows after calculation */}
+        {calculationResult && (
+          <Animated.View entering={cardEntering(4)} style={resultAnimatedStyle}>
+            <ResultCard
+              primaryLabel="Plays like"
+              primaryValue={String(calculationResult.playsLike || targetDistance)}
+              primaryUnit={unit}
+              secondaryLabel="Club"
+              secondaryValue={calculationResult.club}
+              tertiaryLabel="Adjustment"
+              tertiaryValue={`${calculationResult.totalAdjustment > 0 ? '+' : ''}${Math.round(calculationResult.totalAdjustment)} ${unit}`}
+              tertiaryStatus={calculationResult.totalAdjustment > 0 ? 'negative' : calculationResult.totalAdjustment < 0 ? 'positive' : 'neutral'}
+              variant="highlighted"
+              style={styles.resultCard}
+            />
+          </Animated.View>
+        )}
+
         {/* Adjustments Breakdown - Environment only */}
-        {Math.abs(calculationResult.totalAdjustment) > 0.5 && (
+        {calculationResult && Math.abs(calculationResult.totalAdjustment) > 0.5 && (
           <Animated.View
             entering={cardEntering(4)}
             style={[styles.adjustmentsCard, { backgroundColor: colors.surface }]}
@@ -505,6 +529,26 @@ const styles = StyleSheet.create({
 
   presetButton: {
     flex: 1,
+  },
+
+  // Calculate Button
+  calculateSection: {
+    marginBottom: 16,
+  },
+
+  calculateButton: {
+    paddingVertical: 16,
+    paddingHorizontal: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 56,
+  },
+
+  calculateButtonText: {
+    fontSize: 18,
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
 
   // Result

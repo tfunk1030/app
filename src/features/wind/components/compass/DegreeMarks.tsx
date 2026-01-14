@@ -5,35 +5,20 @@
  * Memoized with custom comparison for performance optimization.
  */
 import React from 'react';
-import { View, Text } from 'react-native';
-import {
-  scaledFontSize,
-  getCompassProgressiveFeatures,
-  getTickMarkStyles,
-} from '@/src/utils/responsive';
+import { View } from 'react-native';
+import { getTickMarkStyles } from '@/src/utils/responsive';
 import { DegreeMarksProps, isSignificantHeadingChange } from './types';
 import { degreeMarkStyles as styles } from './styles';
 
 const DegreeMarks: React.FC<DegreeMarksProps> = ({ size, heading, borderColor, textColor }) => {
-  const features = getCompassProgressiveFeatures(size);
   const marks = [];
 
-  for (let i = 0; i < 72; i++) {
-    const rotation = i * 5 - heading;
-    const isMajor = i % 9 === 0; // Every 45 degrees (N, NE, E, etc.)
-    const isMinor = i % 3 === 0; // Every 15 degrees
-    const isSubtle = !isMajor && !isMinor; // Every 5 degrees
-    const degrees = i * 5;
+  // Simplified: Only show 8 major tick marks (every 45 degrees)
+  // This reduces visual clutter while maintaining orientation reference
+  for (let i = 0; i < 8; i++) {
+    const rotation = i * 45 - heading;
+    const tickStyles = getTickMarkStyles(size, 'major');
 
-    // Skip subtle ticks on smaller compass sizes
-    if (isSubtle && !features.showSubtleTickMarks) {
-      continue;
-    }
-
-    const tickType = isMajor ? 'major' : isMinor ? 'minor' : 'subtle';
-    const tickStyles = getTickMarkStyles(size, tickType);
-
-    // Add tick mark
     marks.push(
       <View
         key={`tick-${i}`}
@@ -49,9 +34,6 @@ const DegreeMarks: React.FC<DegreeMarksProps> = ({ size, heading, borderColor, t
         ]}
       />
     );
-
-    // Degree labels removed - cardinal directions (N, NE, E, etc.) already cover these positions
-    // This eliminates the overlap issue between degree numbers and cardinal letters
   }
 
   return <>{marks}</>;

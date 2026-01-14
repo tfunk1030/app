@@ -7,8 +7,6 @@
  */
 import React, { useEffect, useMemo, useRef } from 'react';
 import { View, Text, Animated, StyleSheet, AccessibilityInfo } from 'react-native';
-import { BlurView } from 'expo-blur';
-import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
@@ -97,29 +95,20 @@ const WindDirectionCompass: React.FC<WindDirectionCompassProps> = ({
   // Wind direction and relationship
   const windRelationship = getWindRelationship(relativeWindAngle);
 
-  // Animation values
+  // Animation values - simplified, single pulse for center dot
   const pulseAnim = useRef(new Animated.Value(1)).current;
-  const glowOpacity = useRef(new Animated.Value(isLocked ? 0.18 : 0.08)).current;
 
   useEffect(() => {
     Animated.loop(
       Animated.sequence([
-        Animated.timing(pulseAnim, { toValue: 1.08, duration: 1500, useNativeDriver: true }),
-        Animated.timing(pulseAnim, { toValue: 1, duration: 1500, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1.05, duration: 2000, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1, duration: 2000, useNativeDriver: true }),
       ])
     ).start();
     return () => {
       pulseAnim.stopAnimation();
     };
   }, []);
-
-  useEffect(() => {
-    Animated.timing(glowOpacity, {
-      toValue: isLocked ? 0.18 : 0.08,
-      duration: 300,
-      useNativeDriver: false,
-    }).start();
-  }, [isLocked]);
 
   // Announce lock state changes for accessibility
   useEffect(() => {
@@ -175,72 +164,27 @@ const WindDirectionCompass: React.FC<WindDirectionCompassProps> = ({
         <View
           style={[
             localStyles.compassBackground,
-            isDark
-              ? {
-                  backgroundColor: tokens.colors.surface,
-                  borderColor: tokens.colors.border,
-                  shadowColor: tokens.colors.shadow,
-                  shadowOpacity: 0.06,
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowRadius: 4,
-                  elevation: 2,
-                }
-              : {
-                  backgroundColor: tokens.colors.surface,
-                  borderColor: tokens.colors.border,
-                  borderWidth: StyleSheet.hairlineWidth,
-                },
+            {
+              backgroundColor: tokens.colors.surface,
+              borderColor: isLocked ? tokens.colors.success : tokens.colors.border,
+              borderWidth: 2,
+              shadowColor: tokens.colors.shadow,
+              shadowOpacity: 0.1,
+              shadowOffset: { width: 0, height: 2 },
+              shadowRadius: 8,
+              elevation: 4,
+            },
           ]}
         >
-          <BlurView
-            intensity={25}
-            tint={isDark ? 'dark' : 'light'}
-            style={StyleSheet.absoluteFill}
-          />
-          <Animated.View
-            style={[
-              localStyles.compassGlow,
-              {
-                backgroundColor: isLocked ? tokens.colors.success : tokens.colors.brandAlt,
-                opacity: glowOpacity,
-              },
-            ]}
-          />
-
-          {/* Gradient outer ring */}
-          <View style={[localStyles.gradientRingContainer, { width: size - 8, height: size - 8 }]}>
-            <LinearGradient
-              colors={
-                isLocked
-                  ? [tokens.colors.success, tokens.colors.successGlow, tokens.colors.success]
-                  : (tokens.gradients.primary as [string, string, ...string[]])
-              }
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={localStyles.gradientRing}
-            />
-            <View
-              style={[
-                localStyles.gradientRingInner,
-                {
-                  backgroundColor: isDark ? tokens.colors.surface : tokens.colors.surfaceAlt,
-                },
-              ]}
-            />
-          </View>
-
+          {/* Simple outer ring - cleaner than gradient */}
           <View
             style={[
               localStyles.innerRing,
               {
-                width: size - 36,
-                height: size - 36,
+                width: size - 24,
+                height: size - 24,
                 borderColor: isLocked ? tokens.colors.success : tokens.colors.brandAlt,
                 borderWidth: 2,
-                shadowColor: isLocked ? tokens.colors.success : tokens.colors.glowPrimary,
-                shadowOffset: { width: 0, height: 0 },
-                shadowOpacity: isDark ? 0.5 : 0.2,
-                shadowRadius: isDark ? 12 : 4,
               },
             ]}
           />
@@ -363,31 +307,6 @@ const localStyles = StyleSheet.create({
     borderRadius: 999,
     overflow: 'hidden',
     borderWidth: 1,
-  },
-  compassGlow: {
-    position: 'absolute',
-    width: '100%',
-    height: '100%',
-    borderRadius: 999,
-  },
-  gradientRingContainer: {
-    position: 'absolute',
-    borderRadius: 999,
-    overflow: 'hidden',
-  },
-  gradientRing: {
-    position: 'absolute',
-    width: '100%',
-    height: '100%',
-    borderRadius: 999,
-  },
-  gradientRingInner: {
-    position: 'absolute',
-    top: 3,
-    left: 3,
-    right: 3,
-    bottom: 3,
-    borderRadius: 999,
   },
   innerRing: {
     position: 'absolute',

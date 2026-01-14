@@ -313,11 +313,16 @@ function WindCalculatorRedesign({ sensorAvailable = true }: { sensorAvailable?: 
       >
         {/* Header */}
         <Animated.View entering={headerEntering} style={styles.header}>
-          <Text style={[styles.title, { color: colors.textPrimary }]}>Wind Calculator</Text>
+          <Text
+            style={[styles.title, { color: colors.textPrimary }]}
+            accessibilityRole="header"
+          >
+            Wind Calculator
+          </Text>
           <Text style={[styles.subtitle, { color: colors.textMuted }]}>Aim adjustments for wind</Text>
         </Animated.View>
 
-        {/* Conditions Bar */}
+        {/* Conditions Bar - Compact wind info */}
         <Animated.View entering={headerEntering}>
           <ScrollView
             horizontal
@@ -346,109 +351,8 @@ function WindCalculatorRedesign({ sensorAvailable = true }: { sensorAvailable?: 
           </ScrollView>
         </Animated.View>
 
-        {/* 5-Hour Wind Forecast */}
-        <Animated.View entering={cardEntering(1)} style={styles.forecastSection}>
-          <WindHourlyForecastBar />
-        </Animated.View>
-
-        {/* Compass Section */}
-        <Animated.View entering={cardEntering(1)} style={styles.compassSection}>
-          <View style={styles.compassWrapper}>
-            <WindDirectionCompass size={compassSize} />
-          </View>
-        </Animated.View>
-
-        {/* Sensor Warning & Manual Input - Show when compass unavailable or not working */}
-        {!sensorAvailable && (
-          <View style={styles.manualHeadingSection}>
-            <View style={[styles.sensorWarning, { backgroundColor: colors.warning + '1A' }]}>
-              <AlertTriangle size={16} color={colors.warning} />
-              <Text style={[styles.warningText, { color: colors.warning }]}>
-                {__DEV__ ? 'Compass limited in Expo Go - ' : 'Compass unavailable - '}select shot direction
-              </Text>
-            </View>
-            <View style={styles.cardinalButtons}>
-              {(['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'] as const).map((dir) => {
-                const degrees: Record<string, number> = {
-                  N: 0, NE: 45, E: 90, SE: 135, S: 180, SW: 225, W: 270, NW: 315,
-                };
-                const isSelected = Math.abs((relativeWindAngle + 360) % 360 - degrees[dir]) < 22.5;
-                return (
-                  <Pressable
-                    key={dir}
-                    onPress={() => {
-                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                      // This would need to set a manual heading override
-                      // For now, provide visual feedback
-                    }}
-                    style={[
-                      styles.cardinalButton,
-                      {
-                        backgroundColor: isSelected ? colors.brandMuted : colors.surface,
-                        borderColor: isSelected ? colors.brand : colors.border,
-                      },
-                    ]}
-                    accessibilityLabel={`Shot direction ${dir}`}
-                    accessibilityRole="button"
-                    accessibilityState={{ selected: isSelected }}
-                  >
-                    <Text
-                      style={[
-                        styles.cardinalButtonText,
-                        { color: isSelected ? colors.brand : colors.textMuted },
-                      ]}
-                    >
-                      {dir}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-          </View>
-        )}
-
-        {/* Result Card - Show immediately with live updates, or placeholder while loading */}
-        <Animated.View entering={cardEntering(2)} style={resultAnimatedStyle}>
-          <ResultCard
-            primaryLabel="Plays like"
-            primaryValue={displayResult ? displayResult.playsLike.toString() : targetDistance.toString()}
-            primaryUnit={unit}
-            secondaryLabel="Club"
-            secondaryValue={displayResult?.club || '—'}
-            tertiaryLabel="Aim"
-            tertiaryValue={displayResult?.aimAdjustment || 'Lock compass to calculate'}
-            tertiaryStatus="neutral"
-            variant="highlighted"
-            style={styles.resultCard}
-          />
-        </Animated.View>
-
-        {/* Gust Warning Banner - Show when gust significantly higher than base wind */}
-        {currentWindGustDisplay && currentWindGustDisplay > currentWindSpeedDisplay + 2 && (
-          <Animated.View entering={cardEntering(2)} style={styles.gustBanner}>
-            <View style={[styles.gustBannerContent, { backgroundColor: colors.surface, borderColor: colors.warning }]}>
-              <View style={styles.gustInfo}>
-                <Text style={[styles.gustLabel, { color: colors.warning }]}>
-                  GUST WARNING
-                </Text>
-                <Text style={[styles.gustText, { color: colors.textSecondary }]}>
-                  Gusts up to {currentWindGustDisplay} {speedUnitLabel} (+{currentWindGustDisplay - currentWindSpeedDisplay} {speedUnitLabel})
-                </Text>
-              </View>
-              <Pressable
-                style={[styles.useGustButton, { backgroundColor: colors.warning }]}
-                onPress={() => setWindSpeedOverride(currentWindGustDisplay)}
-                accessibilityLabel={`Calculate with gust speed ${currentWindGustDisplay} ${speedUnitLabel}`}
-                accessibilityRole="button"
-              >
-                <Text style={[styles.useGustButtonText, { color: colors.textInverse }]}>Use Gust</Text>
-              </Pressable>
-            </View>
-          </Animated.View>
-        )}
-
-        {/* Target Distance Input with Slider */}
-        <Animated.View entering={cardEntering(2)} style={styles.sliderSection}>
+        {/* Target Distance Input with Slider - MOVED UP for easier access */}
+        <Animated.View entering={cardEntering(1)} style={styles.sliderSection}>
           <Slider
             value={targetDistance}
             onValueChange={(val) => {
@@ -464,8 +368,8 @@ function WindCalculatorRedesign({ sensorAvailable = true }: { sensorAvailable?: 
           />
         </Animated.View>
 
-        {/* Quick Presets */}
-        <Animated.View entering={cardEntering(3)} style={styles.presetsSection}>
+        {/* Quick Presets - Right below distance slider */}
+        <Animated.View entering={cardEntering(1)} style={styles.presetsSection}>
           <View style={styles.presetsRow}>
             {presets.map((preset) => (
               <QuickAction
@@ -480,6 +384,41 @@ function WindCalculatorRedesign({ sensorAvailable = true }: { sensorAvailable?: 
             ))}
           </View>
         </Animated.View>
+
+        {/* Result Card - Show immediately after inputs */}
+        <Animated.View entering={cardEntering(2)} style={resultAnimatedStyle}>
+          <ResultCard
+            primaryLabel="Plays like"
+            primaryValue={displayResult ? displayResult.playsLike.toString() : targetDistance.toString()}
+            primaryUnit={unit}
+            secondaryLabel="Club"
+            secondaryValue={displayResult?.club || '—'}
+            tertiaryLabel="Aim"
+            tertiaryValue={displayResult?.aimAdjustment || 'Lock compass to calculate'}
+            tertiaryStatus="neutral"
+            variant="highlighted"
+            style={styles.resultCard}
+          />
+        </Animated.View>
+
+        {/* Compass Section - For setting wind direction */}
+        <Animated.View entering={cardEntering(2)} style={styles.compassSection}>
+          <View style={styles.compassWrapper}>
+            <WindDirectionCompass size={compassSize} />
+          </View>
+        </Animated.View>
+
+        {/* Sensor Warning - Show when compass unavailable */}
+        {!sensorAvailable && (
+          <View style={styles.manualHeadingSection}>
+            <View style={[styles.sensorWarning, { backgroundColor: colors.warning + '1A' }]}>
+              <AlertTriangle size={16} color={colors.warning} />
+              <Text style={[styles.warningText, { color: colors.warning }]}>
+                {__DEV__ ? 'Compass limited in Expo Go - use compass to set direction' : 'Compass unavailable'}
+              </Text>
+            </View>
+          </View>
+        )}
 
         {/* Wind Speed Override with Slider */}
         <Animated.View entering={cardEntering(3)} style={styles.sliderSection}>
@@ -545,6 +484,35 @@ function WindCalculatorRedesign({ sensorAvailable = true }: { sensorAvailable?: 
               </Pressable>
             )}
           </View>
+        </Animated.View>
+
+        {/* Gust Warning Banner - Show when gust significantly higher than base wind */}
+        {currentWindGustDisplay && currentWindGustDisplay > currentWindSpeedDisplay + 2 && (
+          <Animated.View entering={cardEntering(3)} style={styles.gustBanner}>
+            <View style={[styles.gustBannerContent, { backgroundColor: colors.surface, borderColor: colors.warning }]}>
+              <View style={styles.gustInfo}>
+                <Text style={[styles.gustLabel, { color: colors.warning }]}>
+                  GUST WARNING
+                </Text>
+                <Text style={[styles.gustText, { color: colors.textSecondary }]}>
+                  Gusts up to {currentWindGustDisplay} {speedUnitLabel} (+{currentWindGustDisplay - currentWindSpeedDisplay} {speedUnitLabel})
+                </Text>
+              </View>
+              <Pressable
+                style={[styles.useGustButton, { backgroundColor: colors.warning }]}
+                onPress={() => setWindSpeedOverride(currentWindGustDisplay)}
+                accessibilityLabel={`Calculate with gust speed ${currentWindGustDisplay} ${speedUnitLabel}`}
+                accessibilityRole="button"
+              >
+                <Text style={[styles.useGustButtonText, { color: colors.textInverse }]}>Use Gust</Text>
+              </Pressable>
+            </View>
+          </Animated.View>
+        )}
+
+        {/* 5-Hour Wind Forecast - Moved to end, less critical */}
+        <Animated.View entering={cardEntering(4)} style={styles.forecastSection}>
+          <WindHourlyForecastBar />
         </Animated.View>
 
       </ScrollView>
@@ -762,30 +730,6 @@ const styles = StyleSheet.create({
   // Manual Heading Fallback
   manualHeadingSection: {
     marginBottom: 16,
-    gap: 8,
-  },
-
-  cardinalButtons: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-    justifyContent: 'center',
-  },
-
-  cardinalButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    borderWidth: 1.5,
-    minWidth: 44,
-    minHeight: 44, // WCAG 2.5.5 touch target minimum
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  cardinalButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
   },
 
   // Slider Sections
