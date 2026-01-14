@@ -1,222 +1,105 @@
-# AGENTS.md - AICaddy Pro
+# AICaddyPro - React Native Golf App
 
-> Agent-focused documentation for autonomous development. See [CLAUDE.md](./CLAUDE.md) for coding conventions.
+## Project Overview
+Mobile golf application that calculates shot adjustments based on weather conditions.
+Built with React Native + Expo + TypeScript.
 
-## Quick Start
+## Tech Stack
+- **Framework:** React Native 0.76+ with Expo SDK 54+
+- **Language:** TypeScript (strict mode)
+- **State:** Zustand + React hooks + Context API
+- **Styling:** NativeWind v4 (Tailwind for React Native)
+- **Weather:** OpenWeatherMap API
+- **Navigation:** Expo Router
+- **Subscriptions:** RevenueCat
 
-```bash
-# Install dependencies
-yarn install
-
-# Copy environment template
-cp .env.example .env.local
-
-# Start development server
-yarn start
+## Directory Structure
+```
+src/
+├── app/                    # Expo Router pages
+├── core/
+│   └── components/ui/      # Core UI components
+├── features/
+│   ├── redesign/screens/   # Main app screens (Play, Setup, Stats)
+│   ├── wind/               # Wind calculation feature
+│   └── settings/           # Settings feature
+├── hooks/                  # Custom React hooks
+├── stores/                 # Zustand state stores
+├── theme/                  # Design tokens, gradients, typography
+├── providers/              # Context providers
+├── config/                 # App configuration (RevenueCat, Sentry)
+└── utils/                  # Helper functions
 ```
 
-## Commands
+## Build & Test Commands
+- `npm install` - Install dependencies
+- `npx expo start` - Start development server
+- `npx expo lint` - Run ESLint
+- `npm test` - Run Jest tests
+- `npx expo build` - Create production build
 
-| Command | Description |
-|---------|-------------|
-| `yarn setup` | **One-command setup** - install deps + create .env.local |
-| `yarn start` | Start Expo dev server with dev client |
-| `yarn test` | Run Jest tests in watch mode |
-| `yarn test:ci` | Run tests with coverage (CI mode) |
-| `yarn lint` | Run ESLint via Expo |
-| `yarn format` | Format code with Prettier |
-| `yarn format:check` | Check formatting without changes |
-| `yarn knip` | Find unused exports and dependencies |
-| `yarn todo:check` | List TODO/FIXME tech debt markers |
-| `eas build -p ios --profile preview` | Build iOS preview |
-| `eas build -p android --profile preview` | Build Android preview |
+## Code Conventions
 
-## Project Structure
+### UI Requirements (CRITICAL)
+- **NO "card soup"** - Avoid stacking cards within cards
+- Maximum 3 levels of visual hierarchy per screen
+- Use design system tokens, never hardcode colors/spacing
+- Weather data: gradient backgrounds reflecting conditions
+- Golf calculations: monospace fonts for numbers
+- All interactive elements must have 44pt minimum touch target
 
-```
-aicaddypro/
-├── app/                    # Expo Router screens (file-based routing)
-│   ├── (tabs-redesign)/    # Main tab navigation
-│   │   ├── index.tsx       # Shot calculator (home)
-│   │   ├── wind.tsx        # Wind calculator (premium)
-│   │   └── setup.tsx       # Club setup
-│   ├── _layout.tsx         # Root layout with providers
-│   └── index.tsx           # Entry redirect
-├── src/
-│   ├── components/         # Shared UI components
-│   │   └── redesign/       # New design system components
-│   ├── core/               # Core utilities and context
-│   │   ├── components/ui/  # Base UI primitives (Button, Slider, etc.)
-│   │   └── context/        # React contexts (settings, clubs)
-│   ├── features/           # Feature modules
-│   │   └── wind/           # Wind calculator feature
-│   ├── hooks/              # Custom React hooks
-│   ├── providers/          # App-wide providers
-│   ├── services/           # API and external services
-│   ├── stores/             # Zustand state stores
-│   ├── theme/              # Design tokens and theming
-│   ├── types/              # TypeScript type definitions
-│   └── utils/              # Utility functions
-├── assets/                 # Images, fonts, icons
-└── .factory/skills/        # AI agent skills
-```
-
-## Environment Variables
-
-Required environment variables (see `.env.example`):
-
-| Variable | Description |
-|----------|-------------|
-| `EXPO_PUBLIC_TOMORROW_API_KEY` | Tomorrow.io weather API |
-| `EXPO_PUBLIC_OPENWEATHER_API_KEY` | OpenWeather API (fallback) |
-| `EXPO_PUBLIC_WEATHERBIT_API_KEY` | Weatherbit API (fallback) |
-| `EXPO_PUBLIC_MAPS_API_KEY` | Google Maps API |
-
-## Testing
-
-Tests are located in `__tests__/` directories alongside source files:
-
-```bash
-# Run all tests
-yarn test
-
-# Run specific test file
-yarn test useUndoRedo
-
-# Run with coverage
-yarn test --coverage
-
-# List available tests
-npx jest --listTests
-```
-
-Current test files:
-- `src/hooks/__tests__/useUndoRedo.test.ts`
-- `src/hooks/__tests__/usePresets.test.ts`
-
-### E2E Tests (Maestro)
-
-E2E tests use [Maestro](https://maestro.mobile.dev/) for mobile UI testing:
-
-```bash
-# Install Maestro CLI
-curl -Ls "https://get.maestro.mobile.dev" | bash
-
-# Run all E2E tests
-maestro test .maestro/flows/
-
-# Run specific flow
-maestro test .maestro/flows/app-launch.yaml
-```
-
-Test flows in `.maestro/flows/`:
-- `app-launch.yaml` - Verify app launches and shows main UI
-- `shot-calculator.yaml` - Test shot calculator functionality
-
-## Architecture Decisions
-
-### State Management
-- **Zustand** for global state (stores/)
-- **React Context** for feature-scoped state (core/context/)
-- **AsyncStorage** for persistence
-
-### Navigation
-- **Expo Router** with file-based routing
-- Tab navigation in `app/(tabs-redesign)/`
-- Modal routes in `app/modal.tsx`
-
-### Styling
-- **NativeWind v4** (Tailwind for React Native)
-- Design tokens in `src/theme/tokens.ts`
-- Theme provider with light/dark/outdoor modes
-
-### Key Patterns
-- All components use `useTokens()` hook for theming
-- Interactive elements require `accessibilityLabel` and `accessibilityRole`
-- Minimum touch target: 48x48dp (golf glove friendly)
-
-## Development Workflow
-
-1. **Before making changes**: Run `yarn lint` to check current state
-2. **After changes**: Run `yarn test` to verify tests pass
-3. **Before committing**: Run `yarn format` for consistent style
-
-## Common Tasks
-
-### Add a new screen
-1. Create file in `app/(tabs-redesign)/` for tab screens
-2. Export default React component
-3. Add navigation in `app/(tabs-redesign)/_layout.tsx` if needed
-
-### Add a new component
-1. Create in `src/components/` or feature-specific directory
-2. Use `useTokens()` for all colors and spacing
-3. Include `accessibilityLabel` on interactive elements
-4. Add TypeScript interface for props
-
-### Modify design tokens
-1. Edit `src/theme/tokens.ts`
-2. Update both `darkTokens` and `lightTokens`
-3. Verify changes in both themes
-
-## Observability & Debugging
-
-### Logging
-
-Use the structured logger for all logging:
-
+### Component Structure
 ```typescript
-import { logger } from '@/src/lib/logger';
+// Standard component template
+interface Props {
+  // Props with JSDoc comments
+}
 
-logger.info('Action completed', { component: 'MyComponent', data });
-logger.error('Failed to fetch', error, { action: 'fetchData' });
+export function ComponentName({ prop1, prop2 }: Props) {
+  // Hooks at top
+  // Event handlers
+  // Render
+}
 ```
 
-### Tracing
+### File Naming
+- Components: PascalCase (`WeatherCard.tsx`)
+- Hooks: camelCase with 'use' prefix (`useWeatherData.ts`)
+- Utils: camelCase (`calculateDistance.ts`)
+- Types: PascalCase with `.types.ts` suffix
 
-Add request tracing for debugging:
+### Testing Requirements
+- All physics calculations must have unit tests
+- Test weather edge cases (wind > 30mph, rain, etc.)
+- Snapshot tests for UI components
 
-```typescript
-import { withTracing, getTraceHeaders } from '@/src/lib/tracing';
+## Design System Reference
+See `src/design-system/tokens.ts` for:
+- Colors (primary, secondary, semantic)
+- Typography (font families, sizes, weights)
+- Spacing (4px base grid)
+- Shadows and elevation
 
-// Trace async operations
-const result = await withTracing('fetchWeather', () => api.getWeather());
+## Physics Calculations
+Golf shot adjustments are calculated in `src/services/ballistics/`:
+- Wind effect: Vector decomposition relative to shot direction
+- Altitude: Air density compensation
+- Temperature: Ball compression factor
+- Humidity: Minimal effect, included for completeness
 
-// Add trace headers to requests
-fetch(url, { headers: getTraceHeaders() });
-```
+## Known Issues / TODOs
+- [x] UI Pipeline complete (UI-001 through UI-GLOBAL) - All screens polished
+- [x] Accessibility improvements complete (VoiceOver, reduced motion)
+- [ ] iOS App Store submission blocked - see `scripts/ralph/ios-pipeline/`
+  - [ ] P0: 1024x1024 app icon required
+  - [ ] P0: Privacy Policy URL required
+  - [ ] P0: Terms of Service URL required
+  - [ ] P0: App Store Connect metadata incomplete
+- [ ] Row-level toggle behavior (deferred from UI-002)
+- [ ] Typography scale for outdoor readability (deferred)
 
-### Metrics
-
-Track performance metrics:
-
-```typescript
-import { timeAsync, incrementCounter } from '@/src/lib/metrics';
-
-// Time operations
-await timeAsync('api.weather', () => fetchWeather());
-
-// Count events
-incrementCounter('feature.shot_calculated');
-```
-
-## Troubleshooting
-
-### Metro bundler issues
-```bash
-yarn start --clear
-```
-
-### TypeScript errors
-```bash
-npx tsc --noEmit
-```
-
-### Clean rebuild
-```bash
-# Windows
-./cleanup.ps1
-
-# Unix/Mac
-./cleanup.sh
-```
+## PR Guidelines
+- Include screenshot for UI changes
+- Run `npx expo lint` before committing
+- Ensure physics calculation tests pass
+- Update design system docs if adding new tokens
