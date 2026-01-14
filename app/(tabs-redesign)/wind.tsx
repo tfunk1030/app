@@ -247,10 +247,17 @@ function WindCalculatorRedesign({ sensorAvailable = true }: { sensorAvailable?: 
     }, 150);
   }, [targetDistance, effectiveWindSpeed, relativeWindAngle, calculate, setWindSpeed, setTargetYardage, resultScale, settings.speedUnit, settings.distanceUnit]);
 
-  // Trigger calculation on input changes
+  // Trigger calculation on input changes AND when conditions first become available
+  // Using primitive values from conditions to avoid unstable object reference dependencies
+  const conditionsWindSpeed = environmental.conditions?.windSpeed;
+  const conditionsWindDirection = environmental.conditions?.windDirection;
+
   React.useEffect(() => {
-    triggerCalculation();
-  }, [targetDistance, effectiveWindSpeed, relativeWindAngle, isLocked, triggerCalculation]);
+    // Only calculate if conditions are available
+    if (environmental.conditions) {
+      triggerCalculation();
+    }
+  }, [targetDistance, effectiveWindSpeed, relativeWindAngle, isLocked, triggerCalculation, conditionsWindSpeed, conditionsWindDirection]);
 
   // Cleanup timeout on unmount
   React.useEffect(() => {
@@ -351,14 +358,13 @@ function WindCalculatorRedesign({ sensorAvailable = true }: { sensorAvailable?: 
           </View>
         </Animated.View>
 
-        {/* Sensor Warning - Show when compass unavailable */}
-        {/* Sensor Warning & Manual Input - Show when compass unavailable */}
-        {FeatureFlags.PHASE1_ACCESSIBILITY_ENHANCEMENTS && !sensorAvailable && (
+        {/* Sensor Warning & Manual Input - Show when compass unavailable or not working */}
+        {!sensorAvailable && (
           <View style={styles.manualHeadingSection}>
-            <View style={styles.sensorWarning}>
+            <View style={[styles.sensorWarning, { backgroundColor: colors.warning + '1A' }]}>
               <AlertTriangle size={16} color={colors.warning} />
               <Text style={[styles.warningText, { color: colors.warning }]}>
-                Compass unavailable - select shot direction
+                {__DEV__ ? 'Compass limited in Expo Go - ' : 'Compass unavailable - '}select shot direction
               </Text>
             </View>
             <View style={styles.cardinalButtons}>
@@ -401,23 +407,21 @@ function WindCalculatorRedesign({ sensorAvailable = true }: { sensorAvailable?: 
           </View>
         )}
 
-        {/* Result Card - Show immediately with live updates */}
-        {displayResult && (
-          <Animated.View entering={cardEntering(2)} style={resultAnimatedStyle}>
-            <ResultCard
-              primaryLabel="Plays like"
-              primaryValue={displayResult.playsLike.toString()}
-              primaryUnit={unit}
-              secondaryLabel="Club"
-              secondaryValue={displayResult.club}
-              tertiaryLabel="Aim"
-              tertiaryValue={displayResult.aimAdjustment}
-              tertiaryStatus="neutral"
-              variant="highlighted"
-              style={styles.resultCard}
-            />
-          </Animated.View>
-        )}
+        {/* Result Card - Show immediately with live updates, or placeholder while loading */}
+        <Animated.View entering={cardEntering(2)} style={resultAnimatedStyle}>
+          <ResultCard
+            primaryLabel="Plays like"
+            primaryValue={displayResult ? displayResult.playsLike.toString() : targetDistance.toString()}
+            primaryUnit={unit}
+            secondaryLabel="Club"
+            secondaryValue={displayResult?.club || '—'}
+            tertiaryLabel="Aim"
+            tertiaryValue={displayResult?.aimAdjustment || 'Lock compass to calculate'}
+            tertiaryStatus="neutral"
+            variant="highlighted"
+            style={styles.resultCard}
+          />
+        </Animated.View>
 
         {/* Gust Warning Banner - Show when gust significantly higher than base wind */}
         {currentWindGustDisplay && currentWindGustDisplay > currentWindSpeedDisplay + 2 && (
@@ -437,7 +441,7 @@ function WindCalculatorRedesign({ sensorAvailable = true }: { sensorAvailable?: 
                 accessibilityLabel={`Calculate with gust speed ${currentWindGustDisplay} ${speedUnitLabel}`}
                 accessibilityRole="button"
               >
-                <Text style={styles.useGustButtonText}>Use Gust</Text>
+                <Text style={[styles.useGustButtonText, { color: colors.textInverse }]}>Use Gust</Text>
               </Pressable>
             </View>
           </Animated.View>
@@ -509,7 +513,7 @@ function WindCalculatorRedesign({ sensorAvailable = true }: { sensorAvailable?: 
             >
               <Text style={[
                 styles.windSpeedButtonText,
-                { color: windSpeedOverride === null ? '#FFFFFF' : colors.textSecondary },
+                { color: windSpeedOverride === null ? colors.textInverse : colors.textSecondary },
               ]}>
                 Actual: {currentWindSpeedDisplay}
               </Text>
@@ -534,7 +538,7 @@ function WindCalculatorRedesign({ sensorAvailable = true }: { sensorAvailable?: 
               >
                 <Text style={[
                   styles.windSpeedButtonText,
-                  { color: windSpeedOverride === currentWindGustDisplay ? '#FFFFFF' : colors.textSecondary },
+                  { color: windSpeedOverride === currentWindGustDisplay ? colors.textInverse : colors.textSecondary },
                 ]}>
                   Gust: {currentWindGustDisplay}
                 </Text>
@@ -554,14 +558,24 @@ function WindCalculatorRedesign({ sensorAvailable = true }: { sensorAvailable?: 
 
 function WindCalculatorWithCompass() {
   const environmental = useEnhancedEnvironmental();
-  const { heading, isAvailable: sensorAvailable } = useSensorData();
+  const { heading, isAvailable, accuracy, lastUpdateTime } = useSensorData();
+
+  // Determine if compass is actually working:
+  // - Must be available
+  // - Must have received an update recently (8 seconds for stability after app backgrounding)
+  // - Must have better than "unreliable" accuracy OR have a non-zero heading
+  const COMPASS_TIMEOUT_MS = 8000; // 8 seconds - more lenient to handle app backgrounding
+  const isCompassWorking = isAvailable &&
+    lastUpdateTime > 0 &&
+    Date.now() - lastUpdateTime < COMPASS_TIMEOUT_MS &&
+    (accuracy !== 'unreliable' || heading !== 0);
 
   return (
     <CompassLockProvider
       currentHeading={heading || 0}
       windDirection={environmental.conditions?.windDirection || 0}
     >
-      <WindCalculatorRedesign sensorAvailable={sensorAvailable} />
+      <WindCalculatorRedesign sensorAvailable={isCompassWorking} />
     </CompassLockProvider>
   );
 }
@@ -728,14 +742,13 @@ const styles = StyleSheet.create({
     marginVertical: 8,
   },
 
-  // Sensor Warning
+  // Sensor Warning - background color applied dynamically via inline style
   sensorWarning: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 8,
     paddingHorizontal: 12,
-    backgroundColor: 'rgba(245, 158, 11, 0.1)',
     borderRadius: 8,
     gap: 6,
     marginBottom: 8,
@@ -765,7 +778,9 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1.5,
     minWidth: 44,
+    minHeight: 44, // WCAG 2.5.5 touch target minimum
     alignItems: 'center',
+    justifyContent: 'center',
   },
 
   cardinalButtonText: {
@@ -1008,7 +1023,6 @@ const styles = StyleSheet.create({
   },
 
   useGustButtonText: {
-    color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '600',
   },

@@ -13,7 +13,7 @@ import * as Haptics from 'expo-haptics';
 import { Target, Wind, Settings } from 'lucide-react-native';
 
 import { RedesignThemeProvider, useRedesignTheme } from '@/src/theme/redesign';
-import { AppProvider } from '@/src/core/context/AppProvider';
+// AppProvider removed - already wrapped at root _layout.tsx level
 import { EnhancedEnvironmentalProvider } from '@/src/providers/EnhancedEnvironmentalProvider';
 
 // =============================================================================
@@ -114,13 +114,13 @@ function TabNavigatorContent() {
 // =============================================================================
 
 export default function RedesignTabLayout() {
+  // Note: AppProvider is already at root _layout.tsx level
+  // Only EnhancedEnvironmentalProvider is needed here for weather data
   return (
     <RedesignThemeProvider>
-      <AppProvider>
-        <EnhancedEnvironmentalProvider>
-          <TabNavigatorContent />
-        </EnhancedEnvironmentalProvider>
-      </AppProvider>
+      <EnhancedEnvironmentalProvider>
+        <TabNavigatorContent />
+      </EnhancedEnvironmentalProvider>
     </RedesignThemeProvider>
   );
 }
