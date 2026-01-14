@@ -4,6 +4,21 @@
   "branchName": "auto",
   "currentDroid": null,
   "currentTask": null,
+  "strictMode": {
+    "enabled": true,
+    "pywwRequired": true,
+    "minAttackVectors": 3,
+    "dynamicTimestampRequired": true,
+    "timestampCommand": "date -Iseconds",
+    "fileAgeCommand": "git log -1 --format=%ci"
+  },
+  "validationChain": ["adversarial-validator"],
+  "beforeAnyAction": [
+    "Run: date -Iseconds",
+    "Run: git log -1 --format=%ci [affected files]",
+    "Search: current year guidelines/requirements if external"
+  ],
+  "priorityFocus": ["ui", "user-workflow", "spacing", "dead-code", "appstore"],
   "availableDroids": {
     "release-ops": {
       "description": "App Store submissions, EAS builds, release assets",
@@ -49,6 +64,33 @@
       "description": "Codebase exploration, context gathering",
       "triggers": ["research", "explore", "find", "understand"],
       "tools": ["Read", "LS", "Glob", "Grep"]
+    },
+    "adversarial-validator": {
+      "description": "Meta-droid enforcing PYYW protocol on all conclusions",
+      "triggers": ["/pyyw", "validate", "prove wrong"],
+      "tools": ["Read", "Execute", "Grep", "Glob", "LS", "WebSearch"],
+      "isMeta": true
+    },
+    "spacing-auditor": {
+      "description": "Strict spacing audit with PYYW validation",
+      "triggers": ["/strict-audit spacing", "spacing violations", "token audit"],
+      "tools": ["Read", "Execute", "Grep", "Glob", "LS"]
+    },
+    "workflow-auditor": {
+      "description": "User flow documentation and validation with PYYW",
+      "triggers": ["/strict-audit workflow", "user flow", "workflow audit"],
+      "tools": ["Read", "Execute", "Grep", "Glob", "LS"]
+    },
+    "dead-code-hunter": {
+      "description": "Unused code detection with PYYW validation",
+      "triggers": ["/strict-audit dead-code", "unused", "dead code"],
+      "tools": ["Read", "Execute", "Grep", "Glob", "LS"],
+      "requiresApproval": true
+    },
+    "appstore-validator": {
+      "description": "App Store submission validation with live checks",
+      "triggers": ["/appstore", "/strict-audit appstore", "submission"],
+      "tools": ["Read", "Execute", "Grep", "Glob", "LS", "WebSearch"]
     }
   },
   "taskQueue": [],
@@ -57,14 +99,14 @@
     "typecheck": {
       "command": "npx tsc --noEmit",
       "required": true,
-      "lastRun": null,
-      "passes": null
+      "lastRun": "2026-01-14T04:41:52Z",
+      "passes": true
     },
     "lint": {
       "command": "npx expo lint",
       "required": false,
-      "lastRun": null,
-      "passes": null
+      "lastRun": "2026-01-14T04:41:52Z",
+      "passes": true
     }
   },
   "settings": {

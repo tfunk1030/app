@@ -556,7 +556,7 @@ const styles = StyleSheet.create({
   },
 
   windDetailsText: {
-    gap: 2,
+    gap: 4, // spacing.xs - minimum valid token
   },
 
   windDetailsTitle: {
