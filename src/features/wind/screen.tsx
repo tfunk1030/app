@@ -12,7 +12,6 @@ import { CompassLockProvider, useCompassLock } from '@/src/features/wind/context
 import { useSensorData } from '@/src/features/wind/context/sensor-data';
 import { useWindCalculator } from '@/src/features/wind/hooks/useWindCalculator';
 import { useEnhancedEnvironmental } from '@/src/providers/EnhancedEnvironmentalProvider';
-import { useThemeMode } from '@/src/theme/ThemeProvider';
 import type { Tokens } from '@/src/theme/tokens';
 import { useTokens } from '@/src/theme/useTokens';
 import { LogManager } from '@/src/utils/LogManager';
@@ -80,17 +79,17 @@ const YardagePresetButton = React.memo<YardagePresetButtonProps>(({
   );
 });
 
+YardagePresetButton.displayName = 'YardagePresetButton';
+
 // Wind calculation component
 function WindCalculatorComponent() {
   // Get all required hooks
   const { isPremium } = usePremium();
-  const { conditions, isLoading: envLoading } = useEnhancedEnvironmental();
+  const { conditions, isLoading: envLoading, forceRefresh } = useEnhancedEnvironmental();
   const { relativeWindAngle } = useCompassLock();
   const { isLoading, windSpeed, setWindSpeed, targetYardage, setTargetYardage, result, calculate } =
     useWindCalculator();
   const t = useTokens();
-  const { mode } = useThemeMode();
-  const isDark = mode === 'dark' || mode === 'system';
   const insets = useSafeAreaInsets();
   const { headerEntering, cardEntering } = useAccessibleAnimations();
 
@@ -153,14 +152,46 @@ function WindCalculatorComponent() {
   if (!conditions) {
     return (
       <View style={[styles.container, styles.centerContent, { backgroundColor: t.colors.background }]}>
-        <Wind
-          size={t.containerSize.icon.lg}
-          color={t.colors.textMuted}
-          accessibilityElementsHidden={true}
-        />
-        <Text style={[styles.errorText, { color: t.colors.textMuted }]}>
-          Unable to load conditions
-        </Text>
+        <Animated.View
+          entering={headerEntering}
+          style={styles.errorContainer}
+          accessibilityRole="alert"
+          accessibilityLabel="Unable to load weather conditions"
+        >
+          <View
+            style={[
+              styles.errorIconContainer,
+              { backgroundColor: t.colors.dangerBackgroundAlpha },
+            ]}
+          >
+            <Wind
+              size={t.containerSize.icon.md}
+              color={t.colors.danger}
+              accessibilityElementsHidden={true}
+            />
+          </View>
+          <Text style={[styles.errorTitle, { color: t.colors.textPrimary }]}>
+            Unable to Load Conditions
+          </Text>
+          <Text style={[styles.errorMessage, { color: t.colors.textMuted }]}>
+            Weather data is required for wind calculations. Please check your connection and try
+            again.
+          </Text>
+          <Button
+            onPress={async () => {
+              // Force refresh environmental data
+              logger.info('User requested retry for wind conditions');
+              await forceRefresh();
+            }}
+            variant="neon"
+            size="lg"
+            style={styles.retryButton}
+            accessibilityLabel="Retry loading weather conditions"
+            accessibilityHint="Attempts to reload weather data"
+          >
+            Try Again
+          </Button>
+        </Animated.View>
       </View>
     );
   }
@@ -442,17 +473,28 @@ const createStyles = (t: Tokens) => ({
   } as ViewStyle,
   errorContainer: {
     alignItems: 'center',
-    padding: t.spacing.lg,
+    padding: t.spacing.xl,
+    maxWidth: t.spacing['5xl'] * 1.5, // ~180px
+  } as ViewStyle,
+  errorIconContainer: {
+    width: t.containerSize.icon['2xl'],
+    height: t.containerSize.icon['2xl'],
+    borderRadius: t.borderRadius['3xl'],
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: t.spacing.lg,
   } as ViewStyle,
   errorTitle: {
-    fontSize: safeScaledFontSize(t.fontSize.xl),
+    fontSize: safeScaledFontSize(t.fontSize['2xl']),
     fontWeight: t.fontWeight.bold,
     marginBottom: t.spacing.sm,
+    textAlign: 'center',
   } as TextStyle,
   errorMessage: {
-    fontSize: safeScaledFontSize(t.fontSize.sm),
+    fontSize: safeScaledFontSize(t.fontSize.base),
     textAlign: 'center',
     marginBottom: t.spacing.lg,
+    lineHeight: 22,
   } as TextStyle,
   errorText: {
     fontSize: safeScaledFontSize(t.fontSize.base),

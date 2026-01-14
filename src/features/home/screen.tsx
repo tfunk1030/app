@@ -25,8 +25,7 @@ export default function WeatherScreen() {
   const { conditions } = useEnhancedEnvironmental();
   const { formatTemperature, formatAltitude } = useSettings();
   const t = useTokens();
-  const { mode } = useThemeMode();
-  const isDark = mode === 'dark' || mode === 'system';
+  const { isDark } = useThemeMode();
   const insets = useSafeAreaInsets();
   const { headerEntering, cardEntering } = useAccessibleAnimations();
   const [isLoaded, setIsLoaded] = useState(false);
@@ -40,10 +39,17 @@ export default function WeatherScreen() {
 
   if (!isLoaded || !conditions) {
     return (
-      <View style={[styles.container, { backgroundColor: t.colors.background }]}>
+      <View
+        style={[styles.container, { backgroundColor: t.colors.background }]}
+        accessibilityRole="progressbar"
+        accessibilityLabel="Loading weather conditions"
+      >
         <View style={styles.loadingContainer}>
-          <Cloud size={t.containerSize.icon.lg} color={t.colors.textMuted} />
-          <Text style={[styles.loadingText, { color: t.colors.textMuted }]}>
+          <Cloud size={t.containerSize.icon.lg} color={t.colors.textMuted} accessibilityElementsHidden={true} />
+          <Text
+            style={[styles.loadingText, { color: t.colors.textMuted }]}
+            accessibilityElementsHidden={true}
+          >
             Loading conditions...
           </Text>
         </View>
@@ -74,16 +80,27 @@ export default function WeatherScreen() {
     >
       {/* Header */}
       <Animated.View entering={headerEntering}>
-        <Text style={[styles.title, { color: t.colors.textPrimary }]}>
+        <Text
+          style={[styles.title, { color: t.colors.textPrimary }]}
+          accessibilityRole="header"
+          accessibilityLabel="Current Conditions"
+        >
           Current Conditions
         </Text>
-        <Text style={[styles.subtitle, { color: t.colors.textMuted }]}>
+        <Text
+          style={[styles.subtitle, { color: t.colors.textMuted }]}
+          accessibilityLabel="Real-time environmental data"
+        >
           Real-time environmental data
         </Text>
       </Animated.View>
 
       {/* Temperature Card - Hero section */}
-      <Animated.View entering={cardEntering(0)}>
+      <Animated.View
+        entering={cardEntering(0)}
+        accessibilityRole="text"
+        accessibilityLabel={`Temperature: ${tempValue} ${tempUnit}`}
+      >
         <GlassCard gradient glow style={styles.heroCard}>
           <View style={styles.heroContent}>
             <View
@@ -102,10 +119,13 @@ export default function WeatherScreen() {
               </LinearGradient>
             </View>
             <View style={styles.heroTextContainer}>
-              <Text style={[styles.heroLabel, { color: t.colors.textMuted }]}>
+              <Text
+                style={[styles.heroLabel, { color: t.colors.textMuted }]}
+                accessibilityElementsHidden={true}
+              >
                 Temperature
               </Text>
-              <View style={styles.heroValueRow}>
+              <View style={styles.heroValueRow} accessibilityElementsHidden={true}>
                 <Text style={[styles.heroValue, { color: t.colors.textPrimary }]}>
                   {tempValue}
                 </Text>
@@ -122,6 +142,8 @@ export default function WeatherScreen() {
       <Animated.View
         entering={cardEntering(1)}
         style={styles.gridContainer}
+        accessibilityRole="list"
+        accessibilityLabel="Environmental metrics"
       >
         <View style={styles.gridRow}>
           <MetricTile
@@ -130,6 +152,7 @@ export default function WeatherScreen() {
             value={conditions.humidity.toFixed(0)}
             unit="%"
             style={styles.gridItem}
+            accessibilityLabel={`Humidity: ${conditions.humidity.toFixed(0)} percent`}
           />
           <MetricTile
             icon={<Mountain size={t.fontSize.lg} color={t.colors.brandAlt} />}
@@ -137,6 +160,7 @@ export default function WeatherScreen() {
             value={altValue}
             unit={altUnit}
             style={styles.gridItem}
+            accessibilityLabel={`Altitude: ${altValue} ${altUnit}`}
           />
         </View>
 
@@ -148,6 +172,7 @@ export default function WeatherScreen() {
             unit="hPa"
             style={styles.gridItem}
             highlight={isDark}
+            accessibilityLabel={`Pressure: ${conditions.pressure.toFixed(0)} hectopascals`}
           />
           <MetricTile
             icon={<Wind size={t.fontSize.lg} color={t.colors.brandAlt} />}
@@ -155,21 +180,29 @@ export default function WeatherScreen() {
             value={conditions.density?.toFixed(3) || '0.000'}
             unit="kg/m³"
             style={styles.gridItem}
+            accessibilityLabel={`Air Density: ${conditions.density?.toFixed(3) || '0.000'} kilograms per cubic meter`}
           />
         </View>
       </Animated.View>
 
       {/* Wind Info Card */}
-      <Animated.View entering={cardEntering(2)}>
+      <Animated.View
+        entering={cardEntering(2)}
+        accessibilityRole="text"
+        accessibilityLabel={`Wind Conditions: Speed ${(conditions.windSpeed || 0).toFixed(1)} miles per hour, Direction ${Math.round(conditions.windDirection || 0)} degrees`}
+      >
         <GlassCard accent style={styles.windCard}>
           <View style={styles.windContent}>
             <View style={styles.windHeader}>
-              <Wind size={t.fontSize.xl} color={t.colors.brandAlt} />
-              <Text style={[styles.windLabel, { color: t.colors.textMuted }]}>
+              <Wind size={t.fontSize.xl} color={t.colors.brandAlt} accessibilityElementsHidden={true} />
+              <Text
+                style={[styles.windLabel, { color: t.colors.textMuted }]}
+                accessibilityElementsHidden={true}
+              >
                 Wind Conditions
               </Text>
             </View>
-            <View style={styles.windRow}>
+            <View style={styles.windRow} accessibilityElementsHidden={true}>
               <View style={styles.windItem}>
                 <Text style={[styles.windItemLabel, { color: t.colors.textMuted }]}>
                   Speed
@@ -193,14 +226,23 @@ export default function WeatherScreen() {
       </Animated.View>
 
       {/* Data freshness indicator */}
-      <Animated.View entering={cardEntering(3)} style={styles.freshness}>
+      <Animated.View
+        entering={cardEntering(3)}
+        style={styles.freshness}
+        accessibilityRole="text"
+        accessibilityLabel="Data updated just now"
+      >
         <View
           style={[
             styles.freshnessIndicator,
             { backgroundColor: t.colors.successGlow },
           ]}
+          accessibilityElementsHidden={true}
         />
-        <Text style={[styles.freshnessText, { color: t.colors.textMuted }]}>
+        <Text
+          style={[styles.freshnessText, { color: t.colors.textMuted }]}
+          accessibilityElementsHidden={true}
+        >
           Data updated just now
         </Text>
       </Animated.View>

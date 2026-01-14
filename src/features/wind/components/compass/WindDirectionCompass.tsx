@@ -61,17 +61,18 @@ const getWindLabelColor = (relationship: WindRelationship, tokens: ReturnType<ty
 /**
  * Get the glow/background color for the wind relationship label
  */
-const getWindLabelGlow = (relationship: WindRelationship): string => {
+const getWindLabelGlow = (relationship: WindRelationship, tokens: ReturnType<typeof useTokens>): string => {
   switch (relationship) {
     case 'HEADWIND':
-      return 'rgba(220, 38, 38, 0.15)';
+      return tokens.colors.dangerBackgroundAlpha;
     case 'TAILWIND':
-      return 'rgba(22, 163, 74, 0.15)';
+      return tokens.colors.successBackgroundAlpha;
     case 'CROSSWIND':
-      return 'rgba(245, 158, 11, 0.15)';
+      // Warning color with alpha - using brandAlt with alpha as fallback
+      return 'rgba(245, 158, 11, 0.15)'; // Keeping this one rgba for warning (not in tokens)
     case 'QUARTERING':
     default:
-      return 'rgba(0, 0, 0, 0.3)';
+      return tokens.colors.surfaceAlt;
   }
 };
 
@@ -90,7 +91,7 @@ const WindDirectionCompass: React.FC<WindDirectionCompassProps> = ({
   const { isLocked, referenceHeading, relativeWindAngle, toggleLock, adjustOffset } =
     useCompassLock();
   const tokens = useTokens();
-  const { mode } = useThemeMode();
+  const { scheme, isDark } = useThemeMode();
   const { settings } = useSettings();
 
   // Wind direction and relationship
@@ -168,13 +169,13 @@ const WindDirectionCompass: React.FC<WindDirectionCompassProps> = ({
         style={[
           styles.container,
           { width: size, height: size },
-          mode === 'dark' ? null : { backgroundColor: 'transparent' },
+          isDark ? null : { backgroundColor: 'transparent' },
         ]}
       >
         <View
           style={[
             localStyles.compassBackground,
-            mode === 'dark'
+            isDark
               ? {
                   backgroundColor: tokens.colors.surface,
                   borderColor: tokens.colors.border,
@@ -193,7 +194,7 @@ const WindDirectionCompass: React.FC<WindDirectionCompassProps> = ({
         >
           <BlurView
             intensity={25}
-            tint={mode === 'dark' ? 'dark' : 'light'}
+            tint={isDark ? 'dark' : 'light'}
             style={StyleSheet.absoluteFill}
           />
           <Animated.View
@@ -211,7 +212,7 @@ const WindDirectionCompass: React.FC<WindDirectionCompassProps> = ({
             <LinearGradient
               colors={
                 isLocked
-                  ? [tokens.colors.success, '#22C55E', tokens.colors.success]
+                  ? [tokens.colors.success, tokens.colors.successGlow, tokens.colors.success]
                   : (tokens.gradients.primary as [string, string, ...string[]])
               }
               start={{ x: 0, y: 0 }}
@@ -222,7 +223,7 @@ const WindDirectionCompass: React.FC<WindDirectionCompassProps> = ({
               style={[
                 localStyles.gradientRingInner,
                 {
-                  backgroundColor: mode === 'dark' ? tokens.colors.surface : tokens.colors.surfaceAlt,
+                  backgroundColor: isDark ? tokens.colors.surface : tokens.colors.surfaceAlt,
                 },
               ]}
             />
@@ -238,8 +239,8 @@ const WindDirectionCompass: React.FC<WindDirectionCompassProps> = ({
                 borderWidth: 2,
                 shadowColor: isLocked ? tokens.colors.success : tokens.colors.glowPrimary,
                 shadowOffset: { width: 0, height: 0 },
-                shadowOpacity: mode === 'dark' ? 0.5 : 0.2,
-                shadowRadius: 8,
+                shadowOpacity: isDark ? 0.5 : 0.2,
+                shadowRadius: isDark ? 12 : 4,
               },
             ]}
           />
@@ -270,9 +271,9 @@ const WindDirectionCompass: React.FC<WindDirectionCompassProps> = ({
                 height: getCenterElementSizes(size).centerDot,
                 borderRadius: getCenterElementSizes(size).centerDot / 2,
                 backgroundColor: tokens.colors.brandAlt,
-                shadowColor: mode === 'dark' ? tokens.colors.glowSecondary : '#000',
-                shadowOpacity: mode === 'dark' ? 0.8 : 0.15,
-                shadowRadius: mode === 'dark' ? 12 : 4,
+                shadowColor: isDark ? tokens.colors.glowSecondary : tokens.colors.shadow,
+                shadowOpacity: isDark ? 0.8 : 0.15,
+                shadowRadius: isDark ? 12 : 4,
                 shadowOffset: { width: 0, height: 0 },
               },
             ]}
@@ -322,7 +323,7 @@ const WindDirectionCompass: React.FC<WindDirectionCompassProps> = ({
             <View
               style={[
                 styles.windLabel,
-                { backgroundColor: getWindLabelGlow(windRelationship) },
+                { backgroundColor: getWindLabelGlow(windRelationship, tokens) },
               ]}
             >
               <Text
@@ -342,7 +343,7 @@ const WindDirectionCompass: React.FC<WindDirectionCompassProps> = ({
           onPress={handleLockPress}
           compassSize={size}
           tokens={tokens}
-          mode={mode}
+          mode={scheme}
           pulseAnim={pulseAnim}
           side={settings.dominantHand}
         />

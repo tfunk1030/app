@@ -27,6 +27,7 @@ interface MetricTileProps {
   highlight?: boolean; // Enable glow border effect
   trend?: 'up' | 'down' | 'neutral'; // Optional trend indicator
   onPress?: () => void;
+  accessibilityLabel?: string; // Custom accessibility label for screen readers
 }
 
 export const MetricTile: React.FC<MetricTileProps> = ({
@@ -38,10 +39,10 @@ export const MetricTile: React.FC<MetricTileProps> = ({
   highlight = false,
   trend,
   onPress,
+  accessibilityLabel,
 }) => {
   const t = useTokens();
-  const { mode } = useThemeMode();
-  const isDark = mode === 'dark' || mode === 'system';
+  const { isDark } = useThemeMode();
 
   // Token-based border radius values for consistency with GlassCard
   const cardBorderRadius = t.borderRadius.xl; // 16
@@ -282,6 +283,8 @@ export const MetricTile: React.FC<MetricTileProps> = ({
     </>
   );
 
+  const defaultAccessibilityLabel = `${label} ${value}${unit ? ` ${unit}` : ''}`;
+
   if (onPress) {
     return (
       <AnimatedPressable
@@ -290,7 +293,7 @@ export const MetricTile: React.FC<MetricTileProps> = ({
         onPressOut={handlePressOut}
         style={[dynamicStyles.card, getShadowStyle(), animatedStyle, style]}
         accessible
-        accessibilityLabel={`${label} ${value}${unit ? ` ${unit}` : ''}`}
+        accessibilityLabel={accessibilityLabel || defaultAccessibilityLabel}
         accessibilityRole="button"
       >
         {content}
@@ -302,7 +305,7 @@ export const MetricTile: React.FC<MetricTileProps> = ({
     <Animated.View
       style={[dynamicStyles.card, getShadowStyle(), style]}
       accessible
-      accessibilityLabel={`${label} ${value}${unit ? ` ${unit}` : ''}`}
+      accessibilityLabel={accessibilityLabel || defaultAccessibilityLabel}
     >
       {content}
     </Animated.View>

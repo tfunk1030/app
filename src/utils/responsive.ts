@@ -5,7 +5,7 @@ const BASE_WIDTH = 375;
 const BASE_HEIGHT = 812;
 
 // Accessibility constants
-const MIN_TOUCH_TARGET = 44; // iOS minimum touch target size in points
+const MIN_TOUCH_TARGET = 48; // Project requirement: 48dp for glove use (increased from iOS 44pt minimum)
 const MAX_FONT_SCALE = 1.35; // Maximum font scale to prevent layout breaking
 const MIN_FONT_SCALE = 0.85; // Minimum font scale for readability
 const SAFE_FONT_SCALE_FACTOR = 0.3; // How much to respect system font scale (0-1)
