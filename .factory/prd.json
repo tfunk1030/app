@@ -1,0 +1,76 @@
+{
+  "name": "Droid Factory",
+  "description": "Automated droid orchestration for AICaddyPro quality pipelines",
+  "branchName": "auto",
+  "currentDroid": null,
+  "currentTask": null,
+  "availableDroids": {
+    "release-ops": {
+      "description": "App Store submissions, EAS builds, release assets",
+      "triggers": ["/appstore-blockers", "app store", "eas build", "release"],
+      "tools": ["Read", "Edit", "Execute", "Grep", "Glob", "LS"]
+    },
+    "weather-integrator": {
+      "description": "Weather API reliability, caching, offline behavior",
+      "triggers": ["/weather-check", "weather api", "offline", "caching"],
+      "tools": ["Read", "Execute", "Grep", "Glob", "LS"]
+    },
+    "security-privacy": {
+      "description": "Security audit, privacy compliance, data handling",
+      "triggers": ["/security-audit", "security", "privacy", "gdpr", "secrets"],
+      "tools": ["Read", "Grep", "Glob", "LS", "Execute"]
+    },
+    "performance": {
+      "description": "RN profiling, memory, startup, battery",
+      "triggers": ["/perf-audit", "performance", "memory", "re-render", "battery"],
+      "tools": ["Read", "Execute", "Grep", "Glob", "LS"]
+    },
+    "ui-reviewer": {
+      "description": "UI/UX audits (audit-only, delegates fixes)",
+      "triggers": ["/ui-audit", "ui review", "design review", "accessibility"],
+      "tools": ["Read", "LS", "Grep", "Glob"]
+    },
+    "design-enforcer": {
+      "description": "Fix UI issues after audit (implementation-only)",
+      "triggers": ["/fix-card-soup", "fix ui", "design fix"],
+      "tools": ["Read", "Edit", "Grep", "Glob", "LS"]
+    },
+    "physics-validator": {
+      "description": "Golf physics calculations, ball flight, wind effects",
+      "triggers": ["/physics-test", "physics", "calculations", "ball flight"],
+      "tools": ["Read", "Edit", "Execute", "Grep", "Glob"]
+    },
+    "code-reviewer": {
+      "description": "Code quality, TypeScript, patterns",
+      "triggers": ["/pre-pr", "code review", "typescript", "lint"],
+      "tools": ["Read", "Execute", "LS", "Grep", "Glob"]
+    },
+    "researcher": {
+      "description": "Codebase exploration, context gathering",
+      "triggers": ["research", "explore", "find", "understand"],
+      "tools": ["Read", "LS", "Glob", "Grep"]
+    }
+  },
+  "taskQueue": [],
+  "completedTasks": [],
+  "globalChecks": {
+    "typecheck": {
+      "command": "npx tsc --noEmit",
+      "required": true,
+      "lastRun": null,
+      "passes": null
+    },
+    "lint": {
+      "command": "npx expo lint",
+      "required": false,
+      "lastRun": null,
+      "passes": null
+    }
+  },
+  "settings": {
+    "maxIterations": 20,
+    "autoCommit": false,
+    "requireTypecheck": true,
+    "outputDir": ".factory/reviews"
+  }
+}
