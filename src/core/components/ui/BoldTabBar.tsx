@@ -123,6 +123,9 @@ const TabButton: React.FC<TabButtonProps> = ({
         color: isDark ? 'rgba(16, 185, 129, 0.2)' : 'rgba(16, 185, 129, 0.15)',
         borderless: true,
       }}
+      accessibilityRole="tab"
+      accessibilityLabel={typeof label === 'string' ? label : route.name}
+      accessibilityState={{ selected: isFocused }}
     >
       <View style={styles.tabButtonContent}>
         {/* Active indicator with gradient */}
@@ -220,6 +223,7 @@ export const BoldTabBar: React.FC<BottomTabBarProps> = ({ state, descriptors, na
                   : 'rgba(226, 232, 240, 0.8)',
               },
             ]}
+            accessibilityRole="tablist"
           >
             {state.routes.map((route, index) => {
               const { options } = descriptors[route.key];

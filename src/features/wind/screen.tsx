@@ -20,7 +20,7 @@ import { safeScaledFontSize, getScrollPadding } from '@/src/utils/responsive';
 import { useAccessibleAnimations } from '@/src/hooks/useAccessibility';
 import { Crown, Wind } from 'lucide-react-native';
 import React, { useEffect, useMemo, useState } from 'react';
-import { Platform, Pressable, ScrollView, Text, View, ViewStyle, TextStyle } from 'react-native';
+import { Platform, Pressable, ScrollView, Text, View, ViewStyle, TextStyle, Alert } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -68,7 +68,13 @@ const YardagePresetButton = React.memo<YardagePresetButtonProps>(({
   }), [t, isSelected]);
 
   return (
-    <Pressable onPress={onPress} style={buttonStyle}>
+    <Pressable
+      onPress={onPress}
+      style={buttonStyle}
+      accessibilityRole="button"
+      accessibilityLabel={`Select ${value} yards`}
+      accessibilityState={{ selected: isSelected }}
+    >
       <Text style={textStyle}>{value}</Text>
     </Pressable>
   );
@@ -117,7 +123,7 @@ function WindCalculatorComponent() {
             Wind calculator is available with premium
           </Text>
           <Button
-            onPress={() => {}} // Handle premium upgrade
+            onPress={() => Alert.alert('Premium', 'Wind calculator requires a Premium subscription.')}
             variant="neon"
             size="lg"
             style={styles.premiumButton}
@@ -132,7 +138,11 @@ function WindCalculatorComponent() {
   // Loading state
   if (isLoading) {
     return (
-      <View style={[styles.container, styles.centerContent, { backgroundColor: t.colors.background }]}>
+      <View
+        style={[styles.container, styles.centerContent, { backgroundColor: t.colors.background }]}
+        accessibilityRole="progressbar"
+        accessibilityLabel="Loading wind calculator"
+      >
         <View style={[styles.loadingPulse, { backgroundColor: t.colors.surfaceAlt }]} />
         <View style={[styles.loadingPulse, { backgroundColor: t.colors.surfaceAlt, width: '60%' }]} />
       </View>
@@ -143,7 +153,11 @@ function WindCalculatorComponent() {
   if (!conditions) {
     return (
       <View style={[styles.container, styles.centerContent, { backgroundColor: t.colors.background }]}>
-        <Wind size={t.containerSize.icon.lg} color={t.colors.textMuted} />
+        <Wind
+          size={t.containerSize.icon.lg}
+          color={t.colors.textMuted}
+          accessibilityElementsHidden={true}
+        />
         <Text style={[styles.errorText, { color: t.colors.textMuted }]}>
           Unable to load conditions
         </Text>
@@ -162,7 +176,9 @@ function WindCalculatorComponent() {
     >
       {/* Header */}
       <Animated.View entering={headerEntering}>
-        <Text style={[styles.title, { color: t.colors.textPrimary }]}>Wind Calculator</Text>
+        <Text style={[styles.title, { color: t.colors.textPrimary }]} accessibilityRole="header">
+          Wind Calculator
+        </Text>
         <Text style={[styles.subtitle, { color: t.colors.textMuted }]}>
           Calculate wind effect on your shot
         </Text>
@@ -252,7 +268,11 @@ function WindCalculatorComponent() {
 
       {/* Results Panel */}
       {result && (
-        <Animated.View entering={cardEntering(0)}>
+        <Animated.View
+          entering={cardEntering(0)}
+          accessibilityRole="summary"
+          accessibilityLabel="Wind calculation results"
+        >
           <WindCalculationResults result={result} />
         </Animated.View>
       )}
@@ -335,7 +355,11 @@ export default function WindScreen() {
     return (
       <View style={[styles.container, styles.centerContent, { backgroundColor: t.colors.background }]}>
         <Animated.View entering={headerEntering}>
-          <Wind size={t.containerSize.icon.sm} color={t.colors.textMuted} />
+          <Wind
+            size={t.containerSize.icon.sm}
+            color={t.colors.textMuted}
+            accessibilityElementsHidden={true}
+          />
         </Animated.View>
       </View>
     );

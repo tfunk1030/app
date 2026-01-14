@@ -82,7 +82,7 @@ const SegmentedControl = React.memo<SegmentedControlProps>(({
   }), [t]);
 
   return (
-    <View style={segmentStyles.container}>
+    <View style={segmentStyles.container} accessibilityRole="radiogroup">
       {options.map((option) => {
         const isSelected = option.value === value;
         return (
@@ -93,8 +93,15 @@ const SegmentedControl = React.memo<SegmentedControlProps>(({
               segmentStyles.option,
               isSelected && segmentStyles.optionSelected,
             ]}
+            accessibilityRole="radio"
+            accessibilityLabel={option.label}
+            accessibilityState={{ selected: isSelected }}
           >
-            {option.icon}
+            {option.icon && (
+              <View accessibilityElementsHidden={true}>
+                {option.icon}
+              </View>
+            )}
             <Text
               style={[
                 segmentStyles.text,
@@ -171,9 +178,11 @@ const SettingsRow: React.FC<SettingsRowProps> = ({
         rowStyles.container,
         { backgroundColor: pressed ? t.colors.surfaceAlt : 'transparent' },
       ]}
+      accessibilityRole="button"
+      accessibilityLabel={`${label}${value ? `, ${value}` : ''}`}
     >
       <View style={rowStyles.left}>
-        <View style={rowStyles.iconContainer}>
+        <View style={rowStyles.iconContainer} accessibilityElementsHidden={true}>
           {icon}
         </View>
         <Text style={[rowStyles.label, { color: t.colors.textPrimary }]}>{label}</Text>
@@ -182,7 +191,7 @@ const SettingsRow: React.FC<SettingsRowProps> = ({
         {value && (
           <Text style={[rowStyles.value, { color: t.colors.textMuted }]}>{value}</Text>
         )}
-        {showChevron && <ChevronRight size={18} color={t.colors.textMuted} />}
+        {showChevron && <ChevronRight size={18} color={t.colors.textMuted} accessibilityElementsHidden={true} />}
       </View>
     </Pressable>
   );
@@ -265,6 +274,7 @@ const ClubItem = React.memo<ClubItemProps>(({
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
       style={[clubStyles.item, animatedStyle]}
+      accessibilityLabel={`${club.name}, ${Math.round(displayYardage)} ${unit}`}
     >
       <View style={clubStyles.info}>
         <Text style={[clubStyles.name, { color: t.colors.textPrimary }]}>{club.name}</Text>
@@ -276,14 +286,18 @@ const ClubItem = React.memo<ClubItemProps>(({
         <Pressable
           onPress={onEdit}
           style={[clubStyles.actionButton, { backgroundColor: t.colors.brandBackgroundAlpha }]}
+          accessibilityRole="button"
+          accessibilityLabel={`Edit ${club.name}`}
         >
-          <Pencil size={16} color={t.colors.brand} />
+          <Pencil size={16} color={t.colors.brand} accessibilityElementsHidden={true} />
         </Pressable>
         <Pressable
           onPress={onDelete}
           style={[clubStyles.actionButton, { backgroundColor: t.colors.dangerBackgroundAlpha }]}
+          accessibilityRole="button"
+          accessibilityLabel={`Delete ${club.name}`}
         >
-          <Trash2 size={16} color={t.colors.danger} />
+          <Trash2 size={16} color={t.colors.danger} accessibilityElementsHidden={true} />
         </Pressable>
       </View>
     </AnimatedPressable>
@@ -520,7 +534,9 @@ export default function SettingsScreen() {
     >
       {/* Header */}
       <Animated.View entering={headerEntering}>
-        <Text style={[styles.title, { color: tokens.colors.textPrimary }]}>Settings</Text>
+        <Text style={[styles.title, { color: tokens.colors.textPrimary }]} accessibilityRole="header">
+          Settings
+        </Text>
         <Text style={[styles.subtitle, { color: tokens.colors.textMuted }]}>
           Customize your experience
         </Text>
@@ -530,8 +546,8 @@ export default function SettingsScreen() {
       <Animated.View entering={cardEntering(0)}>
         <GlassCard style={styles.sectionCard}>
           <View style={styles.sectionHeader}>
-            <Palette size={20} color={tokens.colors.brand} />
-            <Text style={[styles.sectionTitle, { color: tokens.colors.textPrimary }]}>
+            <Palette size={20} color={tokens.colors.brand} accessibilityElementsHidden={true} />
+            <Text style={[styles.sectionTitle, { color: tokens.colors.textPrimary }]} accessibilityRole="header">
               Appearance
             </Text>
           </View>
@@ -552,8 +568,8 @@ export default function SettingsScreen() {
       <Animated.View entering={cardEntering(1)}>
         <GlassCard style={styles.sectionCard}>
           <View style={styles.sectionHeader}>
-            <Ruler size={20} color={tokens.colors.brand} />
-            <Text style={[styles.sectionTitle, { color: tokens.colors.textPrimary }]}>
+            <Ruler size={20} color={tokens.colors.brand} accessibilityElementsHidden={true} />
+            <Text style={[styles.sectionTitle, { color: tokens.colors.textPrimary }]} accessibilityRole="header">
               Unit System
             </Text>
           </View>
@@ -601,7 +617,7 @@ export default function SettingsScreen() {
                   <Text style={styles.clubIconText}>G</Text>
                 </LinearGradient>
               </View>
-              <Text style={[styles.sectionTitle, { color: tokens.colors.textPrimary }]}>
+              <Text style={[styles.sectionTitle, { color: tokens.colors.textPrimary }]} accessibilityRole="header">
                 My Clubs
               </Text>
             </View>
@@ -609,8 +625,10 @@ export default function SettingsScreen() {
               <Pressable
                 onPress={() => setShowAddForm(true)}
                 style={styles.addButton}
+                accessibilityRole="button"
+                accessibilityLabel="Add new club"
               >
-                <Plus size={20} color={tokens.colors.brand} />
+                <Plus size={20} color={tokens.colors.brand} accessibilityElementsHidden={true} />
               </Pressable>
             )}
           </View>
@@ -631,6 +649,7 @@ export default function SettingsScreen() {
                   },
                 ]}
                 placeholderTextColor={tokens.colors.textMuted}
+                accessibilityLabel="Club name"
               />
               <TextInput
                 placeholder={`Distance (${settings.distanceUnit})`}
@@ -646,6 +665,7 @@ export default function SettingsScreen() {
                   },
                 ]}
                 placeholderTextColor={tokens.colors.textMuted}
+                accessibilityLabel={`Club distance in ${settings.distanceUnit}`}
               />
               <View style={styles.formButtons}>
                 <Button variant="ghost" onPress={handleCancel} style={styles.formButton}>
@@ -698,8 +718,8 @@ export default function SettingsScreen() {
         <Animated.View entering={cardEntering(3)}>
           <GlassCard style={styles.sectionCard}>
             <View style={styles.sectionHeader}>
-              <Crown size={20} color={tokens.colors.brand} />
-              <Text style={[styles.sectionTitle, { color: tokens.colors.textPrimary }]}>
+              <Crown size={20} color={tokens.colors.brand} accessibilityElementsHidden={true} />
+              <Text style={[styles.sectionTitle, { color: tokens.colors.textPrimary }]} accessibilityRole="header">
                 Premium
               </Text>
               {isTrialActive && (

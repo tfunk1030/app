@@ -201,6 +201,8 @@ export const BoldCard: React.FC<BoldCardProps> = ({
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
         disabled={disabled}
+        accessibilityRole="button"
+        accessibilityState={{ disabled }}
         style={[
           styles.card,
           shadowStyle,

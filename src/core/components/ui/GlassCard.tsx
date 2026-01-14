@@ -205,6 +205,8 @@ export const GlassCard: React.FC<GlassCardProps> = ({
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
         disabled={disabled}
+        accessibilityRole="button"
+        accessibilityState={{ disabled }}
         style={[
           dynamicStyles.card,
           shadowStyle,

@@ -96,7 +96,11 @@ const SectionHeader = memo(function SectionHeader({
         {title}
       </Text>
       {action && onAction && (
-        <Pressable onPress={onAction} accessibilityRole="button">
+        <Pressable
+          onPress={onAction}
+          accessibilityRole="button"
+          accessibilityLabel={action}
+        >
           <Text style={[styles.sectionAction, { color: colors.brand }]}>
             {action}
           </Text>
@@ -203,15 +207,19 @@ const ClubRow = memo(function ClubRow({
           onPress={onEdit}
           style={[styles.clubAction, { backgroundColor: colors.surface }]}
           accessibilityLabel={`Edit ${club.name}`}
+          accessibilityRole="button"
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <Edit3 size={16} color={colors.textMuted} />
+          <Edit3 size={18} color={colors.textMuted} />
         </Pressable>
         <Pressable
           onPress={onDelete}
           style={[styles.clubAction, { backgroundColor: colors.surface }]}
           accessibilityLabel={`Delete ${club.name}`}
+          accessibilityRole="button"
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <Trash2 size={16} color={colors.error} />
+          <Trash2 size={18} color={colors.error} />
         </Pressable>
       </View>
     </View>
@@ -237,7 +245,11 @@ const ThemeSelector = memo(function ThemeSelector({
   ];
 
   return (
-    <View style={styles.themeSelector}>
+    <View
+      style={styles.themeSelector}
+      accessibilityRole="radiogroup"
+      accessibilityLabel="Theme selection"
+    >
       {options.map((option) => (
         <Pressable
           key={option.mode}
@@ -254,6 +266,7 @@ const ThemeSelector = memo(function ThemeSelector({
           ]}
           accessibilityRole="radio"
           accessibilityState={{ selected: value === option.mode }}
+          accessibilityLabel={`${option.label} theme`}
         >
           {option.icon}
           <Text
@@ -335,7 +348,10 @@ export function SetupScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <Text style={[styles.title, { color: colors.textPrimary }]}>
+          <Text
+            style={[styles.title, { color: colors.textPrimary }]}
+            accessibilityRole="header"
+          >
             Setup
           </Text>
           <Text style={[styles.subtitle, { color: colors.textMuted }]}>
@@ -410,7 +426,11 @@ export function SetupScreen() {
           <SectionHeader title="UNITS" />
 
           <View style={[styles.section, { backgroundColor: colors.surface }]}>
-            <View style={styles.unitSelector}>
+            <View
+              style={styles.unitSelector}
+              accessibilityRole="radiogroup"
+              accessibilityLabel="Unit system selection"
+            >
               <Pressable
                 onPress={() => handleUnitChange('imperial')}
                 style={[
@@ -422,6 +442,7 @@ export function SetupScreen() {
                 ]}
                 accessibilityRole="radio"
                 accessibilityState={{ selected: !isMetric }}
+                accessibilityLabel="Imperial units: Yards, Fahrenheit, miles per hour"
               >
                 <Text
                   style={[
@@ -447,6 +468,7 @@ export function SetupScreen() {
                 ]}
                 accessibilityRole="radio"
                 accessibilityState={{ selected: isMetric }}
+                accessibilityLabel="Metric units: Meters, Celsius, kilometers per hour"
               >
                 <Text
                   style={[
@@ -481,6 +503,7 @@ export function SetupScreen() {
                   }}
                   trackColor={{ false: colors.border, true: colors.brand }}
                   thumbColor={colors.surface}
+                  accessibilityLabel="Enable location access"
                 />
               }
             />
@@ -496,6 +519,7 @@ export function SetupScreen() {
                   }}
                   trackColor={{ false: colors.border, true: colors.brand }}
                   thumbColor={colors.surface}
+                  accessibilityLabel="Enable compass"
                 />
               }
             />
@@ -511,6 +535,7 @@ export function SetupScreen() {
                   }}
                   trackColor={{ false: colors.border, true: colors.brand }}
                   thumbColor={colors.surface}
+                  accessibilityLabel="Enable notifications"
                 />
               }
             />
@@ -531,6 +556,7 @@ export function SetupScreen() {
             ]}
             accessibilityRole="button"
             accessibilityLabel="Upgrade to Premium"
+            onPress={() => Alert.alert('Premium', 'Premium features coming soon!')}
           >
             <View style={styles.premiumCardLeft}>
               <Crown size={24} color={colors.brand} />
@@ -703,9 +729,9 @@ const styles = StyleSheet.create({
   },
 
   clubAction: {
-    width: 36,
-    height: 36,
-    borderRadius: 8,
+    width: 44,
+    height: 44,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -726,7 +752,7 @@ const styles = StyleSheet.create({
 
   themeSelector: {
     flexDirection: 'row',
-    gap: 10,
+    gap: 8,
   },
 
   themeOption: {
@@ -749,7 +775,7 @@ const styles = StyleSheet.create({
   unitSelector: {
     flexDirection: 'row',
     padding: 12,
-    gap: 10,
+    gap: 8,
   },
 
   unitOption: {
