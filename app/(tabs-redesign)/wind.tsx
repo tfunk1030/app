@@ -129,6 +129,8 @@ function WindCalculatorRedesign({ sensorAvailable = true }: { sensorAvailable?: 
   const {
     calculate,
     result,
+    error,
+    clearError,
     setWindSpeed,
     setTargetYardage,
   } = useWindCalculator();
@@ -384,6 +386,55 @@ function WindCalculatorRedesign({ sensorAvailable = true }: { sensorAvailable?: 
             ))}
           </View>
         </Animated.View>
+
+        {/* Error Card - Show when calculation fails */}
+        {error && (
+          <Animated.View entering={cardEntering(2)} style={styles.errorCard}>
+            <View style={[styles.errorContent, { backgroundColor: colors.danger + '1A', borderColor: colors.danger }]}>
+              <View style={styles.errorInfo}>
+                <AlertTriangle size={20} color={colors.danger} />
+                <View style={styles.errorTextContainer}>
+                  <Text style={[styles.errorTitle, { color: colors.danger }]}>
+                    Calculation Error
+                  </Text>
+                  <Text style={[styles.errorMessage, { color: colors.textSecondary }]}>
+                    {error}
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.errorActions}>
+                <Pressable
+                  style={[styles.retryButton, { backgroundColor: colors.danger }]}
+                  onPress={() => {
+                    clearError();
+                    triggerCalculation();
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                  }}
+                  accessibilityLabel="Retry wind calculation"
+                  accessibilityRole="button"
+                  accessibilityHint="Attempts the wind calculation again"
+                >
+                  <Text style={[styles.retryButtonText, { color: colors.textInverse }]}>
+                    Retry
+                  </Text>
+                </Pressable>
+                <Pressable
+                  style={[styles.dismissButton, { borderColor: colors.border }]}
+                  onPress={() => {
+                    clearError();
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  }}
+                  accessibilityLabel="Dismiss error"
+                  accessibilityRole="button"
+                >
+                  <Text style={[styles.dismissButtonText, { color: colors.textMuted }]}>
+                    Dismiss
+                  </Text>
+                </Pressable>
+              </View>
+            </View>
+          </Animated.View>
+        )}
 
         {/* Result Card - Show immediately after inputs */}
         <Animated.View entering={cardEntering(2)} style={resultAnimatedStyle}>
@@ -923,6 +974,72 @@ const styles = StyleSheet.create({
   windSpeedButtonText: {
     fontSize: 14,
     fontWeight: '600',
+  },
+
+  // Error Card
+  errorCard: {
+    marginBottom: 16,
+  },
+
+  errorContent: {
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+
+  errorInfo: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    marginBottom: 16,
+  },
+
+  errorTextContainer: {
+    flex: 1,
+  },
+
+  errorTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+
+  errorMessage: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
+
+  errorActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+
+  retryButton: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  retryButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+  },
+
+  dismissButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  dismissButtonText: {
+    fontSize: 15,
+    fontWeight: '500',
   },
 
   // Result

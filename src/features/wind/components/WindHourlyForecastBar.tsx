@@ -7,9 +7,11 @@ import { useTokens } from '@/src/theme/useTokens';
 import { LogManager } from '@/src/utils/LogManager';
 import { safeScaledFontSize, getTouchTargetSize } from '@/src/utils/responsive';
 import * as Location from 'expo-location';
-import { ArrowUp } from 'lucide-react-native';
-import React, { useMemo } from 'react';
-import { Text, View } from 'react-native';
+import * as Linking from 'expo-linking';
+import { ArrowUp, MapPin, Settings } from 'lucide-react-native';
+import React, { useMemo, useCallback } from 'react';
+import { Text, View, Pressable, Platform } from 'react-native';
+import * as Haptics from 'expo-haptics';
 
 const logger = LogManager.getLogger('WindHourlyForecastBar');
 
@@ -143,13 +145,88 @@ export function WindHourlyForecastBar() {
     );
   }
 
+  // Permission error CTA handlers
+  const handleRequestPermission = useCallback(async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status === 'granted') {
+        // Re-trigger the effect by clearing error state
+        setError(null);
+        setLoading(true);
+      }
+    } catch (e) {
+      logger.error('Failed to request location permission', e as Error);
+    }
+  }, []);
+
+  const handleOpenSettings = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    Linking.openSettings();
+  }, []);
+
+  const isPermissionError = error?.includes('permission') || error?.includes('Location');
+
   if (error || !points || points.length === 0) {
     return (
       <GlassCard style={styles.container}>
         <SectionHeader title="5-hour Wind Forecast" />
-        <Text style={[styles.errorText, { color: t.colors.danger }]}>
-          {error || 'Forecast unavailable'}
-        </Text>
+        <View style={{ alignItems: 'center', gap: t.spacing.sm }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: t.spacing.xs }}>
+            {isPermissionError && <MapPin size={t.fontSize.sm} color={t.colors.danger} />}
+            <Text style={[styles.errorText, { color: t.colors.danger }]}>
+              {error || 'Forecast unavailable'}
+            </Text>
+          </View>
+          {isPermissionError && (
+            <View style={{ flexDirection: 'row', gap: t.spacing.sm, marginTop: t.spacing.xs }}>
+              <Pressable
+                onPress={handleRequestPermission}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: t.spacing.xs,
+                  backgroundColor: t.colors.brand,
+                  paddingVertical: t.spacing.sm,
+                  paddingHorizontal: t.spacing.base,
+                  borderRadius: t.borderRadius.md,
+                  minHeight: 44,
+                }}
+                accessibilityRole="button"
+                accessibilityLabel="Grant location permission"
+                accessibilityHint="Opens permission request to allow location access for weather forecast"
+              >
+                <MapPin size={t.fontSize.sm} color={t.colors.textInverse} />
+                <Text style={{ color: t.colors.textInverse, fontWeight: t.fontWeight.semibold, fontSize: safeScaledFontSize(t.fontSize.sm) }}>
+                  Grant Permission
+                </Text>
+              </Pressable>
+              <Pressable
+                onPress={handleOpenSettings}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: t.spacing.xs,
+                  backgroundColor: t.colors.surfaceAlt,
+                  paddingVertical: t.spacing.sm,
+                  paddingHorizontal: t.spacing.base,
+                  borderRadius: t.borderRadius.md,
+                  borderWidth: t.borderWidth.thin,
+                  borderColor: t.colors.border,
+                  minHeight: 44,
+                }}
+                accessibilityRole="button"
+                accessibilityLabel="Open settings"
+                accessibilityHint="Opens app settings to manage location permissions"
+              >
+                <Settings size={t.fontSize.sm} color={t.colors.textMuted} />
+                <Text style={{ color: t.colors.textPrimary, fontWeight: t.fontWeight.medium, fontSize: safeScaledFontSize(t.fontSize.sm) }}>
+                  Settings
+                </Text>
+              </Pressable>
+            </View>
+          )}
+        </View>
       </GlassCard>
     );
   }

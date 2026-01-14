@@ -3,7 +3,6 @@ import { Slider } from '@/src/core/components/ui/slider';
 import { SkeletonScreen } from '@/src/core/components/ui/Skeleton';
 import { useAccessibleAnimations } from '@/src/hooks/useAccessibility';
 import { useEnhancedEnvironmental } from '@/src/providers/EnhancedEnvironmentalProvider';
-import { useThemeMode } from '@/src/theme/ThemeProvider';
 import { useTokens } from '@/src/theme/useTokens';
 import { safeScaledFontSize, getScrollPadding } from '@/src/utils/responsive';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -38,8 +37,6 @@ export default function ShotCalculatorScreen() {
   const { settings, formatDistance, formatTemperature, formatAltitude } = useSettings();
   const { setShotCalcData } = useShotCalc();
   const t = useTokens();
-  const { mode } = useThemeMode();
-  const isDark = mode === 'dark' || mode === 'system';
   const insets = useSafeAreaInsets();
   const { headerEntering, cardEntering } = useAccessibleAnimations();
   const [targetYardage, setTargetYardage] = React.useState(150);
@@ -148,7 +145,12 @@ export default function ShotCalculatorScreen() {
     >
       {/* Header */}
       <Animated.View entering={headerEntering}>
-        <Text style={[styles.title, { color: t.colors.textPrimary }]}>Shot Calculator</Text>
+        <Text
+          style={[styles.title, { color: t.colors.textPrimary }]}
+          accessibilityRole="header"
+        >
+          Shot Calculator
+        </Text>
         <Text style={[styles.subtitle, { color: t.colors.textMuted }]}>
           Environmental shot adjustments
         </Text>
@@ -312,6 +314,8 @@ const ConditionChip = React.memo<ConditionChipProps>(({ icon, value, tokens: t }
     </View>
   );
 });
+
+ConditionChip.displayName = 'ConditionChip';
 
 /**
  * Creates token-based styles for Shot Calculator screen

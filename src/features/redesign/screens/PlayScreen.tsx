@@ -323,7 +323,10 @@ export function PlayScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <Text style={[styles.title, { color: colors.textPrimary }]}>
+          <Text
+            style={[styles.title, { color: colors.textPrimary }]}
+            accessibilityRole="header"
+          >
             Your Shot
           </Text>
           <Text style={[styles.subtitle, { color: colors.textMuted }]}>

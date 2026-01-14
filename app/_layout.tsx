@@ -176,26 +176,23 @@ const RootLayoutNav = () => {
     checkOnboardingStatus();
   }, []);
 
-  // Check and request permissions on mount
+  // Check location permission status on mount (but don't request - defer to feature usage)
+  // Per P1 requirement: Location permission should only be requested when user enters
+  // a location-dependent flow (e.g., Wind Calculator) with proper rationale context
   useEffect(() => {
-    async function checkAndRequestPermissions() {
+    async function checkPermissionStatus() {
       try {
         const { status } = await Location.getForegroundPermissionsAsync();
-
-        if (status !== 'granted') {
-          // Request permission if not already granted
-          const { status: newStatus } = await Location.requestForegroundPermissionsAsync();
-          setPermissionGranted(newStatus === 'granted');
-        } else {
-          setPermissionGranted(true);
-        }
+        // Just check status - don't request permission here
+        // Permission will be requested in context when user needs location features
+        setPermissionGranted(status === 'granted');
       } catch (error) {
-        console.error('Error checking or requesting location permissions:', error);
+        console.error('Error checking location permissions:', error);
         setPermissionGranted(false);
       }
     }
 
-    checkAndRequestPermissions();
+    checkPermissionStatus();
   }, []);
 
   // Handle onboarding completion
