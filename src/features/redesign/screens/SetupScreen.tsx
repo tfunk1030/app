@@ -24,6 +24,7 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
+import * as Linking from 'expo-linking';
 import {
   ChevronRight,
   Plus,
@@ -43,7 +44,12 @@ import {
   HelpCircle,
   MessageSquare,
   Shield,
+  FileText,
 } from 'lucide-react-native';
+
+// Legal URLs
+const PRIVACY_POLICY_URL = 'https://tfunk1030.github.io/aicaddypro-legal/privacy';
+const TERMS_OF_SERVICE_URL = 'https://tfunk1030.github.io/aicaddypro-legal/terms';
 
 import { useRedesignTheme, ThemeMode } from '@/src/theme/redesign';
 import { QuickAction } from '@/src/components/redesign/QuickAction';
@@ -591,7 +597,12 @@ export function SetupScreen() {
             <SettingRow
               icon={<Shield size={18} color={colors.brand} />}
               label="Privacy Policy"
-              onPress={() => Alert.alert('Privacy', 'Privacy policy coming soon!')}
+              onPress={() => Linking.openURL(PRIVACY_POLICY_URL)}
+            />
+            <SettingRow
+              icon={<FileText size={18} color={colors.brand} />}
+              label="Terms of Service"
+              onPress={() => Linking.openURL(TERMS_OF_SERVICE_URL)}
             />
           </View>
         </Animated.View>
