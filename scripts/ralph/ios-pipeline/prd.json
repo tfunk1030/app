@@ -14,9 +14,16 @@
     "enabled": true,
     "runAfterAllComponents": true,
     "passes": false,
-    "status": "CONDITIONAL_PASS",
-    "blockers": ["1024x1024 icon required", "Privacy Policy URL required"],
-    "auditedAt": "2024-01-13"
+    "status": "REJECT",
+    "blockers": [
+      "P0-1: 1024x1024 icon required",
+      "P0-2: Privacy Policy URL required",
+      "P0-3: Terms of Service URL required (upgraded from P1)",
+      "P0-4: App Store Connect metadata incomplete"
+    ],
+    "auditedAt": "2024-01-13",
+    "crossReviewedBy": "GPT-5.2-codex",
+    "crossReviewDate": "2024-01-13"
   },
   "userStories": [
     {
@@ -167,12 +174,12 @@
         "audit": {
           "status": "complete",
           "output": "reviews/IOS-004-audit.md",
-          "findings": "P0: Privacy Policy shows placeholder, P1: ToS missing, RevenueCat OK"
+          "findings": "P0: Privacy Policy placeholder, P0: ToS missing (upgraded), RevenueCat OK"
         },
         "implementation": {
           "status": "blocked",
           "output": null,
-          "blockedBy": "user-provided-privacy-policy-url"
+          "blockedBy": ["user-provided-privacy-policy-url", "user-provided-tos-url"]
         },
         "verification": {
           "status": "pending",
@@ -375,12 +382,18 @@
         "global-audit": {
           "status": "complete",
           "output": "reviews/IOS-GLOBAL-checklist.md",
-          "findings": "CONDITIONAL PASS - 2 P0 blockers: icon size, privacy policy URL"
+          "findings": "REJECT - 4 P0 blockers: icon, privacy policy, ToS, App Store Connect metadata",
+          "crossReview": {
+            "reviewer": "GPT-5.2-codex",
+            "date": "2024-01-13",
+            "verdict": "REJECT",
+            "improvements": ["ToS upgraded to P0", "Added App Store Connect metadata", "Added screenshot requirements", "Added verification evidence tracker"]
+          }
         },
         "final-fixes": {
           "status": "blocked",
           "output": null,
-          "blockedBy": "user-provided-assets"
+          "blockedBy": ["user-provided-icon", "user-provided-privacy-url", "user-provided-tos-url", "app-store-connect-metadata"]
         },
         "submission-checklist": {
           "status": "pending",

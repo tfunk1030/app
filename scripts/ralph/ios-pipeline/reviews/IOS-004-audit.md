@@ -1,8 +1,9 @@
 # IOS-004: In-App Purchases & Subscriptions - Audit
 
 **Date:** 2024-01-13
-**Status:** PARTIAL PASS
-**Priority Issues Found:** 1 P0, 1 P1
+**Updated:** 2024-01-13 (GPT Review)
+**Status:** BLOCKED
+**Priority Issues Found:** 2 P0 blockers
 
 ## Requirements Checklist
 
@@ -75,15 +76,28 @@ onPress={() => Alert.alert('Privacy', 'Privacy policy coming soon!')}
 onPress={() => Linking.openURL('https://aicaddypro.com/privacy')}
 ```
 
-## P1 - Should Fix
+## P0 - Submission Blockers (continued)
 
-### 1. Terms of Service Link Missing
+### 2. Terms of Service Link Missing (UPGRADED from P1)
 **Location:** SetupScreen.tsx
 **Issue:** No Terms of Service link found
-**Impact:** Apple may require ToS for subscription apps
-**Fix:** Add Terms of Service link near Privacy Policy
+**Impact:** Apple **requires** ToS for apps with:
+- In-App Purchases
+- Subscriptions
+- User accounts
 
-### 2. Environment Variable Check
+**Why Upgraded:** GPT-5.2-codex cross-review identified this as a submission blocker per Apple Guidelines 3.1.2
+
+**Fix:** Add Terms of Service link near Privacy Policy:
+```typescript
+onPress={() => Linking.openURL('https://aicaddypro.com/terms')}
+```
+
+---
+
+## P1 - Should Fix
+
+### 1. Environment Variable Check
 **Finding:** Test API key is used as fallback
 ```typescript
 ios: process.env.EXPO_PUBLIC_REVENUECAT_IOS_KEY ?? 'test_mDXXzLHCuaHHUPSoSZnePHUSzpM'
@@ -123,11 +137,22 @@ Before submission, ensure in App Store Connect:
 
 ## Recommended Actions
 
-1. **Add real Privacy Policy URL** (P0 - blocker)
-2. **Add Terms of Service link** (P1)
+1. **Add real Privacy Policy URL** (P0-2 - blocker)
+2. **Add Terms of Service link** (P0-3 - blocker, upgraded)
 3. **Verify production API keys** in env vars
 4. **Test complete purchase flow** on TestFlight
 5. **Set up products** in App Store Connect
 
 ## Next Phase
-Implementation needed for P0 Privacy Policy fix.
+Implementation blocked until user provides:
+- Privacy Policy URL
+- Terms of Service URL
+
+---
+
+## Change Log
+
+| Date | Change | Reason |
+|------|--------|--------|
+| 2024-01-13 | Initial audit | iOS pipeline |
+| 2024-01-13 | ToS upgraded to P0 | GPT cross-review - required for IAP |
