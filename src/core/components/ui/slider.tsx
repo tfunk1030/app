@@ -143,8 +143,7 @@ export function Slider({
   glow = true,
 }: SliderProps) {
   const t = useTokens();
-  const { mode } = useThemeMode();
-  const isDark = mode === 'dark' || mode === 'system';
+  const { isDark } = useThemeMode();
 
   // Memoize styles based on token set
   const styles = useMemo(() => createStyles(t), [t]);

@@ -25,10 +25,10 @@ import { useThemeMode } from '@/src/theme/ThemeProvider';
  * @deprecated Use useThemeMode() from @/src/theme/ThemeProvider instead
  */
 export const useTheme = () => {
-  const { mode, setMode } = useThemeMode();
+  const { mode, scheme, setMode } = useThemeMode();
 
   return {
-    theme: mode === 'system' ? 'dark' : mode, // Default to dark for system
+    theme: scheme,
     toggleTheme: () => {
       const newMode = mode === 'light' ? 'dark' : 'light';
       setMode(newMode);

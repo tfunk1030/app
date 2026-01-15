@@ -117,6 +117,8 @@ const SegmentedControl = React.memo<SegmentedControlProps>(({
   );
 });
 
+SegmentedControl.displayName = 'SegmentedControl';
+
 // Settings Row Component
 interface SettingsRowProps {
   icon: React.ReactNode;
@@ -303,6 +305,8 @@ const ClubItem = React.memo<ClubItemProps>(({
     </AnimatedPressable>
   );
 });
+
+ClubItem.displayName = 'ClubItem';
 
 // Create memoized styles function
 const createStyles = (t: Tokens) => ({

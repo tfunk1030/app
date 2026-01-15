@@ -129,23 +129,7 @@ export function WindHourlyForecastBar() {
     }
   }, []);
 
-  // Use getTouchTargetSize to ensure 44pt minimum for icon circles
-  const iconSize = getTouchTargetSize(t.containerSize.icon.sm + 4, { minSize: t.containerSize.icon.md });
-  // Arrow icon size based on icon circle
-  const arrowSize = t.fontSize.lg; // 18
-
-  if (loading) {
-    return (
-      <GlassCard style={styles.container}>
-        <SectionHeader title="5-hour Wind Forecast" />
-        <Text style={[styles.loadingText, { color: t.colors.textMuted }]}>
-          Loading forecast...
-        </Text>
-      </GlassCard>
-    );
-  }
-
-  // Permission error CTA handlers
+  // Permission error CTA handlers - MUST be defined before any early returns
   const handleRequestPermission = useCallback(async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     try {
@@ -165,7 +149,24 @@ export function WindHourlyForecastBar() {
     Linking.openSettings();
   }, []);
 
+  // Use getTouchTargetSize to ensure 44pt minimum for icon circles
+  const iconSize = getTouchTargetSize(t.containerSize.icon.sm + 4, { minSize: t.containerSize.icon.md });
+  // Arrow icon size based on icon circle
+  const arrowSize = t.fontSize.lg; // 18
+
+  // Derived state - safe after all hooks
   const isPermissionError = error?.includes('permission') || error?.includes('Location');
+
+  if (loading) {
+    return (
+      <GlassCard style={styles.container}>
+        <SectionHeader title="5-hour Wind Forecast" />
+        <Text style={[styles.loadingText, { color: t.colors.textMuted }]}>
+          Loading forecast...
+        </Text>
+      </GlassCard>
+    );
+  }
 
   if (error || !points || points.length === 0) {
     return (

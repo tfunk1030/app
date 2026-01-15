@@ -209,8 +209,7 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
   skipPersistence = false,
 }) => {
   const t = useTokens();
-  const { mode } = useThemeMode();
-  const isDark = mode === 'dark' || mode === 'system';
+  const { isDark } = useThemeMode();
   const insets = useSafeAreaInsets();
 
   const [currentIndex, setCurrentIndex] = useState(0);

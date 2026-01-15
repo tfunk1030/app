@@ -15,8 +15,7 @@ export interface InputProps extends TextInputProps {
 const Input = React.forwardRef<TextInput, InputProps>(
   ({ style, containerStyle, onFocus, onBlur, ...props }, ref) => {
     const t = useTokens();
-    const { mode } = useThemeMode();
-    const isDark = mode === 'dark' || mode === 'system';
+    const { isDark } = useThemeMode();
     const [isFocused, setIsFocused] = useState(false);
 
     const handleFocus = useCallback(
@@ -94,6 +93,8 @@ const Input = React.forwardRef<TextInput, InputProps>(
     );
   }
 );
+
+Input.displayName = 'Input';
 
 const styles = StyleSheet.create({
   container: {

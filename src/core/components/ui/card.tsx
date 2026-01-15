@@ -44,8 +44,7 @@ interface CardTextProps {
  */
 export const Card = ({ children, style, gradient = true }: CardProps) => {
   const t = useTokens();
-  const { mode } = useThemeMode();
-  const isDark = mode === 'dark' || mode === 'system';
+  const { isDark } = useThemeMode();
 
   // Use same border radius as GlassCard for consistency
   const cardBorderRadius = t.borderRadius.xl; // 16

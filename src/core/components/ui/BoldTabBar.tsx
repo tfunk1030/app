@@ -44,8 +44,7 @@ const TabButton: React.FC<TabButtonProps> = ({
   options,
 }) => {
   const t = useTokens();
-  const { mode } = useThemeMode();
-  const isDark = mode === 'dark' || mode === 'system';
+  const { isDark } = useThemeMode();
   const reduceMotion = useReduceMotionValue();
 
   // Use useDerivedValue for better performance - animates directly on UI thread
@@ -164,8 +163,7 @@ const TabButton: React.FC<TabButtonProps> = ({
 };
 
 export const BoldTabBar: React.FC<BottomTabBarProps> = ({ state, descriptors, navigation }) => {
-  const { mode } = useThemeMode();
-  const isDark = mode === 'dark' || mode === 'system';
+  const { isDark } = useThemeMode();
   const insets = useSafeAreaInsets();
 
   // Select gradient based on theme

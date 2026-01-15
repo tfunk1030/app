@@ -1,0 +1,202 @@
+{
+  "generatedAt": "2026-01-14T12:30:00Z",
+  "discoveryWindow": {
+    "start": "2026-01-11",
+    "end": "2026-01-14",
+    "days": 3
+  },
+  "validation": {
+    "gptReview": true,
+    "gptModel": "GPT-5.2",
+    "codeVerification": true
+  },
+  "summary": {
+    "totalPlansDiscovered": 189,
+    "activePipelines": 3,
+    "blockedItems": 4,
+    "verifiedImplementations": 5,
+    "gptCorrectedFindings": 3,
+    "plansToDeprecate": 2,
+    "overallStatus": "BLOCKED"
+  },
+  "p0Blockers": [
+    {
+      "id": "P0-1",
+      "title": "App Icon",
+      "type": "user-action",
+      "current": "192x192 PNG with alpha",
+      "required": "1024x1024 PNG, no transparency, sRGB",
+      "evidence": ["assets/images/icon.png"],
+      "owner": "user",
+      "status": "BLOCKED"
+    },
+    {
+      "id": "P0-2",
+      "title": "Privacy Policy URL",
+      "type": "user-action",
+      "current": "Alert placeholder",
+      "required": "Live URL with privacy policy",
+      "evidence": [
+        "src/features/redesign/screens/SetupScreen.tsx:576-595",
+        "app/(tabs-redesign)/setup.tsx:64-68"
+      ],
+      "owner": "user",
+      "status": "BLOCKED"
+    },
+    {
+      "id": "P0-3",
+      "title": "Terms of Service URL",
+      "type": "user-action",
+      "current": "Not implemented",
+      "required": "Live URL with ToS",
+      "evidence": ["grep: no ToS link found"],
+      "owner": "user",
+      "status": "BLOCKED"
+    },
+    {
+      "id": "P0-4",
+      "title": "App Store Connect Metadata",
+      "type": "user-action",
+      "current": "Incomplete",
+      "required": "Screenshots, subtitle, description, keywords, support URL",
+      "evidence": ["scripts/ralph/ios-pipeline/reviews/IOS-GLOBAL-checklist.md"],
+      "owner": "user",
+      "status": "BLOCKED"
+    },
+    {
+      "id": "P0-5",
+      "title": "Location Permission Deferred",
+      "type": "code-change",
+      "current": "Permission requested on launch",
+      "required": "Defer until location-dependent flow",
+      "evidence": [
+        "app/_layout.tsx:183",
+        "app/_layout.tsx:187"
+      ],
+      "owner": "developer",
+      "status": "NOT_STARTED"
+    },
+    {
+      "id": "P0-6",
+      "title": "Wind Flow Robustness",
+      "type": "code-change",
+      "current": "Error set but not rendered",
+      "required": "Visible error UI with retry",
+      "evidence": [
+        "src/features/wind/hooks/useWindCalculator.ts:49-260",
+        "src/features/wind/screen.tsx:85-197"
+      ],
+      "owner": "developer",
+      "status": "PARTIAL"
+    }
+  ],
+  "p1Items": [
+    {
+      "id": "P1-1",
+      "title": "Accessibility Headers on Play + Calculator",
+      "files": [
+        "src/features/redesign/screens/PlayScreen.tsx",
+        "src/features/calculator/screen.tsx"
+      ],
+      "status": "NOT_STARTED"
+    },
+    {
+      "id": "P1-2",
+      "title": "Forecast Error CTAs",
+      "files": ["src/features/wind/components/WindHourlyForecastBar.tsx"],
+      "status": "NOT_STARTED"
+    }
+  ],
+  "verifiedImplementations": [
+    {
+      "item": "ThemeProvider isDark/effectiveScheme",
+      "evidence": "src/theme/ThemeProvider.tsx:12,49,56",
+      "verifiedBy": ["code", "gpt"]
+    },
+    {
+      "item": "OS Appearance Listener",
+      "evidence": "src/theme/ThemeProvider.tsx:24-31",
+      "verifiedBy": ["code", "gpt"]
+    },
+    {
+      "item": "mode === 'dark' || mode === 'system' removed",
+      "evidence": "grep: 0 matches",
+      "verifiedBy": ["code", "gpt"]
+    },
+    {
+      "item": "MIN_TOUCH_TARGET = 48",
+      "evidence": "src/utils/responsive.ts:8",
+      "verifiedBy": ["code", "gpt"]
+    },
+    {
+      "item": "UI-001 through UI-007 complete",
+      "evidence": "scripts/ralph/ui-pipeline/prd.json",
+      "verifiedBy": ["prd-status"]
+    }
+  ],
+  "contradictionsResolved": [
+    {
+      "claim": "36 files with accessibilityRole=header",
+      "actual": "10 occurrences (6 in src/features, 4 in app/)",
+      "resolution": "FALSE - count included documentation files"
+    },
+    {
+      "claim": "19 files with incorrect isDark computation",
+      "actual": "0 matches remaining",
+      "resolution": "STALE - pattern was removed"
+    }
+  ],
+  "plansStatus": {
+    "continue": [
+      "docs/UI_UX_FINAL_CONSOLIDATED_PLAN.md",
+      "scripts/ralph/ios-pipeline/reviews/IOS-GLOBAL-checklist.md",
+      "scripts/ralph/ui-pipeline/progress.txt",
+      ".factory/progress.txt",
+      ".factory/prd.json",
+      "scripts/ralph/ios-pipeline/prd.json",
+      "scripts/ralph/ui-pipeline/prd.json"
+    ],
+    "deprecate": [
+      "combinedplan.md",
+      "droidplan.md",
+      "2026findings.md"
+    ]
+  },
+  "executionOrder": [
+    {
+      "phase": 1,
+      "title": "User-Provided Assets",
+      "blocksSubmission": true,
+      "tasks": [
+        "Create 1024x1024 app icon",
+        "Host Privacy Policy",
+        "Host Terms of Service",
+        "Complete App Store Connect metadata"
+      ]
+    },
+    {
+      "phase": 2,
+      "title": "P0 Code Changes",
+      "tasks": [
+        "Defer location permission",
+        "Wind calculation error UI + retry"
+      ]
+    },
+    {
+      "phase": 3,
+      "title": "P1 Accessibility",
+      "tasks": [
+        "Add headers to PlayScreen + Calculator",
+        "Forecast error permission/settings CTAs"
+      ]
+    },
+    {
+      "phase": 4,
+      "title": "Close Pipelines",
+      "tasks": [
+        "Run UI-GLOBAL commit",
+        "Final iOS submission verification"
+      ]
+    }
+  ]
+}

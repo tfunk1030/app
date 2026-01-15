@@ -139,8 +139,7 @@ const TabButton: React.FC<TabButtonProps> = ({
 
 export const FloatingTabBar: React.FC<BottomTabBarProps> = ({ state, descriptors, navigation }) => {
   const t = useTokens();
-  const { mode } = useThemeMode();
-  const isDark = mode === 'dark' || mode === 'system';
+  const { isDark } = useThemeMode();
   const insets = useSafeAreaInsets();
   const styles = useMemo(() => createStyles(t), [t]);
 

@@ -78,8 +78,7 @@ interface PresetItemProps {
 
 const PresetItem = memo(({ preset, onLoad, onDelete, isSelected }: PresetItemProps) => {
   const t = useTokens();
-  const { mode } = useThemeMode();
-  const isDark = mode === 'dark' || mode === 'system';
+  const { isDark } = useThemeMode();
   const scale = useSharedValue(1);
 
   const animatedStyle = useAnimatedStyle(() => ({
@@ -192,8 +191,7 @@ const SavePresetModal = memo(({
   existingNames,
 }: SavePresetModalProps) => {
   const t = useTokens();
-  const { mode } = useThemeMode();
-  const isDark = mode === 'dark' || mode === 'system';
+  const { isDark } = useThemeMode();
   const [name, setName] = useState('');
   const [error, setError] = useState<string | null>(null);
 
@@ -311,8 +309,7 @@ export const PresetSelector = memo(({
   style,
 }: PresetSelectorProps) => {
   const t = useTokens();
-  const { mode } = useThemeMode();
-  const isDark = mode === 'dark' || mode === 'system';
+  const { isDark } = useThemeMode();
   const {
     presets,
     isLoading,

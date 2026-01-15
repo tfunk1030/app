@@ -98,8 +98,7 @@ export const OnboardingStep: React.FC<OnboardingStepProps> = ({
   style,
 }) => {
   const t = useTokens();
-  const { mode } = useThemeMode();
-  const isDark = mode === 'dark' || mode === 'system';
+  const { isDark } = useThemeMode();
   const reduceMotion = useReduceMotionValue();
 
   // Subtle pulse animation for active step icon

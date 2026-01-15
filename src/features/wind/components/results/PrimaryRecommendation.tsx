@@ -28,11 +28,15 @@ export function PrimaryRecommendation({ effectiveDistance }: PrimaryRecommendati
   const unitLabel = settings.distanceUnit === 'yards' ? 'yards' : 'm';
 
   return (
-    <View style={styles.container}>
+    <View
+      style={styles.container}
+      accessible={true}
+      accessibilityLabel={`Plays like ${roundedDistance} ${unitLabel}`}
+    >
       <Text style={styles.label} accessibilityRole="header">
-        Play this shot
+        Plays Like
       </Text>
-      <View style={styles.valueRow}>
+      <View style={styles.valueRow} importantForAccessibility="no-hide-descendants">
         <Text style={styles.value}>
           {roundedDistance}
         </Text>

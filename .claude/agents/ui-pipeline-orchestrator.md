@@ -1,34 +1,6 @@
 ---
 name: ui-pipeline-orchestrator
-description: Use this agent when user says "run UI pipeline", "multi-agent UI review", "review and polish screens", "RAMS and GPT review", "design polish workflow", or wants automated UI critique from multiple AI perspectives. Examples:
-
-<example>
-Context: User wants comprehensive UI review of a screen
-user: "Run the multi-agent review on the play screen"
-assistant: "Starting UI pipeline orchestration for PlayScreen. Phase 1: Invoking RAMS for initial review..."
-<commentary>
-User explicitly requested multi-agent review, triggering the orchestrator to coordinate RAMS, GPT, and skills.
-</commentary>
-</example>
-
-<example>
-Context: User mentions wanting design feedback from different perspectives
-user: "I want both Claude and GPT to review the settings UI"
-assistant: "I'll orchestrate a multi-perspective review using RAMS for initial analysis and GPT via moderator for cross-review..."
-<commentary>
-User wants multiple AI perspectives on UI, which is exactly what this orchestrator provides.
-</commentary>
-</example>
-
-<example>
-Context: User wants to polish UI before release
-user: "Let's do a thorough design review before the app store submission"
-assistant: "I'll run the full UI pipeline: RAMS review → GPT cross-review → synthesis → implementation → verification. Starting with the first screen..."
-<commentary>
-Pre-release polish is a perfect use case for comprehensive multi-agent review.
-</commentary>
-</example>
-
+description: Coordinate multi-agent UI reviews (RAMS, GPT, ui-ux-pro-max) for comprehensive design polish. Use when user says "run UI pipeline", "multi-agent review", "design polish workflow", or wants automated UI critique from multiple AI perspectives.
 model: opus
 color: cyan
 tools: ["Read", "Write", "Grep", "Bash", "Glob", "mcp__*"]

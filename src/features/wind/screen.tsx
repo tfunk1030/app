@@ -5,7 +5,6 @@ import { GlassCard } from '@/src/core/components/ui/GlassCard';
 import { Slider } from '@/src/core/components/ui/slider';
 import { usePremium } from '@/src/features/settings/context/premium';
 import WindDirectionCompass from '@/src/features/wind/components/compass';
-import { WindWeatherBar } from '@/src/features/wind/components/wind-weather-bar';
 import { WindCalculationResults } from '@/src/features/wind/components/WindCalculationResults';
 import { WindHourlyForecastBar } from '@/src/features/wind/components/WindHourlyForecastBar';
 import { CompassLockProvider, useCompassLock } from '@/src/features/wind/context/compass-lock';
@@ -85,7 +84,7 @@ YardagePresetButton.displayName = 'YardagePresetButton';
 function WindCalculatorComponent() {
   // Get all required hooks
   const { isPremium } = usePremium();
-  const { conditions, isLoading: envLoading, forceRefresh } = useEnhancedEnvironmental();
+  const { conditions, forceRefresh } = useEnhancedEnvironmental();
   const { relativeWindAngle } = useCompassLock();
   const { isLoading, windSpeed, setWindSpeed, targetYardage, setTargetYardage, result, calculate } =
     useWindCalculator();
@@ -205,27 +204,56 @@ function WindCalculatorComponent() {
       ]}
       showsVerticalScrollIndicator={false}
     >
-      {/* Header */}
+      {/* Header with Current Wind Display */}
       <Animated.View entering={headerEntering}>
         <Text style={[styles.title, { color: t.colors.textPrimary }]} accessibilityRole="header">
           Wind Calculator
         </Text>
-        <Text style={[styles.subtitle, { color: t.colors.textMuted }]}>
-          Calculate wind effect on your shot
-        </Text>
+        {/* Current wind conditions - always visible */}
+        <View style={[styles.currentWindRow, { borderColor: t.colors.border }]}>
+          <View style={styles.windStatItem}>
+            <Text style={[styles.windStatLabel, { color: t.colors.textMuted }]}>Wind</Text>
+            <Text
+              style={[styles.windStatValue, { color: t.colors.brand }]}
+              accessibilityLabel={`Wind speed ${conditions?.windSpeed || 0} miles per hour`}
+            >
+              {Math.round(conditions?.windSpeed || 0)} mph
+            </Text>
+          </View>
+          <View style={[styles.windStatDivider, { backgroundColor: t.colors.border }]} />
+          <View style={styles.windStatItem}>
+            <Text style={[styles.windStatLabel, { color: t.colors.textMuted }]}>From</Text>
+            <Text
+              style={[styles.windStatValue, { color: t.colors.textPrimary }]}
+              accessibilityLabel={`Wind from ${Math.round(conditions?.windDirection || 0)} degrees`}
+            >
+              {Math.round(conditions?.windDirection || 0)}°
+            </Text>
+          </View>
+          {conditions?.windGust && conditions.windGust > (conditions?.windSpeed || 0) && (
+            <>
+              <View style={[styles.windStatDivider, { backgroundColor: t.colors.border }]} />
+              <View style={styles.windStatItem}>
+                <Text style={[styles.windStatLabel, { color: t.colors.textMuted }]}>Gusts</Text>
+                <Text
+                  style={[styles.windStatValue, { color: t.colors.warning }]}
+                  accessibilityLabel={`Gusts to ${Math.round(conditions.windGust)} miles per hour`}
+                >
+                  {Math.round(conditions.windGust)} mph
+                </Text>
+              </View>
+            </>
+          )}
+        </View>
       </Animated.View>
 
-      {/* Weather Bars - Collapsible sections */}
+      {/* Hourly forecast - collapsible */}
       <Animated.View entering={cardEntering(0)}>
         <WindHourlyForecastBar />
       </Animated.View>
 
-      <Animated.View entering={cardEntering(1)}>
-        <WindWeatherBar />
-      </Animated.View>
-
       {/* Compass Card */}
-      <Animated.View entering={cardEntering(2)}>
+      <Animated.View entering={cardEntering(1)}>
         <GlassCard gradient glow style={styles.compassCard}>
           <Text style={[styles.compassHint, { color: t.colors.textMuted }]}>
             Point phone in shot direction and tap lock
@@ -237,7 +265,7 @@ function WindCalculatorComponent() {
       </Animated.View>
 
       {/* Wind Speed Slider */}
-      <Animated.View entering={cardEntering(3)}>
+      <Animated.View entering={cardEntering(2)}>
         <GlassCard style={styles.sliderCard}>
           <Slider
             value={windSpeed}
@@ -252,7 +280,7 @@ function WindCalculatorComponent() {
       </Animated.View>
 
       {/* Target Yardage Section */}
-      <Animated.View entering={cardEntering(4)}>
+      <Animated.View entering={cardEntering(3)}>
         <GlassCard style={styles.yardageCard}>
           <Slider
             value={targetYardage}
@@ -285,13 +313,14 @@ function WindCalculatorComponent() {
       </Animated.View>
 
       {/* Calculate Button */}
-      <Animated.View entering={cardEntering(5)}>
+      <Animated.View entering={cardEntering(4)}>
         <Button
           onPress={handleCalculate}
           variant="neon"
           size="lg"
           glow
           style={styles.calculateButton}
+          accessibilityHint="Calculates wind effect based on current settings"
         >
           Calculate Wind Effect
         </Button>
@@ -334,7 +363,10 @@ function WindCalculatorScreen() {
         ]}
       >
         <Animated.View entering={headerEntering} style={styles.errorContainer}>
-          <Text style={[styles.errorTitle, { color: t.colors.danger }]}>
+          <Text
+            style={[styles.errorTitle, { color: t.colors.danger }]}
+            accessibilityRole="header"
+          >
             Something went wrong
           </Text>
           <Text style={[styles.errorMessage, { color: t.colors.textMuted }]}>
@@ -345,6 +377,8 @@ function WindCalculatorScreen() {
             variant="neon"
             size="lg"
             style={styles.retryButton}
+            accessibilityLabel="Retry loading wind calculator"
+            accessibilityHint="Dismisses the error and attempts to reload"
           >
             Try Again
           </Button>
@@ -418,12 +452,37 @@ const createStyles = (t: Tokens) => ({
     fontSize: safeScaledFontSize(t.fontSize['4xl'] - 4), // 32px hero title
     fontWeight: t.fontWeight.bold,
     letterSpacing: t.letterSpacing.tight,
-    marginBottom: t.spacing.xs,
+    marginBottom: t.spacing.sm,
   } as TextStyle,
-  subtitle: {
-    fontSize: safeScaledFontSize(t.fontSize.sm + 1), // 15px subtitle
+  currentWindRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: t.spacing.md,
+    paddingVertical: t.spacing.base,
+    paddingHorizontal: t.spacing.md,
+    borderRadius: t.borderRadius.lg,
+    borderWidth: t.borderWidth.thin,
+    backgroundColor: 'transparent',
+  } as ViewStyle,
+  windStatItem: {
+    alignItems: 'center',
+    paddingHorizontal: t.spacing.md,
+  } as ViewStyle,
+  windStatDivider: {
+    width: t.borderWidth.thin,
+    height: t.spacing.xl,
+  } as ViewStyle,
+  windStatLabel: {
+    fontSize: safeScaledFontSize(t.fontSize.xs),
     fontWeight: t.fontWeight.medium,
-    marginBottom: t.spacing.lg,
+    marginBottom: t.spacing.xs,
+    textTransform: 'uppercase',
+    letterSpacing: t.letterSpacing.wider,
+  } as TextStyle,
+  windStatValue: {
+    fontSize: safeScaledFontSize(t.fontSize.xl),
+    fontWeight: t.fontWeight.bold,
   } as TextStyle,
   compassCard: {
     marginBottom: t.spacing.md,
@@ -434,7 +493,6 @@ const createStyles = (t: Tokens) => ({
     fontWeight: t.fontWeight.medium,
     textAlign: 'center',
     marginBottom: t.spacing.md,
-    opacity: t.opacity.subtle,
   } as TextStyle,
   compassWrapper: {
     alignItems: 'center',

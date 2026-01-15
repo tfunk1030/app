@@ -6,11 +6,10 @@
  *
  * Matches the Shot screen aesthetic with:
  * - MetricPills for conditions
- * - ResultCard for calculation output
- * - QuickAction for presets
+ * - Full-screen results with explicit calculate action
  */
 
-import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -18,22 +17,21 @@ import {
   ScrollView,
   RefreshControl,
   Pressable,
+  TextInput,
   useWindowDimensions,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withSpring,
-  withSequence,
+  interpolate,
 } from 'react-native-reanimated';
 import { useAccessibleAnimations } from '@/src/hooks/useAccessibility';
 import * as Haptics from 'expo-haptics';
-import { Wind, Compass, Lock, Crown, ChevronRight, Navigation, AlertTriangle } from 'lucide-react-native';
+import { Wind, Compass, Lock, Crown, ChevronRight, Navigation, AlertTriangle, ChevronLeft } from 'lucide-react-native';
 
 import { useRedesignTheme } from '@/src/theme/redesign';
-import { ResultCard } from '@/src/components/redesign/ResultCard';
-import { QuickAction } from '@/src/components/redesign/QuickAction';
 import { MetricPill } from '@/src/components/redesign/MetricPill';
 import { Slider } from '@/src/core/components/ui/slider';
 import { usePremium } from '@/src/features/settings/context/premium';
@@ -43,8 +41,6 @@ import { useWindCalculator } from '@/src/features/wind/hooks/useWindCalculator';
 import { useSensorData } from '@/src/features/wind/context/sensor-data';
 import { CompassLockProvider, useCompassLock } from '@/src/features/wind/context/compass-lock';
 import WindDirectionCompass from '@/src/features/wind/components/compass';
-import { WindHourlyForecastBar } from '@/src/features/wind/components/WindHourlyForecastBar';
-import { FeatureFlags } from '@/src/utils/FeatureFlags';
 
 // =============================================================================
 // TYPES
@@ -56,7 +52,13 @@ interface WindCalculationDisplay {
   aimAdjustment: string;
   headwindEffect: number;
   crosswindEffect: number;
+  environmentalEffect: number;
   totalAdjustment: number;
+}
+
+interface WindDualResult {
+  steady: WindCalculationDisplay;
+  gust?: WindCalculationDisplay;
 }
 
 // =============================================================================
@@ -97,15 +99,7 @@ function convertToMph(value: number, speedUnit: Settings['speedUnit']): number {
   }
 }
 
-function getMaxWindSpeed(speedUnit: Settings['speedUnit']): number {
-  switch (speedUnit) {
-    case 'mph': return 40;
-    case 'kph': return Math.round(40 * 1.60934); // ~64 kph
-    case 'kts': return Math.round(40 * 0.868976); // ~35 kts
-    case 'mps': return Math.round(40 * 0.44704); // ~18 m/s
-    default: return 40;
-  }
-}
+
 
 // =============================================================================
 // WIND CALCULATOR REDESIGN COMPONENT
@@ -115,9 +109,10 @@ function WindCalculatorRedesign({ sensorAvailable = true }: { sensorAvailable?: 
   const { colors } = useRedesignTheme();
   const { settings, convertDistance } = useSettings();
   const environmental = useEnhancedEnvironmental();
-  const { isLocked, relativeWindAngle } = useCompassLock();
+  const { isLocked, relativeWindAngle, toggleLock } = useCompassLock();
   const { height: screenHeight } = useWindowDimensions();
   const { headerEntering, cardEntering } = useAccessibleAnimations();
+  const insets = useSafeAreaInsets();
 
   // Adaptive compass sizing (180-240px based on screen height)
   // Smaller to make room for result card above the fold
@@ -130,21 +125,24 @@ function WindCalculatorRedesign({ sensorAvailable = true }: { sensorAvailable?: 
     calculate,
     result,
     error,
-    clearError,
     setWindSpeed,
     setTargetYardage,
   } = useWindCalculator();
 
   // Local state
   const [targetDistance, setTargetDistance] = useState(150);
-  const [windSpeedOverride, setWindSpeedOverride] = useState<number | null>(null);
-  const [selectedPreset, setSelectedPreset] = useState<string | null>('150');
+  const [manualSpeedOverride, setManualSpeedOverride] = useState<string>('');
+  const [manualDirectionOverride, setManualDirectionOverride] = useState<string>('');
+  const [manualOpen, setManualOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [viewState, setViewState] = useState<'compass' | 'results'>('compass');
+  const [dualResult, setDualResult] = useState<WindDualResult | null>(null);
+  const [calcError, setCalcError] = useState<string | null>(null);
   const scrollViewRef = useRef<ScrollView>(null);
-  const calcTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingResultRef = useRef<((value: WindCalculationDisplay | null) => void) | null>(null);
 
   // Animation
-  const resultScale = useSharedValue(1);
+  const slideOffset = useSharedValue(0);
 
   // Get current wind data (convert from mph to user's unit)
   const currentWindSpeedMph = environmental.conditions?.windSpeed || 0;
@@ -154,11 +152,10 @@ function WindCalculatorRedesign({ sensorAvailable = true }: { sensorAvailable?: 
   // Convert to user's preferred unit for display
   const currentWindSpeedDisplay = Math.round(convertFromMph(currentWindSpeedMph, settings.speedUnit));
   const currentWindGustDisplay = currentWindGustMph ? Math.round(convertFromMph(currentWindGustMph, settings.speedUnit)) : null;
+  const hasGust = Boolean(currentWindGustDisplay && currentWindGustDisplay > currentWindSpeedDisplay);
   const speedUnitLabel = getSpeedUnitLabel(settings.speedUnit);
-  const maxWindSpeed = getMaxWindSpeed(settings.speedUnit);
-
-  // Effective wind speed (override or actual) - in user's unit
-  const effectiveWindSpeed = windSpeedOverride ?? currentWindSpeedDisplay;
+  // Effective wind speed (actual) - in user's unit
+  const effectiveWindSpeed = currentWindSpeedDisplay;
 
   // Distance unit label
   const unit = settings.distanceUnit === 'meters' ? 'm' : 'yds';
@@ -167,28 +164,14 @@ function WindCalculatorRedesign({ sensorAvailable = true }: { sensorAvailable?: 
   const distMin = 50;
   const distMax = settings.distanceUnit === 'yards' ? 350 : Math.round(convertDistance(350, 'meters'));
 
-  // Quick presets (convert to user's unit if metric)
-  const presets = useMemo(() => {
-    const baseYards = [100, 125, 150, 175, 200];
-    if (settings.distanceUnit === 'meters') {
-      return baseYards.map(y => {
-        const meters = Math.round(convertDistance(y, 'meters'));
-        return { id: String(meters), label: String(meters), distance: meters };
-      });
-    }
-    return baseYards.map(y => ({ id: String(y), label: String(y), distance: y }));
-  }, [settings.distanceUnit, convertDistance]);
+  const formatResult = useCallback((resultData: typeof result): WindCalculationDisplay | null => {
+    if (!resultData) return null;
 
-  // Format the result for display (convert to user's unit)
-  const displayResult = useMemo((): WindCalculationDisplay | null => {
-    if (!result) return null;
+    const crosswindYards = resultData.lateralEffect || 0;
+    const headwindYards = resultData.windEffect || 0;
+    const environmentalYards = resultData.environmentalEffect || 0;
+    const playsLikeYards = resultData.effectivePlayingDistance;
 
-    // lateralEffect is the crosswind (left/right push) - in yards
-    const crosswindYards = result.lateralEffect || 0;
-    const headwindYards = result.windEffect || 0;
-    const playsLikeYards = result.effectivePlayingDistance;
-
-    // Convert to user's distance unit
     const isMetric = settings.distanceUnit === 'meters';
     const playsLike = isMetric
       ? Math.round(convertDistance(playsLikeYards, 'meters'))
@@ -199,9 +182,10 @@ function WindCalculatorRedesign({ sensorAvailable = true }: { sensorAvailable?: 
     const headwindEffect = isMetric
       ? Math.round(convertDistance(headwindYards, 'meters'))
       : Math.round(headwindYards);
+    const environmentalEffect = isMetric
+      ? Math.round(convertDistance(environmentalYards, 'meters'))
+      : Math.round(environmentalYards);
 
-    // crosswindYards > 0 = ball pushed RIGHT, so aim LEFT to compensate
-    // crosswindYards < 0 = ball pushed LEFT, so aim RIGHT to compensate
     let aimDirection = '';
     if (Math.abs(crosswindYards) > 0.5) {
       aimDirection = crosswindYards > 0 ? 'LEFT' : 'RIGHT';
@@ -209,89 +193,160 @@ function WindCalculatorRedesign({ sensorAvailable = true }: { sensorAvailable?: 
 
     return {
       playsLike,
-      club: result.finalClub,
+      club: resultData.finalClub,
       aimAdjustment: Math.abs(crosswindYards) > 0.5
         ? `Aim ${crosswind} ${unit} ${aimDirection}`
         : 'On line',
       headwindEffect,
       crosswindEffect: crosswindYards > 0 ? crosswind : -crosswind,
-      totalAdjustment: headwindEffect,
+      environmentalEffect,
+      totalAdjustment: headwindEffect + environmentalEffect,
     };
-  }, [result, settings.distanceUnit, convertDistance, unit]);
-
-  // Auto-calculate when inputs change (debounced)
-  const triggerCalculation = useCallback(() => {
-    // Clear any pending calculation
-    if (calcTimeoutRef.current) {
-      clearTimeout(calcTimeoutRef.current);
-    }
-
-    // Debounce calculation by 150ms
-    calcTimeoutRef.current = setTimeout(() => {
-      // Convert wind speed to mph for calculation (calculator expects mph)
-      const windSpeedMph = Math.round(convertToMph(effectiveWindSpeed, settings.speedUnit));
-
-      // Convert target distance to yards for calculation if in meters
-      const targetInYards = settings.distanceUnit === 'meters'
-        ? Math.round(targetDistance / 0.9144) // meters to yards
-        : targetDistance;
-
-      // Update hook state and run calculation
-      setWindSpeed(windSpeedMph);
-      setTargetYardage(targetInYards);
-      calculate(relativeWindAngle);
-
-      // Subtle animation on result update
-      resultScale.value = withSequence(
-        withSpring(1.02, { damping: 12 }),
-        withSpring(1, { damping: 15 })
-      );
-    }, 150);
-  }, [targetDistance, effectiveWindSpeed, relativeWindAngle, calculate, setWindSpeed, setTargetYardage, resultScale, settings.speedUnit, settings.distanceUnit]);
-
-  // Trigger calculation on input changes AND when conditions first become available
-  // Using primitive values from conditions to avoid unstable object reference dependencies
-  const conditionsWindSpeed = environmental.conditions?.windSpeed;
-  const conditionsWindDirection = environmental.conditions?.windDirection;
+  }, [convertDistance, settings.distanceUnit, unit]);
 
   React.useEffect(() => {
-    // Only calculate if conditions are available
-    if (environmental.conditions) {
-      triggerCalculation();
+    if (pendingResultRef.current) {
+      pendingResultRef.current(formatResult(result));
+      pendingResultRef.current = null;
     }
-  }, [targetDistance, effectiveWindSpeed, relativeWindAngle, isLocked, triggerCalculation, conditionsWindSpeed, conditionsWindDirection]);
+  }, [formatResult, result]);
 
-  // Cleanup timeout on unmount
   React.useEffect(() => {
-    return () => {
-      if (calcTimeoutRef.current) {
-        clearTimeout(calcTimeoutRef.current);
-      }
-    };
-  }, []);
+    if (pendingResultRef.current && error) {
+      pendingResultRef.current(null);
+      pendingResultRef.current = null;
+    }
+  }, [error]);
 
   // Handlers
-  const handlePresetSelect = useCallback((preset: { id: string; distance: number }) => {
-    setSelectedPreset(preset.id);
-    setTargetDistance(preset.distance);
+  const handleManualToggle = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    // Calculation triggers via useEffect when targetDistance changes
+    setManualOpen((prev) => !prev);
   }, []);
 
   const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    if (environmental.forceRefresh) {
-      await environmental.forceRefresh();
-    }
+    await environmental.forceRefresh?.();
     await new Promise((resolve) => setTimeout(resolve, 500));
-    setWindSpeedOverride(null); // Reset override on refresh
+    setCalcError(null);
     setIsRefreshing(false);
-  }, [environmental.forceRefresh]);
+  }, [environmental]);
 
-  const resultAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: resultScale.value }],
+  React.useEffect(() => {
+    if (error) {
+      setCalcError(error);
+    }
+  }, [error]);
+
+  const handleLockPress = useCallback(async () => {
+    await toggleLock();
+  }, [toggleLock]);
+
+  const compassAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: interpolate(slideOffset.value, [0, 1], [0, -screenHeight]) }],
+    opacity: interpolate(slideOffset.value, [0, 0.4], [1, 0]),
   }));
+
+  const resultsAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: interpolate(slideOffset.value, [0, 1], [screenHeight, 0]) }],
+    opacity: interpolate(slideOffset.value, [0.6, 1], [0, 1]),
+  }));
+
+  const handleManualSpeedChange = useCallback((text: string) => {
+    setManualSpeedOverride(text.replace(/[^0-9]/g, ''));
+  }, []);
+
+  const handleManualDirectionChange = useCallback((text: string) => {
+    const numeric = text.replace(/[^0-9]/g, '');
+    setManualDirectionOverride(numeric);
+  }, []);
+
+  const handleDistanceStep = useCallback((delta: number) => {
+    setTargetDistance((prev) => {
+      const next = Math.min(distMax, Math.max(distMin, prev + delta));
+      return next;
+    });
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  }, [distMax, distMin]);
+
+  const buildCalculationInput = useCallback((speedOverrideMph: number) => {
+    const targetInYards = settings.distanceUnit === 'meters'
+      ? Math.round(targetDistance / 0.9144)
+      : targetDistance;
+    setWindSpeed(speedOverrideMph);
+    setTargetYardage(targetInYards);
+  }, [settings.distanceUnit, setWindSpeed, setTargetYardage, targetDistance]);
+
+  const calculateWithSpeed = useCallback((speedMph: number, windAngleOverride?: number) => {
+    buildCalculationInput(speedMph);
+    calculate(typeof windAngleOverride === 'number' ? windAngleOverride : relativeWindAngle);
+  }, [buildCalculationInput, calculate, relativeWindAngle]);
+
+  const handleCalculate = useCallback(async () => {
+    if (!isLocked) return;
+
+    setCalcError(null);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+    const manualSpeed = manualSpeedOverride ? parseInt(manualSpeedOverride, 10) : null;
+    const manualDirection = manualDirectionOverride ? parseInt(manualDirectionOverride, 10) : null;
+    const manualSpeedMph = manualSpeed !== null && Number.isFinite(manualSpeed)
+      ? Math.round(convertToMph(manualSpeed, settings.speedUnit))
+      : null;
+    const steadySpeedMph = Math.round(convertToMph(effectiveWindSpeed, settings.speedUnit));
+    const gustSpeedMph = hasGust && currentWindGustDisplay !== null
+      ? Math.round(convertToMph(currentWindGustDisplay, settings.speedUnit))
+      : null;
+    const angleOverride = manualDirection !== null ? manualDirection : undefined;
+
+    try {
+      const calculateOnce = async (speed: number) => new Promise<WindCalculationDisplay | null>((resolve) => {
+        pendingResultRef.current = resolve;
+        calculateWithSpeed(speed, angleOverride);
+      });
+
+      const steady = await calculateOnce(manualSpeedMph ?? steadySpeedMph);
+      if (!steady) {
+        setCalcError('Unable to calculate steady wind result.');
+        return;
+      }
+
+      let gust: WindCalculationDisplay | undefined;
+      if (gustSpeedMph !== null && gustSpeedMph !== (manualSpeedMph ?? steadySpeedMph)) {
+        gust = (await calculateOnce(gustSpeedMph)) ?? undefined;
+        if (!gust) {
+          setCalcError('Unable to calculate gust result.');
+        }
+      }
+
+      setDualResult({ steady, gust });
+      slideOffset.value = withSpring(1, { damping: 18, stiffness: 160 });
+      setViewState('results');
+      setManualOpen(false);
+    } catch (err) {
+      setCalcError('Unable to calculate wind adjustment.');
+    }
+  }, [
+    isLocked,
+    manualSpeedOverride,
+    manualDirectionOverride,
+    settings.speedUnit,
+    effectiveWindSpeed,
+    currentWindGustDisplay,
+    currentWindSpeedDisplay,
+    calculateWithSpeed,
+    formatResult,
+    result,
+    slideOffset,
+    hasGust,
+    error,
+  ]);
+
+  const handleBackToCompass = useCallback(() => {
+    slideOffset.value = withSpring(0, { damping: 18, stiffness: 160 });
+    setViewState('compass');
+  }, [slideOffset]);
 
   return (
     <SafeAreaView
@@ -302,7 +357,7 @@ function WindCalculatorRedesign({ sensorAvailable = true }: { sensorAvailable?: 
         ref={scrollViewRef}
         contentContainerStyle={[
           styles.scrollContent,
-          { paddingBottom: 80 }, // 64 (tab bar) + 16 (buffer) - insets already in tab bar
+          { paddingBottom: 120 },
         ]}
         refreshControl={
           <RefreshControl
@@ -313,260 +368,233 @@ function WindCalculatorRedesign({ sensorAvailable = true }: { sensorAvailable?: 
         }
         showsVerticalScrollIndicator={false}
       >
-        {/* Header */}
-        <Animated.View entering={headerEntering} style={styles.header}>
-          <Text
-            style={[styles.title, { color: colors.textPrimary }]}
-            accessibilityRole="header"
-          >
-            Wind Calculator
-          </Text>
-          <Text style={[styles.subtitle, { color: colors.textMuted }]}>Aim adjustments for wind</Text>
-        </Animated.View>
-
-        {/* Conditions Bar - Compact wind info */}
-        <Animated.View entering={headerEntering}>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={styles.conditionsScroll}
-            contentContainerStyle={styles.conditionsContainer}
-          >
-            <MetricPill
-              icon={<Wind size={14} color={colors.textMuted} />}
-              label="Wind"
-              value={`${currentWindSpeedDisplay} ${speedUnitLabel}`}
-            />
-            <MetricPill
-              icon={<Navigation size={14} color={colors.textMuted} />}
-              label="Direction"
-              value={`${degreesToDirection(currentWindDirection)} (${Math.round(currentWindDirection)}°)`}
-            />
-            {currentWindGustDisplay && currentWindGustDisplay > currentWindSpeedDisplay && (
-              <MetricPill
-                icon={<Wind size={14} color={colors.warning} />}
-                label="Gust"
-                value={`${currentWindGustDisplay} ${speedUnitLabel}`}
-                status="warning"
-              />
-            )}
-          </ScrollView>
-        </Animated.View>
-
-        {/* Target Distance Input with Slider - MOVED UP for easier access */}
-        <Animated.View entering={cardEntering(1)} style={styles.sliderSection}>
-          <Slider
-            value={targetDistance}
-            onValueChange={(val) => {
-              setTargetDistance(val);
-              setSelectedPreset(null);
-            }}
-            min={distMin}
-            max={distMax}
-            step={1}
-            label="Target Distance"
-            unit={unit}
-            dense
-          />
-        </Animated.View>
-
-        {/* Quick Presets - Right below distance slider */}
-        <Animated.View entering={cardEntering(1)} style={styles.presetsSection}>
-          <View style={styles.presetsRow}>
-            {presets.map((preset) => (
-              <QuickAction
-                key={preset.id}
-                label={preset.label}
-                sublabel={unit}
-                variant="secondary"
-                selected={selectedPreset === preset.id}
-                onPress={() => handlePresetSelect(preset)}
-                style={styles.presetButton}
-              />
-            ))}
-          </View>
-        </Animated.View>
-
-        {/* Error Card - Show when calculation fails */}
-        {error && (
-          <Animated.View entering={cardEntering(2)} style={styles.errorCard}>
-            <View style={[styles.errorContent, { backgroundColor: colors.danger + '1A', borderColor: colors.danger }]}>
-              <View style={styles.errorInfo}>
-                <AlertTriangle size={20} color={colors.danger} />
-                <View style={styles.errorTextContainer}>
-                  <Text style={[styles.errorTitle, { color: colors.danger }]}>
-                    Calculation Error
-                  </Text>
-                  <Text style={[styles.errorMessage, { color: colors.textSecondary }]}>
-                    {error}
-                  </Text>
-                </View>
-              </View>
-              <View style={styles.errorActions}>
-                <Pressable
-                  style={[styles.retryButton, { backgroundColor: colors.danger }]}
-                  onPress={() => {
-                    clearError();
-                    triggerCalculation();
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                  }}
-                  accessibilityLabel="Retry wind calculation"
-                  accessibilityRole="button"
-                  accessibilityHint="Attempts the wind calculation again"
-                >
-                  <Text style={[styles.retryButtonText, { color: colors.textInverse }]}>
-                    Retry
-                  </Text>
-                </Pressable>
-                <Pressable
-                  style={[styles.dismissButton, { borderColor: colors.border }]}
-                  onPress={() => {
-                    clearError();
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  }}
-                  accessibilityLabel="Dismiss error"
-                  accessibilityRole="button"
-                >
-                  <Text style={[styles.dismissButtonText, { color: colors.textMuted }]}>
-                    Dismiss
-                  </Text>
-                </Pressable>
-              </View>
-            </View>
-          </Animated.View>
-        )}
-
-        {/* Result Card - Show immediately after inputs */}
-        <Animated.View entering={cardEntering(2)} style={resultAnimatedStyle}>
-          <ResultCard
-            primaryLabel="Plays like"
-            primaryValue={displayResult ? displayResult.playsLike.toString() : targetDistance.toString()}
-            primaryUnit={unit}
-            secondaryLabel="Club"
-            secondaryValue={displayResult?.club || '—'}
-            tertiaryLabel="Aim"
-            tertiaryValue={displayResult?.aimAdjustment || 'Lock compass to calculate'}
-            tertiaryStatus="neutral"
-            variant="highlighted"
-            style={styles.resultCard}
-          />
-        </Animated.View>
-
-        {/* Compass Section - For setting wind direction */}
-        <Animated.View entering={cardEntering(2)} style={styles.compassSection}>
-          <View style={styles.compassWrapper}>
-            <WindDirectionCompass size={compassSize} />
-          </View>
-        </Animated.View>
-
-        {/* Sensor Warning - Show when compass unavailable */}
-        {!sensorAvailable && (
-          <View style={styles.manualHeadingSection}>
-            <View style={[styles.sensorWarning, { backgroundColor: colors.warning + '1A' }]}>
-              <AlertTriangle size={16} color={colors.warning} />
-              <Text style={[styles.warningText, { color: colors.warning }]}>
-                {__DEV__ ? 'Compass limited in Expo Go - use compass to set direction' : 'Compass unavailable'}
-              </Text>
-            </View>
-          </View>
-        )}
-
-        {/* Wind Speed Override with Slider */}
-        <Animated.View entering={cardEntering(3)} style={styles.sliderSection}>
-          <Slider
-            value={effectiveWindSpeed}
-            onValueChange={(val) => setWindSpeedOverride(val)}
-            min={0}
-            max={maxWindSpeed}
-            step={1}
-            label={`Wind Speed${windSpeedOverride !== null ? ' (Override)' : ''}`}
-            unit={speedUnitLabel}
-            dense
-          />
-          {/* Quick wind speed buttons */}
-          <View style={styles.windSpeedButtons}>
-            <Pressable
-              onPress={() => {
-                setWindSpeedOverride(null);
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              }}
-              style={[
-                styles.windSpeedButton,
-                {
-                  backgroundColor: windSpeedOverride === null ? colors.brand : colors.surfaceElevated,
-                  borderColor: colors.border,
-                },
-              ]}
-              accessibilityLabel={`Use actual wind speed ${currentWindSpeedDisplay} ${speedUnitLabel}`}
-              accessibilityRole="button"
-              accessibilityState={{ selected: windSpeedOverride === null }}
+        <Animated.View style={compassAnimatedStyle}>
+          {/* Header */}
+          <Animated.View entering={headerEntering} style={styles.header}>
+            <Text
+              style={[styles.title, { color: colors.textPrimary }]}
+              accessibilityRole="header"
             >
-              <Text style={[
-                styles.windSpeedButtonText,
-                { color: windSpeedOverride === null ? colors.textInverse : colors.textSecondary },
-              ]}>
-                Actual: {currentWindSpeedDisplay}
-              </Text>
-            </Pressable>
+              Wind Calculator
+            </Text>
+            <Text style={[styles.subtitle, { color: colors.textMuted }]}>Aim adjustments for wind</Text>
+          </Animated.View>
 
-            {currentWindGustDisplay && currentWindGustDisplay > currentWindSpeedDisplay && (
+          {/* Conditions Bar - Compact wind info */}
+          <Animated.View entering={headerEntering}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.conditionsScroll}
+              contentContainerStyle={styles.conditionsContainer}
+            >
+              <MetricPill
+                icon={<Wind size={14} color={colors.textMuted} />}
+                label="Wind"
+                value={`${currentWindSpeedDisplay} ${speedUnitLabel}`}
+              />
+              {currentWindGustDisplay && currentWindGustDisplay > currentWindSpeedDisplay && (
+                <MetricPill
+                  icon={<Wind size={14} color={colors.warning} />}
+                  label="Gust"
+                  value={`${currentWindGustDisplay} ${speedUnitLabel}`}
+                  status="warning"
+                />
+              )}
+              <MetricPill
+                icon={<Navigation size={14} color={colors.textMuted} />}
+                label="Direction"
+                value={`${degreesToDirection(currentWindDirection)} (${Math.round(currentWindDirection)}°)`}
+              />
+            </ScrollView>
+          </Animated.View>
+
+          {/* Target Distance Input */}
+          <Animated.View entering={cardEntering(1)} style={styles.sliderSection}>
+            <Slider
+              value={targetDistance}
+              onValueChange={(val) => setTargetDistance(val)}
+              min={distMin}
+              max={distMax}
+              step={1}
+              label="Target Distance"
+              unit={unit}
+              dense
+            />
+            <View style={styles.stepperRowInline}>
               <Pressable
-                onPress={() => {
-                  setWindSpeedOverride(currentWindGustDisplay);
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                }}
-                style={[
-                  styles.windSpeedButton,
-                  {
-                    backgroundColor: windSpeedOverride === currentWindGustDisplay ? colors.warning : colors.surfaceElevated,
-                    borderColor: colors.border,
-                  },
-                ]}
-                accessibilityLabel={`Use gust wind speed ${currentWindGustDisplay} ${speedUnitLabel}`}
+                onPress={() => handleDistanceStep(-1)}
+                style={[styles.stepperButtonInline, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}
                 accessibilityRole="button"
-                accessibilityState={{ selected: windSpeedOverride === currentWindGustDisplay }}
+                accessibilityLabel="Decrease distance by 1 yard"
               >
-                <Text style={[
-                  styles.windSpeedButtonText,
-                  { color: windSpeedOverride === currentWindGustDisplay ? colors.textInverse : colors.textSecondary },
-                ]}>
-                  Gust: {currentWindGustDisplay}
-                </Text>
+                <Text style={[styles.stepperTextInline, { color: colors.textPrimary }]}>-1</Text>
               </Pressable>
-            )}
-          </View>
-        </Animated.View>
-
-        {/* Gust Warning Banner - Show when gust significantly higher than base wind */}
-        {currentWindGustDisplay && currentWindGustDisplay > currentWindSpeedDisplay + 2 && (
-          <Animated.View entering={cardEntering(3)} style={styles.gustBanner}>
-            <View style={[styles.gustBannerContent, { backgroundColor: colors.surface, borderColor: colors.warning }]}>
-              <View style={styles.gustInfo}>
-                <Text style={[styles.gustLabel, { color: colors.warning }]}>
-                  GUST WARNING
-                </Text>
-                <Text style={[styles.gustText, { color: colors.textSecondary }]}>
-                  Gusts up to {currentWindGustDisplay} {speedUnitLabel} (+{currentWindGustDisplay - currentWindSpeedDisplay} {speedUnitLabel})
-                </Text>
-              </View>
               <Pressable
-                style={[styles.useGustButton, { backgroundColor: colors.warning }]}
-                onPress={() => setWindSpeedOverride(currentWindGustDisplay)}
-                accessibilityLabel={`Calculate with gust speed ${currentWindGustDisplay} ${speedUnitLabel}`}
+                onPress={() => handleDistanceStep(1)}
+                style={[styles.stepperButtonInline, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}
                 accessibilityRole="button"
+                accessibilityLabel="Increase distance by 1 yard"
               >
-                <Text style={[styles.useGustButtonText, { color: colors.textInverse }]}>Use Gust</Text>
+                <Text style={[styles.stepperTextInline, { color: colors.textPrimary }]}>+1</Text>
               </Pressable>
             </View>
           </Animated.View>
-        )}
 
-        {/* 5-Hour Wind Forecast - Moved to end, less critical */}
-        <Animated.View entering={cardEntering(4)} style={styles.forecastSection}>
-          <WindHourlyForecastBar />
+          {/* Compass Section */}
+          <Animated.View entering={cardEntering(2)} style={styles.compassSection}>
+            <View style={styles.compassWrapper}>
+              <WindDirectionCompass size={compassSize} />
+            </View>
+          </Animated.View>
+
+          {!sensorAvailable && (
+            <View style={styles.manualHeadingSection}>
+              <View style={[styles.sensorWarning, { backgroundColor: colors.warning + '1A' }]}>
+                <AlertTriangle size={16} color={colors.warning} />
+                <Text style={[styles.warningText, { color: colors.warning }]}>
+                  {__DEV__ ? 'Compass limited in Expo Go - use compass to set direction' : 'Compass unavailable'}
+                </Text>
+              </View>
+            </View>
+          )}
+
+          {/* Manual Input */}
+          <View style={styles.manualSection}>
+            <Pressable
+              onPress={handleManualToggle}
+              style={styles.manualToggle}
+              accessibilityRole="button"
+              accessibilityLabel={manualOpen ? 'Collapse manual input' : 'Edit manually'}
+            >
+              <Text style={[styles.manualToggleText, { color: colors.textMuted }]}>Edit manually</Text>
+              <ChevronRight size={18} color={colors.textMuted} style={manualOpen ? { transform: [{ rotate: '90deg' }] } : undefined} />
+            </Pressable>
+            {manualOpen && (
+              <View style={styles.manualInputs}>
+                <TextInput
+                  value={manualSpeedOverride}
+                  onChangeText={handleManualSpeedChange}
+                  placeholder={`Wind Speed (${speedUnitLabel})`}
+                  placeholderTextColor={colors.textMuted}
+                  keyboardType="numeric"
+                  style={[styles.manualInput, { backgroundColor: colors.surfaceElevated, color: colors.textPrimary, borderColor: colors.border }]}
+                  accessibilityLabel="Manual wind speed"
+                />
+                <TextInput
+                  value={manualDirectionOverride}
+                  onChangeText={handleManualDirectionChange}
+                  placeholder="Wind Direction (degrees)"
+                  placeholderTextColor={colors.textMuted}
+                  keyboardType="numeric"
+                  style={[styles.manualInput, { backgroundColor: colors.surfaceElevated, color: colors.textPrimary, borderColor: colors.border }]}
+                  accessibilityLabel="Manual wind direction in degrees"
+                />
+              </View>
+            )}
+          </View>
+
+          {calcError && (
+            <View style={[styles.errorBanner, { borderColor: colors.error, backgroundColor: colors.error + '1A' }]}
+              accessibilityRole="alert"
+            >
+              <AlertTriangle size={16} color={colors.error} />
+              <Text style={[styles.errorBannerText, { color: colors.error }]}>{calcError}</Text>
+            </View>
+          )}
         </Animated.View>
 
+        {/* Results Full Screen */}
+        <Animated.View style={[styles.resultsContainer, resultsAnimatedStyle]}>
+          <View style={styles.resultsHeader}>
+            <Pressable
+              onPress={handleBackToCompass}
+              accessibilityRole="button"
+              accessibilityLabel="Back to compass"
+              style={styles.resultsBack}
+            >
+              <ChevronLeft size={18} color={colors.textPrimary} />
+              <Text style={[styles.resultsBackText, { color: colors.textPrimary }]}>Back</Text>
+            </Pressable>
+            <Text style={[styles.resultsTitle, { color: colors.textPrimary }]}>Shot Results</Text>
+            <View style={styles.resultsSpacer} />
+          </View>
+
+          {!dualResult && (
+            <View style={styles.resultsBody}>
+              <Text style={[styles.resultSub, { color: colors.textMuted }]}>No calculation results yet.</Text>
+            </View>
+          )}
+
+          {dualResult && (
+            <View style={styles.resultsBody}>
+              <View style={[styles.resultCard, { borderColor: colors.brand }]}>
+                <Text style={[styles.resultLabel, { color: colors.textMuted }]}>STEADY WIND ({currentWindSpeedDisplay} {speedUnitLabel})</Text>
+                <Text style={[styles.resultValue, { color: colors.textPrimary }]}>{dualResult.steady.playsLike} {unit}</Text>
+                <Text style={[styles.resultSub, { color: colors.textSecondary }]}>Club: {dualResult.steady.club}</Text>
+                <Text style={[styles.resultSub, { color: colors.textSecondary }]}>{dualResult.steady.aimAdjustment}</Text>
+                <Text style={[styles.resultBreakdown, { color: colors.textMuted }]}>Wind {dualResult.steady.headwindEffect > 0 ? '+' : ''}{dualResult.steady.headwindEffect} · Env {dualResult.steady.environmentalEffect > 0 ? '+' : ''}{dualResult.steady.environmentalEffect} · Total {dualResult.steady.totalAdjustment > 0 ? '+' : ''}{dualResult.steady.totalAdjustment}</Text>
+              </View>
+
+              {dualResult.gust && (
+                <View style={[styles.resultCard, { borderColor: colors.warning }]}>
+                  <Text style={[styles.resultLabel, { color: colors.warning }]}>GUSTS ({currentWindGustDisplay} {speedUnitLabel})</Text>
+                  <Text style={[styles.resultValue, { color: colors.textPrimary }]}>{dualResult.gust.playsLike} {unit}</Text>
+                  <Text style={[styles.resultSub, { color: colors.textSecondary }]}>Club: {dualResult.gust.club}</Text>
+                  <Text style={[styles.resultSub, { color: colors.textSecondary }]}>{dualResult.gust.aimAdjustment}</Text>
+                  <Text style={[styles.resultBreakdown, { color: colors.textMuted }]}>Wind {dualResult.gust.headwindEffect > 0 ? '+' : ''}{dualResult.gust.headwindEffect} · Env {dualResult.gust.environmentalEffect > 0 ? '+' : ''}{dualResult.gust.environmentalEffect} · Total {dualResult.gust.totalAdjustment > 0 ? '+' : ''}{dualResult.gust.totalAdjustment}</Text>
+                </View>
+              )}
+            </View>
+          )}
+
+          <Pressable
+            style={[styles.recalculateButton, { backgroundColor: colors.brand }]}
+            onPress={handleBackToCompass}
+            accessibilityRole="button"
+            accessibilityLabel="Recalculate wind adjustment"
+          >
+            <Text style={[styles.recalculateText, { color: colors.textInverse }]}>Recalculate</Text>
+          </Pressable>
+        </Animated.View>
       </ScrollView>
+
+      {/* Bottom Action Bar */}
+      {viewState === 'compass' && (
+        <View
+          style={[
+            styles.bottomBar,
+            {
+              borderTopColor: colors.border,
+              backgroundColor: colors.surface,
+              paddingBottom: Math.max(12, insets.bottom + 8),
+            },
+          ]}
+          accessibilityRole="toolbar"
+        >
+          <Pressable
+            onPress={handleLockPress}
+            style={[styles.lockButton, { backgroundColor: isLocked ? colors.success : colors.surfaceElevated, borderColor: isLocked ? colors.success : colors.border }]}
+            accessibilityRole="button"
+            accessibilityLabel={isLocked ? 'Unlock compass' : 'Lock compass'}
+            accessibilityState={{ selected: isLocked }}
+          >
+            <Lock size={20} color={isLocked ? colors.textInverse : colors.textPrimary} />
+          </Pressable>
+          <Pressable
+            onPress={handleCalculate}
+            disabled={!isLocked}
+            style={[styles.calculateButton, { backgroundColor: isLocked ? colors.brand : colors.border }]}
+            accessibilityRole="button"
+            accessibilityLabel="Calculate wind adjustment"
+            accessibilityState={{ disabled: !isLocked }}
+          >
+            <Text style={[styles.calculateButtonText, { color: isLocked ? colors.textInverse : colors.textMuted }]}>
+              Calculate
+            </Text>
+          </Pressable>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -737,11 +765,6 @@ const styles = StyleSheet.create({
     gap: 8,
   },
 
-  // Forecast
-  forecastSection: {
-    marginBottom: 16,
-  },
-
   // Sections
   sectionLabel: {
     fontSize: 12,
@@ -789,303 +812,192 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
 
-  // Distance Input (legacy - kept for reference)
-  distanceSection: {
-    alignItems: 'center',
-    marginBottom: 24,
+  stepperRowInline: {
+    flexDirection: 'row',
+    gap: 12,
+    justifyContent: 'center',
+    marginTop: 12,
   },
 
-  distanceRow: {
+  stepperButtonInline: {
+    minWidth: 64,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  stepperTextInline: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+
+  manualSection: {
+    marginBottom: 16,
+  },
+
+  manualToggle: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 8,
+    paddingVertical: 8,
+  },
+
+  manualToggleText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+
+  manualInputs: {
+    gap: 12,
+    marginTop: 8,
+  },
+
+  manualInput: {
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 15,
+  },
+
+  errorBanner: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    marginBottom: 16,
+  },
+
+  errorBannerText: {
+    fontSize: 13,
+    fontWeight: '600',
+    flex: 1,
+  },
+
+  resultsContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    minHeight: '100%',
+    paddingTop: 16,
+    paddingHorizontal: 16,
+  },
+
+  resultsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+
+  resultsBack: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+
+  resultsBackText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+
+  resultsTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+  },
+
+  resultsSpacer: {
+    width: 48,
+  },
+
+  resultsBody: {
     gap: 16,
   },
 
-  adjustButton: {
+  resultCard: {
+    borderRadius: 16,
+    borderWidth: 1.5,
+    padding: 16,
+    backgroundColor: 'rgba(255,255,255,0.02)',
+  },
+
+  resultLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 1,
+    marginBottom: 6,
+  },
+
+  resultValue: {
+    fontSize: 28,
+    fontWeight: '700',
+    marginBottom: 6,
+  },
+
+  resultSub: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+
+  resultBreakdown: {
+    fontSize: 12,
+    fontWeight: '500',
+    marginTop: 8,
+  },
+
+  recalculateButton: {
+    marginTop: 24,
+    paddingVertical: 14,
+    borderRadius: 14,
+    alignItems: 'center',
+  },
+
+  recalculateText: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+
+  bottomBar: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    flexDirection: 'row',
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderTopWidth: 1,
+  },
+
+  lockButton: {
     width: 56,
+    height: 56,
+    borderRadius: 16,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  calculateButton: {
+    flex: 1,
     height: 56,
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
   },
 
-  adjustButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-
-  distanceValueContainer: {
-    alignItems: 'center',
-    minWidth: 140,
-  },
-
-  distanceValue: {
-    fontSize: 64,
-    fontWeight: '700',
-    letterSpacing: -2,
-    lineHeight: 72,
-  },
-
-  distanceUnit: {
-    fontSize: 18,
-    fontWeight: '500',
-    marginTop: -4,
-  },
-
-  distanceInput: {
-    fontSize: 64,
-    fontWeight: '700',
-    letterSpacing: -2,
-    lineHeight: 72,
-    textAlign: 'center',
-    minWidth: 120,
-    borderWidth: 2,
-    borderRadius: 12,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-
-  // Distance fine-tune steppers
-  stepperRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 60,
-    marginTop: 12,
-  },
-
-  stepperButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  stepperButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-
-  // Presets
-  presetsSection: {
-    marginBottom: 24,
-  },
-
-  presetsRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-
-  presetButton: {
-    flex: 1,
-  },
-
-  // Wind Speed Override
-  windSpeedSection: {
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-
-  windSpeedRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-  },
-
-  // Wind large adjustment buttons
-  windAdjustButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  windAdjustButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-
-  // Wind fine-tune steppers
-  windStepperRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 80,
-    marginTop: 12,
-  },
-
-  windStepperButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  windStepperButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
-
-  windSpeedValueContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    minWidth: 100,
-    justifyContent: 'center',
-  },
-
-  windSpeedValue: {
-    fontSize: 32,
-    fontWeight: '700',
-    letterSpacing: -1,
-  },
-
-  windSpeedUnit: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
-
-  resetButton: {
-    marginTop: 8,
-    padding: 8,
-  },
-
-  resetButtonText: {
-    fontSize: 13,
-    fontWeight: '500',
-  },
-
-  windSpeedButtons: {
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: 12,
-  },
-
-  windSpeedButton: {
-    flex: 1,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    alignItems: 'center',
-  },
-
-  windSpeedButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-
-  // Error Card
-  errorCard: {
-    marginBottom: 16,
-  },
-
-  errorContent: {
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-  },
-
-  errorInfo: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 12,
-    marginBottom: 16,
-  },
-
-  errorTextContainer: {
-    flex: 1,
-  },
-
-  errorTitle: {
+  calculateButtonText: {
     fontSize: 16,
     fontWeight: '700',
-    marginBottom: 4,
-  },
-
-  errorMessage: {
-    fontSize: 14,
-    lineHeight: 20,
-  },
-
-  errorActions: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-
-  retryButton: {
-    flex: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  retryButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-  },
-
-  dismissButton: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  dismissButtonText: {
-    fontSize: 15,
-    fontWeight: '500',
-  },
-
-  // Result
-  resultCard: {
-    marginBottom: 16,
-  },
-
-  // Gust Banner
-  gustBanner: {
-    marginBottom: 16,
-  },
-
-  gustBannerContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-  },
-
-  gustInfo: {
-    flex: 1,
-  },
-
-  gustLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 1,
-    marginBottom: 2,
-  },
-
-  gustText: {
-    fontSize: 14,
-  },
-
-  useGustButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-    marginLeft: 12,
-  },
-
-  useGustButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
+    letterSpacing: 0.5,
   },
 
   // Premium Upgrade Prompt Styles

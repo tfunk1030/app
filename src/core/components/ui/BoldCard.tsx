@@ -65,8 +65,7 @@ export const BoldCard: React.FC<BoldCardProps> = ({
   disabled = false,
 }) => {
   const t = useTokens();
-  const { mode } = useThemeMode();
-  const isDark = mode === 'dark' || mode === 'system';
+  const { isDark } = useThemeMode();
   const reduceMotion = useReduceMotionValue();
   const padding = getScrollPadding(16, { minPadding: 12, maxPadding: 20 });
 

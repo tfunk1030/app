@@ -35,8 +35,7 @@ export const GlassCard: React.FC<GlassCardProps> = ({
   disabled = false,
 }) => {
   const t = useTokens();
-  const { mode } = useThemeMode();
-  const isDark = mode === 'dark' || mode === 'system';
+  const { isDark } = useThemeMode();
   const padding = getScrollPadding(t.spacing.md, { minPadding: t.spacing.base, maxPadding: 20 });
 
   // Token-based border radius values for consistency

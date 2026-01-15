@@ -12,15 +12,9 @@ import {
   StyleSheet,
   ScrollView,
   RefreshControl,
-  Pressable,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-  withSequence,
-} from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { Thermometer, Droplets, Mountain, Gauge } from 'lucide-react-native';
 
@@ -94,10 +88,7 @@ export default function ShotScreen() {
   const [targetDistance, setTargetDistance] = useState(150);
   const [selectedPreset, setSelectedPreset] = useState<string | null>('150');
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [calculationResult, setCalculationResult] = useState<CalculationResult | null>(null);
 
-  // Animation
-  const resultScale = useSharedValue(1);
 
   // Unit labels
   const unit = settings.distanceUnit === 'meters' ? 'm' : 'yds';
@@ -121,11 +112,13 @@ export default function ShotScreen() {
   }, [settings.distanceUnit, convertDistance]);
 
   // FREE calculation - Environment only (NO WIND)
-  // Triggered by Calculate button press
-  const handleCalculate = useCallback(() => {
-    const temperatureF = environmental.conditions?.temperature ?? 70;
-    const humidity = environmental.conditions?.humidity ?? 50;
-    const altitudeFt = environmental.conditions?.altitude ?? 0;
+  // Auto-calculates whenever target distance or conditions change
+  const calculationResult = useMemo((): CalculationResult | null => {
+    if (!environmental.conditions) return null;
+
+    const temperatureF = environmental.conditions.temperature ?? 70;
+    const humidity = environmental.conditions.humidity ?? 50;
+    const altitudeFt = environmental.conditions.altitude ?? 0;
 
     // Guard against invalid target distance
     const safeTargetDistance = targetDistance > 0 ? targetDistance : 150;
@@ -149,17 +142,21 @@ export default function ShotScreen() {
     const adjustedDistanceYards = Math.round(targetInYards + totalAdjustmentYards);
 
     // Find the right club from user's bag (clubs are in yards)
+    // Sort clubs ascending by distance to find the shortest club that can reach the target
     let selectedClub = '7-Iron';
 
     if (clubs.length > 0) {
       const sortedClubs = [...clubs].sort((a, b) => a.normalYardage - b.normalYardage);
+      let found = false;
       for (const c of sortedClubs) {
         if (c.normalYardage >= adjustedDistanceYards) {
           selectedClub = c.name;
+          found = true;
           break;
         }
       }
-      if (selectedClub === '7-Iron' && sortedClubs.length > 0) {
+      // Only fall back to longest club if no club can reach the target
+      if (!found && sortedClubs.length > 0) {
         selectedClub = sortedClubs[sortedClubs.length - 1].name;
       }
     }
@@ -182,7 +179,7 @@ export default function ShotScreen() {
       ? Math.round(totalAdjustmentYards * 0.9144)
       : Math.round(totalAdjustmentYards);
 
-    const result: CalculationResult = {
+    return {
       playsLike,
       club: selectedClub,
       tempEffect,
@@ -190,16 +187,7 @@ export default function ShotScreen() {
       humidityEffect,
       totalAdjustment,
     };
-
-    setCalculationResult(result);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-
-    // Animate result
-    resultScale.value = withSequence(
-      withSpring(1.02, { damping: 10 }),
-      withSpring(1, { damping: 15 })
-    );
-  }, [targetDistance, environmental.conditions, clubs, settings.distanceUnit, resultScale]);
+  }, [targetDistance, environmental.conditions, clubs, settings.distanceUnit]);
 
   // Handlers
   const handlePresetSelect = useCallback((preset: { id: string; distance: number }) => {
@@ -211,16 +199,10 @@ export default function ShotScreen() {
   const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    if (environmental.forceRefresh) {
-      await environmental.forceRefresh();
-    }
+    await environmental.forceRefresh?.();
     await new Promise((resolve) => setTimeout(resolve, 500));
     setIsRefreshing(false);
-  }, [environmental.forceRefresh]);
-
-  const resultAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: resultScale.value }],
-  }));
+  }, [environmental]);
 
   // Get display values for conditions
   const temperatureDisplay = convertTemperatureForDisplay(
@@ -344,26 +326,12 @@ export default function ShotScreen() {
           </View>
         </Animated.View>
 
-        {/* Calculate Button */}
-        <Animated.View entering={cardEntering(4)} style={styles.calculateSection}>
-          <Pressable
-            onPress={handleCalculate}
-            style={[styles.calculateButton, { backgroundColor: colors.brand }]}
-            accessibilityLabel="Calculate shot adjustment"
-            accessibilityRole="button"
-          >
-            <Text style={[styles.calculateButtonText, { color: colors.textInverse }]}>
-              Calculate
-            </Text>
-          </Pressable>
-        </Animated.View>
-
-        {/* Result Card - Shows after calculation */}
+        {/* Result Card - Shows automatically */}
         {calculationResult && (
-          <Animated.View entering={cardEntering(4)} style={resultAnimatedStyle}>
+          <Animated.View entering={cardEntering(4)}>
             <ResultCard
               primaryLabel="Plays like"
-              primaryValue={String(calculationResult.playsLike || targetDistance)}
+              primaryValue={String(calculationResult?.playsLike ?? targetDistance)}
               primaryUnit={unit}
               secondaryLabel="Club"
               secondaryValue={calculationResult.club}
@@ -382,10 +350,17 @@ export default function ShotScreen() {
             entering={cardEntering(4)}
             style={[styles.adjustmentsCard, { backgroundColor: colors.surface }]}
           >
-            <Text style={[styles.adjustmentsTitle, { color: colors.textMuted }]}>
+            <Text
+              style={[styles.adjustmentsTitle, { color: colors.textMuted }]}
+              accessibilityRole="header"
+            >
               ENVIRONMENTAL EFFECTS
             </Text>
-            <View style={styles.adjustmentRow}>
+            <View
+              style={styles.adjustmentRow}
+              accessible={true}
+              accessibilityLabel={`Temperature ${temperatureDisplay}${tempUnit}: ${calculationResult.tempEffect > 0 ? 'adds' : calculationResult.tempEffect < 0 ? 'subtracts' : 'no change'} ${Math.abs(calculationResult.tempEffect)} ${unit}`}
+            >
               <Text style={[styles.adjustmentLabel, { color: colors.textSecondary }]}>
                 Temperature ({temperatureDisplay}{tempUnit})
               </Text>
@@ -401,12 +376,17 @@ export default function ShotScreen() {
                         : colors.textPrimary,
                   },
                 ]}
+                importantForAccessibility="no"
               >
                 {calculationResult.tempEffect > 0 ? '+' : ''}
                 {calculationResult.tempEffect} {unit}
               </Text>
             </View>
-            <View style={styles.adjustmentRow}>
+            <View
+              style={styles.adjustmentRow}
+              accessible={true}
+              accessibilityLabel={`Altitude ${altitudeDisplay} ${altUnit}: ${calculationResult.altitudeEffect > 0 ? 'adds' : calculationResult.altitudeEffect < 0 ? 'subtracts' : 'no change'} ${Math.abs(calculationResult.altitudeEffect)} ${unit}`}
+            >
               <Text style={[styles.adjustmentLabel, { color: colors.textSecondary }]}>
                 Altitude ({altitudeDisplay} {altUnit})
               </Text>
@@ -422,12 +402,17 @@ export default function ShotScreen() {
                         : colors.textPrimary,
                   },
                 ]}
+                importantForAccessibility="no"
               >
                 {calculationResult.altitudeEffect > 0 ? '+' : ''}
                 {calculationResult.altitudeEffect} {unit}
               </Text>
             </View>
-            <View style={styles.adjustmentRow}>
+            <View
+              style={styles.adjustmentRow}
+              accessible={true}
+              accessibilityLabel={`Humidity ${Math.round(environmental.conditions?.humidity || 50)} percent: ${calculationResult.humidityEffect > 0 ? 'adds' : calculationResult.humidityEffect < 0 ? 'subtracts' : 'no change'} ${Math.abs(calculationResult.humidityEffect)} ${unit}`}
+            >
               <Text style={[styles.adjustmentLabel, { color: colors.textSecondary }]}>
                 Humidity ({Math.round(environmental.conditions?.humidity || 50)}%)
               </Text>
@@ -443,6 +428,7 @@ export default function ShotScreen() {
                         : colors.textPrimary,
                   },
                 ]}
+                importantForAccessibility="no"
               >
                 {calculationResult.humidityEffect > 0 ? '+' : ''}
                 {calculationResult.humidityEffect} {unit}
@@ -529,26 +515,6 @@ const styles = StyleSheet.create({
 
   presetButton: {
     flex: 1,
-  },
-
-  // Calculate Button
-  calculateSection: {
-    marginBottom: 16,
-  },
-
-  calculateButton: {
-    paddingVertical: 16,
-    paddingHorizontal: 32,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 56,
-  },
-
-  calculateButtonText: {
-    fontSize: 18,
-    fontWeight: '700',
-    letterSpacing: 0.5,
   },
 
   // Result

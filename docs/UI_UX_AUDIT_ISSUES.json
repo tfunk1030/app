@@ -1,0 +1,217 @@
+{
+  "issues": [
+    {
+      "id": "UI-001",
+      "priority": "P0",
+      "title": "Home/Weather screen missing all accessibility attributes",
+      "screen": "Home/Weather",
+      "files": ["src/features/home/screen.tsx"],
+      "evidence": [
+        "Lines 1-230: No accessibilityRole, accessibilityLabel, or accessible props",
+        "MetricTile components render without screen reader support",
+        "Title 'Current Conditions' has no header role"
+      ],
+      "whyItMatters": "Users with visual impairments cannot understand current weather conditions—the core value prop of the app. VoiceOver/TalkBack users will hear nothing meaningful.",
+      "recommendedFix": "Add accessibilityRole='header' to title, accessibilityLabel to all MetricTile instances with full context (e.g., 'Temperature 72 degrees Fahrenheit'). Consider wrapping metrics in accessible region.",
+      "acceptanceCriteria": [
+        "Screen title announced as header by VoiceOver/TalkBack",
+        "Each metric tile announces label, value, and unit",
+        "Loading state announces 'Loading conditions' to screen readers"
+      ],
+      "effort": "S",
+      "category": "a11y"
+    },
+    {
+      "id": "UI-002",
+      "priority": "P0",
+      "title": "ResultCard component missing accessibility labels",
+      "screen": "Shot Calculator (redesign)",
+      "files": ["src/components/redesign/ResultCard.tsx"],
+      "evidence": [
+        "Lines 70-200: Component accepts onPress but lacks accessibilityRole='button'",
+        "primaryValue rendered without accessibilityLabel combining context",
+        "No announcement of 'Plays like 168 yards' result"
+      ],
+      "whyItMatters": "The main 'Plays like' recommendation is the most critical piece of information in the app and is completely invisible to assistive technologies.",
+      "recommendedFix": "Add accessibilityLabel prop that combines primaryLabel, primaryValue, and primaryUnit. Add accessibilityRole='button' when onPress is provided. Add accessibilityState for pressed state.",
+      "acceptanceCriteria": [
+        "Screen readers announce 'Plays like 168 yards' as a complete phrase",
+        "Interactive cards are announced as buttons",
+        "Secondary/tertiary values included in accessibility tree"
+      ],
+      "effort": "S",
+      "category": "a11y"
+    },
+    {
+      "id": "UI-003",
+      "priority": "P1",
+      "title": "Hardcoded color values in WindDirectionCompass",
+      "screen": "Wind Calculator",
+      "files": ["src/features/wind/components/compass/WindDirectionCompass.tsx"],
+      "evidence": [
+        "Line 214: '#22C55E' hardcoded in gradient array for locked state",
+        "Line 273: '#000' used as fallback shadow color instead of token"
+      ],
+      "whyItMatters": "Hardcoded colors break theme consistency and may reduce outdoor readability in light mode. The design system expects all colors to come from tokens.",
+      "recommendedFix": "Replace '#22C55E' with tokens.colors.success (which equals '#22C55E' in dark mode). Replace '#000' with tokens.colors.shadow for consistent theming.",
+      "acceptanceCriteria": [
+        "No hardcoded hex colors in component",
+        "Compass renders correctly in both light and dark modes",
+        "Locked state uses semantic success color from tokens"
+      ],
+      "effort": "S",
+      "category": "consistency"
+    },
+    {
+      "id": "UI-004",
+      "priority": "P1",
+      "title": "ConditionChip accessibility label missing metric context",
+      "screen": "Shot Calculator",
+      "files": ["src/features/calculator/screen.tsx"],
+      "evidence": [
+        "Lines 200-220: ConditionChip accessibilityLabel only contains value",
+        "accessibilityLabel={`${value}`} without label context",
+        "Users hear '68°F' without knowing it's temperature"
+      ],
+      "whyItMatters": "Screen reader users hear raw values without understanding what metric they represent, making the conditions bar useless for accessibility.",
+      "recommendedFix": "Update accessibilityLabel to include the metric type. Pattern: accessibilityLabel={`${label}: ${value}`} or derive label from icon type.",
+      "acceptanceCriteria": [
+        "Each chip announces 'Temperature: 68°F' or similar",
+        "All four condition metrics (density, altitude, temp, humidity) have context",
+        "Icons are marked accessibilityElementsHidden={true}"
+      ],
+      "effort": "S",
+      "category": "a11y"
+    },
+    {
+      "id": "UI-005",
+      "priority": "P1",
+      "title": "No accessibilityHint for complex interactions",
+      "screen": "Multiple",
+      "files": [
+        "src/core/components/ui/slider.tsx",
+        "src/core/components/ui/GlassCard.tsx",
+        "src/core/components/ui/button.tsx"
+      ],
+      "evidence": [
+        "Slider increment/decrement buttons have accessibilityLabel but no hint",
+        "GlassCard with onPress lacks guidance on expected action",
+        "Button component doesn't pass through accessibilityHint"
+      ],
+      "whyItMatters": "Users need guidance on what will happen when they interact with unfamiliar controls. Hints like 'Double tap to increase by 1' improve discoverability.",
+      "recommendedFix": "Add accessibilityHint props to Slider buttons ('Double tap to decrease value'), GlassCard ('Double tap to view details'), and expose accessibilityHint in Button props.",
+      "acceptanceCriteria": [
+        "Slider +/- buttons announce their action on focus",
+        "Pressable GlassCards hint at navigation or action",
+        "accessibilityHint prop available on Button component"
+      ],
+      "effort": "M",
+      "category": "a11y"
+    },
+    {
+      "id": "UI-006",
+      "priority": "P2",
+      "title": "FlatList used instead of FlashList in OnboardingFlow",
+      "screen": "Onboarding",
+      "files": ["src/components/onboarding/OnboardingFlow.tsx"],
+      "evidence": [
+        "Line 36: import { FlatList } from 'react-native'",
+        "Line 371-374: Standard FlatList used for step carousel",
+        "No estimatedItemSize optimization"
+      ],
+      "whyItMatters": "FlashList is 5x faster for list rendering. Onboarding contains animated content and multiple steps that would benefit from the optimization.",
+      "recommendedFix": "Replace FlatList with @shopify/flash-list FlashList. Add estimatedItemSize prop based on screen width. Keep horizontal and pagingEnabled props.",
+      "acceptanceCriteria": [
+        "FlashList imported from @shopify/flash-list",
+        "estimatedItemSize prop set to screen width",
+        "Onboarding scroll performance improved on low-end devices"
+      ],
+      "effort": "S",
+      "category": "performance"
+    },
+    {
+      "id": "UI-007",
+      "priority": "P2",
+      "title": "ErrorBoundary retry button missing accessibility feedback",
+      "screen": "Error Recovery",
+      "files": ["src/components/error-boundary/ErrorBoundary.tsx"],
+      "evidence": [
+        "Lines 140-145: Pressable button lacks accessibilityRole",
+        "No accessibilityState for loading during recovery",
+        "Button text 'Try Again' not descriptive enough"
+      ],
+      "whyItMatters": "Error recovery is a critical path. Users need clear feedback on what the button does and whether recovery is in progress.",
+      "recommendedFix": "Add accessibilityRole='button', accessibilityLabel='Try again to reload the app', and consider adding loading state with accessibilityState={{ busy: isRecovering }}.",
+      "acceptanceCriteria": [
+        "Button announced as 'Try again to reload the app, button'",
+        "Loading state announced during cache clear",
+        "Error message accessible to screen readers"
+      ],
+      "effort": "S",
+      "category": "a11y"
+    },
+    {
+      "id": "UI-008",
+      "priority": "P2",
+      "title": "Input component lacks error state styling",
+      "screen": "Settings (Club Management)",
+      "files": ["src/core/components/ui/Input.tsx"],
+      "evidence": [
+        "Component only has focused/unfocused states",
+        "No 'error' prop or red border styling",
+        "No accessibilityLabelledBy for error messages"
+      ],
+      "whyItMatters": "Golf club distance inputs need validation feedback. Users entering invalid yardage (e.g., 9999) get no visual or accessible indication of the error.",
+      "recommendedFix": "Add error prop with boolean type. When true, show danger border color from tokens. Add accessibilityInvalid={error} and aria-describedby pattern for error text.",
+      "acceptanceCriteria": [
+        "Input shows red border when error prop is true",
+        "accessibilityInvalid reflects error state",
+        "Error message linked via accessibilityLabelledBy"
+      ],
+      "effort": "M",
+      "category": "ux"
+    },
+    {
+      "id": "UI-009",
+      "priority": "P3",
+      "title": "Tab bar icons missing explicit accessibilityState",
+      "screen": "Tab Navigation",
+      "files": ["app/(tabs-redesign)/_layout.tsx"],
+      "evidence": [
+        "Lines 30-45: TabBarIcon doesn't set accessibilityState",
+        "Expo Router may handle selection, but explicit is safer",
+        "No visual indication beyond color change"
+      ],
+      "whyItMatters": "Ensures consistent behavior across Android TalkBack and iOS VoiceOver. Explicit accessibility state is more reliable than framework inference.",
+      "recommendedFix": "Wrap TabBarIcon in View with accessibilityState={{ selected: focused }}. Consider adding accessibilityLabel with tab name and selection state.",
+      "acceptanceCriteria": [
+        "Tab icons announce 'Shot tab, selected' when focused",
+        "Unselected tabs announce 'Wind tab, not selected'",
+        "Works consistently on iOS and Android"
+      ],
+      "effort": "S",
+      "category": "a11y"
+    },
+    {
+      "id": "UI-010",
+      "priority": "P3",
+      "title": "Compass lock announcements lack wind context",
+      "screen": "Wind Calculator",
+      "files": ["src/features/wind/components/compass/WindDirectionCompass.tsx"],
+      "evidence": [
+        "Lines 115-120: announceForAccessibility only says 'Compass locked/unlocked'",
+        "Wind direction and relationship not included",
+        "Missing speed and heading context"
+      ],
+      "whyItMatters": "Blind users need the full wind context announced when locking the compass. The current announcement doesn't convey the critical information.",
+      "recommendedFix": "Enhance announcement to include full context: 'Compass locked. Wind is headwind at 15 mph from 270 degrees.' Use windRelationship variable already computed.",
+      "acceptanceCriteria": [
+        "Lock announcement includes wind relationship (headwind/tailwind/crosswind)",
+        "Wind speed included in announcement",
+        "Unlock announcement confirms current heading"
+      ],
+      "effort": "S",
+      "category": "a11y"
+    }
+  ]
+}
