@@ -13,6 +13,8 @@ export interface WindDirectionCompassProps {
   lockShot?: boolean;
   windSpeed?: number;
   speedUnit?: string;
+  /** Hide the internal lock button (when using ActionBar instead) */
+  hideLockButton?: boolean;
 }
 
 export interface DegreeMarksProps {
@@ -38,6 +40,40 @@ export interface WindArrowProps {
   success: string;
   border: string;
   compassSize: number;
+  /** Wind speed in mph for magnitude encoding (0-30mph range) */
+  magnitude?: number;
+  /** Whether to respect reduced motion accessibility setting */
+  reducedMotion?: boolean;
+}
+
+export interface CrosswindIndicatorProps {
+  /** Crosswind magnitude in the user's preferred unit */
+  magnitude: number;
+  /** Direction of crosswind: 'left' | 'right' */
+  direction: 'left' | 'right';
+  /** Unit label for accessibility */
+  unit: string;
+  /** Compass size for proportional scaling */
+  compassSize: number;
+  /** Theme colors */
+  colors: {
+    warning: string;
+    neutral: string;
+    text: string;
+  };
+}
+
+export interface WindMagnitudeLegendProps {
+  /** Current wind speed value */
+  windSpeed: number;
+  /** Unit label (e.g., 'mph', 'kph') */
+  unit: string;
+  /** Theme colors */
+  colors: {
+    text: string;
+    subtext: string;
+    icon: string;
+  };
 }
 
 export interface PhoneArrowProps {

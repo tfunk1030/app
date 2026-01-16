@@ -18,9 +18,8 @@ import {
   RefreshControl,
   Pressable,
   TextInput,
-  useWindowDimensions,
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -41,6 +40,8 @@ import { useWindCalculator } from '@/src/features/wind/hooks/useWindCalculator';
 import { useSensorData } from '@/src/features/wind/context/sensor-data';
 import { CompassLockProvider, useCompassLock } from '@/src/features/wind/context/compass-lock';
 import WindDirectionCompass from '@/src/features/wind/components/compass';
+import InlineResult from '@/src/features/wind/components/InlineResult';
+import { useWindScreenLayout } from '@/src/features/wind/hooks/useWindScreenLayout';
 
 // =============================================================================
 // TYPES
@@ -105,20 +106,22 @@ function convertToMph(value: number, speedUnit: Settings['speedUnit']): number {
 // WIND CALCULATOR REDESIGN COMPONENT
 // =============================================================================
 
-function WindCalculatorRedesign({ sensorAvailable = true }: { sensorAvailable?: boolean }) {
+interface WindCalculatorRedesignProps {
+  sensorAvailable?: boolean;
+  compassAccuracy?: 'high' | 'medium' | 'low' | 'unreliable';
+}
+
+function WindCalculatorRedesign({ sensorAvailable = true, compassAccuracy = 'high' }: WindCalculatorRedesignProps) {
+  const [showCalibrationHint, setShowCalibrationHint] = useState(true);
   const { colors } = useRedesignTheme();
   const { settings, convertDistance } = useSettings();
   const environmental = useEnhancedEnvironmental();
   const { isLocked, relativeWindAngle, toggleLock } = useCompassLock();
-  const { height: screenHeight } = useWindowDimensions();
   const { headerEntering, cardEntering } = useAccessibleAnimations();
   const insets = useSafeAreaInsets();
 
-  // Adaptive compass sizing (180-240px based on screen height)
-  // Smaller to make room for result card above the fold
-  const reservedSpace = 650;
-  const availableForCompass = Math.max(0, screenHeight - reservedSpace);
-  const compassSize = Math.max(180, Math.min(240, 180 + availableForCompass * 0.5));
+  // Use responsive layout hook for adaptive sizing
+  const { compassSize, layoutMode, bottomBarHeight, screen } = useWindScreenLayout();
 
   // Wind calculator hook
   const {
@@ -244,12 +247,12 @@ function WindCalculatorRedesign({ sensorAvailable = true }: { sensorAvailable?: 
   }, [toggleLock]);
 
   const compassAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: interpolate(slideOffset.value, [0, 1], [0, -screenHeight]) }],
+    transform: [{ translateY: interpolate(slideOffset.value, [0, 1], [0, -screen.height]) }],
     opacity: interpolate(slideOffset.value, [0, 0.4], [1, 0]),
   }));
 
   const resultsAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: interpolate(slideOffset.value, [0, 1], [screenHeight, 0]) }],
+    transform: [{ translateY: interpolate(slideOffset.value, [0, 1], [screen.height, 0]) }],
     opacity: interpolate(slideOffset.value, [0.6, 1], [0, 1]),
   }));
 
@@ -321,9 +324,10 @@ function WindCalculatorRedesign({ sensorAvailable = true }: { sensorAvailable?: 
       }
 
       setDualResult({ steady, gust });
-      slideOffset.value = withSpring(1, { damping: 18, stiffness: 160 });
-      setViewState('results');
+      // Show inline result instead of sliding to full results page
+      // Full results still accessible via "See breakdown" in InlineResult
       setManualOpen(false);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (err) {
       setCalcError('Unable to calculate wind adjustment.');
     }
@@ -349,16 +353,12 @@ function WindCalculatorRedesign({ sensorAvailable = true }: { sensorAvailable?: 
   }, [slideOffset]);
 
   return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      edges={['top']}
-    >
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView
         ref={scrollViewRef}
-        contentContainerStyle={[
-          styles.scrollContent,
-          { paddingBottom: 120 },
-        ]}
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        contentInsetAdjustmentBehavior="automatic"
         refreshControl={
           <RefreshControl
             refreshing={isRefreshing}
@@ -369,17 +369,6 @@ function WindCalculatorRedesign({ sensorAvailable = true }: { sensorAvailable?: 
         showsVerticalScrollIndicator={false}
       >
         <Animated.View style={compassAnimatedStyle}>
-          {/* Header */}
-          <Animated.View entering={headerEntering} style={styles.header}>
-            <Text
-              style={[styles.title, { color: colors.textPrimary }]}
-              accessibilityRole="header"
-            >
-              Wind Calculator
-            </Text>
-            <Text style={[styles.subtitle, { color: colors.textMuted }]}>Aim adjustments for wind</Text>
-          </Animated.View>
-
           {/* Conditions Bar - Compact wind info */}
           <Animated.View entering={headerEntering}>
             <ScrollView
@@ -444,19 +433,69 @@ function WindCalculatorRedesign({ sensorAvailable = true }: { sensorAvailable?: 
           {/* Compass Section */}
           <Animated.View entering={cardEntering(2)} style={styles.compassSection}>
             <View style={styles.compassWrapper}>
-              <WindDirectionCompass size={compassSize} />
+              <WindDirectionCompass
+                size={compassSize}
+                windSpeed={currentWindSpeedMph}
+                speedUnit={speedUnitLabel}
+                hideLockButton
+              />
             </View>
+
+            {/* Inline Result - visible when locked and calculated */}
+            {isLocked && dualResult && (
+              <InlineResult
+                playsLikeDistance={dualResult.steady.playsLike}
+                actualDistance={targetDistance}
+                unit={unit}
+                isVisible={true}
+                breakdown={{
+                  headwind: dualResult.steady.headwindEffect,
+                  crosswind: dualResult.steady.crosswindEffect,
+                  altitude: 0,
+                  temperature: dualResult.steady.environmentalEffect,
+                }}
+                colors={{
+                  background: colors.surfaceElevated,
+                  border: colors.border,
+                  text: colors.textPrimary,
+                  textMuted: colors.textMuted,
+                  accent: colors.brand,
+                  success: colors.success,
+                  warning: colors.warning,
+                }}
+              />
+            )}
           </Animated.View>
 
           {!sensorAvailable && (
             <View style={styles.manualHeadingSection}>
-              <View style={[styles.sensorWarning, { backgroundColor: colors.warning + '1A' }]}>
-                <AlertTriangle size={16} color={colors.warning} />
-                <Text style={[styles.warningText, { color: colors.warning }]}>
+              <View
+                style={[styles.sensorWarning, { backgroundColor: colors.warning + '1A' }]}
+                accessibilityRole="alert"
+                accessibilityLabel={__DEV__ ? 'Warning: Compass limited in Expo Go. Use compass to set direction' : 'Warning: Compass unavailable'}
+              >
+                <AlertTriangle size={16} color={colors.warning} accessibilityElementsHidden={true} />
+                <Text style={[styles.warningText, { color: colors.warning }]} importantForAccessibility="no">
                   {__DEV__ ? 'Compass limited in Expo Go - use compass to set direction' : 'Compass unavailable'}
                 </Text>
               </View>
             </View>
+          )}
+
+          {/* Calibration hint - shows when accuracy is low/unreliable */}
+          {showCalibrationHint && (compassAccuracy === 'low' || compassAccuracy === 'unreliable') && (
+            <Pressable
+              onPress={() => setShowCalibrationHint(false)}
+              style={[styles.calibrationHint, { backgroundColor: colors.brandMuted, borderColor: colors.brand }]}
+              accessibilityRole="alert"
+              accessibilityLabel="Compass accuracy is low. Move phone in figure-8 pattern to calibrate. Tap to dismiss."
+            >
+              <Compass size={16} color={colors.brand} />
+              <Text style={[styles.calibrationText, { color: colors.brand }]}>
+                Move phone in figure-8 to calibrate compass
+              </Text>
+              <Text style={[styles.calibrationDismiss, { color: colors.textMuted }]}>Dismiss</Text>
+            </Pressable>
           )}
 
           {/* Manual Input */}
@@ -466,6 +505,7 @@ function WindCalculatorRedesign({ sensorAvailable = true }: { sensorAvailable?: 
               style={styles.manualToggle}
               accessibilityRole="button"
               accessibilityLabel={manualOpen ? 'Collapse manual input' : 'Edit manually'}
+              accessibilityState={{ expanded: manualOpen }}
             >
               <Text style={[styles.manualToggleText, { color: colors.textMuted }]}>Edit manually</Text>
               <ChevronRight size={18} color={colors.textMuted} style={manualOpen ? { transform: [{ rotate: '90deg' }] } : undefined} />
@@ -528,7 +568,7 @@ function WindCalculatorRedesign({ sensorAvailable = true }: { sensorAvailable?: 
 
           {dualResult && (
             <View style={styles.resultsBody}>
-              <View style={[styles.resultCard, { borderColor: colors.brand }]}>
+              <View style={[styles.resultCard, { borderColor: colors.brand, backgroundColor: colors.surfaceElevated }]}>
                 <Text style={[styles.resultLabel, { color: colors.textMuted }]}>STEADY WIND ({currentWindSpeedDisplay} {speedUnitLabel})</Text>
                 <Text style={[styles.resultValue, { color: colors.textPrimary }]}>{dualResult.steady.playsLike} {unit}</Text>
                 <Text style={[styles.resultSub, { color: colors.textSecondary }]}>Club: {dualResult.steady.club}</Text>
@@ -537,7 +577,7 @@ function WindCalculatorRedesign({ sensorAvailable = true }: { sensorAvailable?: 
               </View>
 
               {dualResult.gust && (
-                <View style={[styles.resultCard, { borderColor: colors.warning }]}>
+                <View style={[styles.resultCard, { borderColor: colors.warning, backgroundColor: colors.surfaceElevated }]}>
                   <Text style={[styles.resultLabel, { color: colors.warning }]}>GUSTS ({currentWindGustDisplay} {speedUnitLabel})</Text>
                   <Text style={[styles.resultValue, { color: colors.textPrimary }]}>{dualResult.gust.playsLike} {unit}</Text>
                   <Text style={[styles.resultSub, { color: colors.textSecondary }]}>Club: {dualResult.gust.club}</Text>
@@ -559,9 +599,8 @@ function WindCalculatorRedesign({ sensorAvailable = true }: { sensorAvailable?: 
         </Animated.View>
       </ScrollView>
 
-      {/* Bottom Action Bar */}
-      {viewState === 'compass' && (
-        <View
+      {/* Bottom Action Bar - always visible with inline results */}
+      <View
           style={[
             styles.bottomBar,
             {
@@ -594,8 +633,7 @@ function WindCalculatorRedesign({ sensorAvailable = true }: { sensorAvailable?: 
             </Text>
           </Pressable>
         </View>
-      )}
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -622,7 +660,10 @@ function WindCalculatorWithCompass() {
       currentHeading={heading || 0}
       windDirection={environmental.conditions?.windDirection || 0}
     >
-      <WindCalculatorRedesign sensorAvailable={isCompassWorking} />
+      <WindCalculatorRedesign
+        sensorAvailable={isCompassWorking}
+        compassAccuracy={accuracy}
+      />
     </CompassLockProvider>
   );
 }
@@ -642,17 +683,16 @@ function PremiumUpgradePrompt() {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-      <View style={[styles.content, { paddingBottom: 80 }]}>
-        <Animated.View entering={headerEntering} style={styles.upgradeHeader}>
-          <View style={[styles.iconContainer, { backgroundColor: colors.brandMuted }]}>
-            <Wind size={48} color={colors.brand} />
-          </View>
-          <Text style={[styles.title, { color: colors.textPrimary }]}>Wind Calculator</Text>
-          <Text style={[styles.subtitle, { color: colors.textMuted }]}>
-            Premium Feature
-          </Text>
-        </Animated.View>
+    <ScrollView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      contentContainerStyle={styles.upgradeContent}
+      contentInsetAdjustmentBehavior="automatic"
+    >
+      <Animated.View entering={headerEntering} style={styles.upgradeHeader}>
+        <View style={[styles.iconContainer, { backgroundColor: colors.brandMuted }]}>
+          <Wind size={48} color={colors.brand} />
+        </View>
+      </Animated.View>
 
         <Animated.View entering={cardEntering(2)} style={[styles.card, { backgroundColor: colors.surface }]}>
           <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>
@@ -704,8 +744,7 @@ function PremiumUpgradePrompt() {
             The free Shot Calculator includes temperature, altitude, and humidity adjustments.
           </Text>
         </Animated.View>
-      </View>
-    </SafeAreaView>
+    </ScrollView>
   );
 }
 
@@ -734,24 +773,20 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
+  scrollView: {
+    flex: 1,
+  },
+
   scrollContent: {
     paddingHorizontal: 16,
-    paddingTop: 8,
+    gap: 16,
   },
 
-  header: {
-    marginBottom: 20,
-  },
-
-  title: {
-    fontSize: 32,
-    fontWeight: '700',
-    letterSpacing: -0.5,
-  },
-
-  subtitle: {
-    fontSize: 16,
-    marginTop: 4,
+  upgradeContent: {
+    paddingHorizontal: 24,
+    paddingTop: 24,
+    alignItems: 'center',
+    gap: 24,
   },
 
   // Conditions
@@ -801,6 +836,30 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
 
+  // Calibration hint
+  calibrationHint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    gap: 8,
+    marginBottom: 12,
+  },
+
+  calibrationText: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '500',
+  },
+
+  calibrationDismiss: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+
   // Manual Heading Fallback
   manualHeadingSection: {
     marginBottom: 16,
@@ -821,7 +880,8 @@ const styles = StyleSheet.create({
 
   stepperButtonInline: {
     minWidth: 64,
-    paddingVertical: 10,
+    minHeight: 48,
+    paddingVertical: 12,
     paddingHorizontal: 12,
     borderRadius: 12,
     borderWidth: 1,
@@ -925,7 +985,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1.5,
     padding: 16,
-    backgroundColor: 'rgba(255,255,255,0.02)',
+    // Note: backgroundColor applied inline via colors.surfaceElevated for theme support
   },
 
   resultLabel: {

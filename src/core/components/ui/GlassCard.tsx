@@ -2,14 +2,16 @@ import { useThemeMode } from '@/src/theme/ThemeProvider';
 import { useTokens } from '@/src/theme/useTokens';
 import { getScrollPadding, getFlexibleMinHeight } from '@/src/utils/responsive';
 import { BlurView } from 'expo-blur';
+import { GlassView } from 'expo-glass-effect';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useMemo } from 'react';
-import { Pressable, View, ViewStyle } from 'react-native';
+import { Platform, Pressable, View, ViewStyle } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withSpring,
 } from 'react-native-reanimated';
+import { useReduceMotionValue } from '@/src/hooks/useReduceMotion';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -20,6 +22,12 @@ interface GlassCardProps {
   intensity?: number; // Blur intensity (0-100)
   accent?: boolean; // Optional top accent bar
   glow?: boolean; // Enable glow shadow effect
+  /** Use iOS 26+ Liquid Glass effect. Falls back to BlurView on:
+   * - Non-iOS platforms (Android, web)
+   * - iOS < 26
+   * - When user has "Reduce Motion" accessibility enabled
+   */
+  liquidGlass?: boolean;
   onPress?: () => void; // Optional press handler
   disabled?: boolean;
 }
@@ -31,11 +39,13 @@ export const GlassCard: React.FC<GlassCardProps> = ({
   intensity = 20,
   accent = false,
   glow = false,
+  liquidGlass = false,
   onPress,
   disabled = false,
 }) => {
   const t = useTokens();
   const { isDark } = useThemeMode();
+  const reduceMotion = useReduceMotionValue();
   const padding = getScrollPadding(t.spacing.md, { minPadding: t.spacing.base, maxPadding: 20 });
 
   // Token-based border radius values for consistency
@@ -71,21 +81,13 @@ export const GlassCard: React.FC<GlassCardProps> = ({
     isPressed.value = false;
   }, [scale, isPressed, t.animation.spring]);
 
-  // Determine shadow style based on glow prop
+  // Determine shadow style based on glow prop (CSS boxShadow - New Architecture)
   const shadowStyle = glow
     ? {
-        shadowColor: t.colors.glowPrimary,
-        shadowOffset: t.shadow.glow.shadowOffset,
-        shadowOpacity: t.shadow.glow.shadowOpacity,
-        shadowRadius: t.shadow.glow.shadowRadius,
-        elevation: t.shadow.glow.elevation,
+        boxShadow: `0 ${t.shadow.glow.shadowOffset.height}px ${t.shadow.glow.shadowRadius}px ${t.colors.glowPrimaryAlpha}`,
       }
     : {
-        shadowColor: t.colors.shadow,
-        shadowOffset: t.shadow.card.shadowOffset,
-        shadowOpacity: t.shadow.card.shadowOpacity,
-        shadowRadius: t.shadow.card.shadowRadius,
-        elevation: t.shadow.card.elevation,
+        boxShadow: `0 ${t.shadow.card.shadowOffset.height}px ${t.shadow.card.shadowRadius}px ${t.colors.shadowAlpha}`,
       };
 
   // Memoized dynamic styles for consistent token-based styling
@@ -141,36 +143,68 @@ export const GlassCard: React.FC<GlassCardProps> = ({
 
       {/* Glassmorphism background */}
       {isDark ? (
-        <BlurView
-          intensity={intensity}
-          tint="dark"
-          style={[
-            dynamicStyles.blurContainer,
-            gradient && dynamicStyles.withGradientBorder,
-          ]}
-        >
-          {/* Inner surface with glass effect */}
-          <View
+        liquidGlass && Platform.OS === 'ios' && !reduceMotion ? (
+          // iOS 26+ Liquid Glass effect via expo-glass-effect
+          // Respects user's reduce motion preference for accessibility
+          <GlassView
             style={[
-              dynamicStyles.glassInner,
-              {
-                backgroundColor: t.colors.surfaceGlass,
-                borderColor: gradient ? 'transparent' : t.colors.border,
-                borderWidth: gradient ? 0 : t.borderWidth.thin,
-              },
+              dynamicStyles.blurContainer,
+              gradient && dynamicStyles.withGradientBorder,
             ]}
           >
-            {accent && (
-              <LinearGradient
-                colors={t.gradients.primary as [string, string, ...string[]]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={dynamicStyles.accent}
-              />
-            )}
-            <View style={{ padding }}>{children}</View>
-          </View>
-        </BlurView>
+            <View
+              style={[
+                dynamicStyles.glassInner,
+                {
+                  backgroundColor: 'transparent',
+                  borderColor: gradient ? 'transparent' : t.colors.border,
+                  borderWidth: gradient ? 0 : t.borderWidth.thin,
+                },
+              ]}
+            >
+              {accent && (
+                <LinearGradient
+                  colors={t.gradients.primary as [string, string, ...string[]]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={dynamicStyles.accent}
+                />
+              )}
+              <View style={{ padding }}>{children}</View>
+            </View>
+          </GlassView>
+        ) : (
+          // Fallback to BlurView for non-liquidGlass or non-iOS
+          <BlurView
+            intensity={intensity}
+            tint="dark"
+            style={[
+              dynamicStyles.blurContainer,
+              gradient && dynamicStyles.withGradientBorder,
+            ]}
+          >
+            <View
+              style={[
+                dynamicStyles.glassInner,
+                {
+                  backgroundColor: t.colors.surfaceGlass,
+                  borderColor: gradient ? 'transparent' : t.colors.border,
+                  borderWidth: gradient ? 0 : t.borderWidth.thin,
+                },
+              ]}
+            >
+              {accent && (
+                <LinearGradient
+                  colors={t.gradients.primary as [string, string, ...string[]]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={dynamicStyles.accent}
+                />
+              )}
+              <View style={{ padding }}>{children}</View>
+            </View>
+          </BlurView>
+        )
       ) : (
         <View
           style={[

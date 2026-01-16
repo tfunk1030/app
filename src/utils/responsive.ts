@@ -591,3 +591,69 @@ export function getCenterElementSizes(compassSize: number) {
     windOriginIndicator: getCompassScaledValue(compassSize, 0.08, 18, 22),
   };
 }
+
+// =============================================================================
+// WIND SCREEN LAYOUT UTILITIES (Height Breakpoints)
+// =============================================================================
+
+/**
+ * Height breakpoint constants for responsive layout modes
+ * - compact: <700pt (iPhone SE, small screens)
+ * - regular: 700-850pt (iPhone 14, standard screens)
+ * - large: >850pt (iPhone Pro Max, large screens)
+ */
+export const HEIGHT_BREAKPOINTS = {
+  COMPACT_MAX: 700,
+  REGULAR_MAX: 850,
+} as const;
+
+export type LayoutMode = 'compact' | 'regular' | 'large';
+
+/**
+ * Get layout mode based on screen height
+ * Used for adapting Wind screen layout to different device sizes
+ */
+export function getLayoutMode(screenHeight: number): LayoutMode {
+  if (screenHeight < HEIGHT_BREAKPOINTS.COMPACT_MAX) {
+    return 'compact';
+  }
+  if (screenHeight <= HEIGHT_BREAKPOINTS.REGULAR_MAX) {
+    return 'regular';
+  }
+  return 'large';
+}
+
+/**
+ * Get optimal compass size based on layout mode and screen width
+ * Ensures compass doesn't exceed container bounds while maximizing visual impact
+ */
+export function getCompassSizeByMode(
+  mode: LayoutMode,
+  screenWidth: number
+): number {
+  // Maximum compass size constraints per mode
+  const maxSizes: Record<LayoutMode, number> = {
+    compact: 200,
+    regular: 260,
+    large: 320,
+  };
+
+  // Calculate size based on screen width (max 80% of screen width)
+  const widthBasedSize = screenWidth * 0.8;
+
+  // Use the smaller of width-based size or mode max
+  return Math.min(widthBasedSize, maxSizes[mode]);
+}
+
+/**
+ * Get action bar height based on layout mode
+ * Compact mode uses shorter bar to save vertical space
+ */
+export function getActionBarHeight(mode: LayoutMode): number {
+  const heights: Record<LayoutMode, number> = {
+    compact: 64,
+    regular: 72,
+    large: 80,
+  };
+  return heights[mode];
+}

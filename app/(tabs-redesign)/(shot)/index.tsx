@@ -13,7 +13,6 @@ import {
   ScrollView,
   RefreshControl,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { Thermometer, Droplets, Mountain, Gauge } from 'lucide-react-native';
@@ -217,48 +216,32 @@ export default function ShotScreen() {
   // Show skeleton during initial load
   if (isInitialLoading) {
     return (
-      <SafeAreaView
+      <View
         style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top']}
+        accessible={true}
+        accessibilityRole="progressbar"
+        accessibilityLabel="Loading shot calculator"
       >
-        <View style={styles.scrollContent}>
-          <SkeletonScreen showHero={false} cardCount={1} />
-        </View>
-      </SafeAreaView>
+        <SkeletonScreen showHero={false} cardCount={1} />
+      </View>
     );
   }
 
   return (
-    <SafeAreaView
+    <ScrollView
       style={[styles.container, { backgroundColor: colors.background }]}
-      edges={['top']}
+      contentContainerStyle={styles.scrollContent}
+      contentInsetAdjustmentBehavior="automatic"
+      refreshControl={
+        <RefreshControl
+          refreshing={isRefreshing}
+          onRefresh={handleRefresh}
+          tintColor={colors.brand}
+        />
+      }
+      showsVerticalScrollIndicator={false}
     >
-      <ScrollView
-        contentContainerStyle={[
-          styles.scrollContent,
-          { paddingBottom: 80 }, // 64 (tab bar) + 16 (buffer) - insets already in tab bar
-        ]}
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefreshing}
-            onRefresh={handleRefresh}
-            tintColor={colors.brand}
-          />
-        }
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Header */}
-        <Animated.View entering={headerEntering} style={styles.header}>
-          <Text
-            style={[styles.title, { color: colors.textPrimary }]}
-            accessibilityRole="header"
-          >
-            Shot Calculator
-          </Text>
-          <Text style={[styles.subtitle, { color: colors.textMuted }]}>Environmental adjustments</Text>
-        </Animated.View>
-
-        {/* Conditions Bar - NO WIND (that's premium) */}
+      {/* Conditions Bar - NO WIND (that's premium) */}
         <Animated.View entering={headerEntering}>
           <ScrollView
             horizontal
@@ -443,8 +426,7 @@ export default function ShotScreen() {
             Use the Wind tab for wind-adjusted calculations with compass heading.
           </Text>
         </Animated.View>
-      </ScrollView>
-    </SafeAreaView>
+    </ScrollView>
   );
 }
 
@@ -459,22 +441,7 @@ const styles = StyleSheet.create({
 
   scrollContent: {
     paddingHorizontal: 16,
-    paddingTop: 8,
-  },
-
-  header: {
-    marginBottom: 20,
-  },
-
-  title: {
-    fontSize: 32,
-    fontWeight: '700',
-    letterSpacing: -0.5,
-  },
-
-  subtitle: {
-    fontSize: 16,
-    marginTop: 4,
+    gap: 16,
   },
 
   // Conditions

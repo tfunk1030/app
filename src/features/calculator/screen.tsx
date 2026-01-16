@@ -111,7 +111,12 @@ export default function ShotCalculatorScreen() {
 
   if (!conditions) {
     return (
-      <View style={[styles.loadingContainer, { backgroundColor: t.colors.background, paddingTop: insets.top + t.spacing.md }]}>
+      <View
+        style={[styles.loadingContainer, { backgroundColor: t.colors.background, paddingTop: insets.top + t.spacing.md }]}
+        accessible={true}
+        accessibilityRole="progressbar"
+        accessibilityLabel="Loading calculator"
+      >
         <SkeletonScreen showHero={true} cardCount={1} />
       </View>
     );
@@ -303,11 +308,21 @@ const ConditionChip = React.memo<ConditionChipProps>(({ icon, value, tokens: t }
     } as TextStyle,
   }), [t]);
 
+  // Extract label from value for better accessibility (e.g., "72°F" becomes context-aware)
+  const getAccessibilityLabel = () => {
+    // Icon type determines context
+    if (value.includes('°')) return `Temperature: ${value}`;
+    if (value.includes('%')) return `Humidity: ${value}`;
+    if (value.includes('kg/m')) return `Air density: ${value}`;
+    if (value.includes('ft') || value.includes('m')) return `Altitude: ${value}`;
+    return value;
+  };
+
   return (
     <View
       style={chipStyles.chip}
       accessible
-      accessibilityLabel={`${value}`}
+      accessibilityLabel={getAccessibilityLabel()}
     >
       {icon}
       <Text style={chipStyles.text}>{value}</Text>

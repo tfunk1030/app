@@ -8,7 +8,7 @@
  * - Permissions
  */
 
-import React, { useCallback, memo, useState } from 'react';
+import React, { useCallback, memo, useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -18,10 +18,10 @@ import {
   Switch,
   Alert,
   Linking,
-  Modal,
   TextInput,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { TrueSheet, type TrueSheetRef } from '@lodev09/react-native-true-sheet';
+import SegmentedControl from '@react-native-segmented-control/segmented-control';
 import Animated from 'react-native-reanimated';
 import { useAccessibleAnimations } from '@/src/hooks/useAccessibility';
 import * as Haptics from 'expo-haptics';
@@ -383,8 +383,10 @@ export default function SetupScreen() {
   const { setShowUpgradeModal } = usePremium();
   const { headerEntering, cardEntering } = useAccessibleAnimations();
 
-  // Club modal state
-  const [modalVisible, setModalVisible] = useState(false);
+  // TrueSheet ref for club editing
+  const clubSheetRef = useRef<TrueSheetRef>(null);
+
+  // Club editing state
   const [editingClubId, setEditingClubId] = useState<string | null>(null);
   const [clubName, setClubName] = useState('');
   const [clubDistance, setClubDistance] = useState('');
@@ -452,17 +454,17 @@ export default function SetupScreen() {
     [updateSettings]
   );
 
-  // Open modal for adding a new club
-  const handleOpenAddModal = useCallback(() => {
+  // Open sheet for adding a new club
+  const handleOpenAddSheet = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setEditingClubId(null);
     setClubName('');
     setClubDistance('');
-    setModalVisible(true);
+    clubSheetRef.current?.present();
   }, []);
 
-  // Open modal for editing an existing club
-  const handleOpenEditModal = useCallback(
+  // Open sheet for editing an existing club
+  const handleOpenEditSheet = useCallback(
     (clubId: string) => {
       let club: ClubData | undefined;
 
@@ -487,7 +489,7 @@ export default function SetupScreen() {
       setEditingClubId(club.id || clubId);
       setClubName(club.name);
       setClubDistance(displayYardage.toString());
-      setModalVisible(true);
+      clubSheetRef.current?.present();
     },
     [clubs, settings.distanceUnit, convertDistance]
   );
@@ -537,7 +539,7 @@ export default function SetupScreen() {
       addClub(clubData);
     }
 
-    setModalVisible(false);
+    clubSheetRef.current?.dismiss();
   }, [
     clubName,
     clubDistance,
@@ -553,31 +555,19 @@ export default function SetupScreen() {
   const unit = isMetric ? 'm' : 'yds';
 
   return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      edges={['top']}
-    >
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView
-        contentContainerStyle={[
-          styles.scrollContent,
-          { paddingBottom: 80 }, // 64 (tab bar) + 16 (buffer) - insets already in tab bar
-        ]}
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        contentInsetAdjustmentBehavior="automatic"
         showsVerticalScrollIndicator={false}
       >
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={[styles.title, { color: colors.textPrimary }]}>Setup</Text>
-          <Text style={[styles.subtitle, { color: colors.textMuted }]}>
-            Your bag & preferences
-          </Text>
-        </View>
-
         {/* My Bag */}
         <Animated.View entering={headerEntering}>
           <SectionHeader
             title="MY BAG"
             action="Add Club"
-            onAction={handleOpenAddModal}
+            onAction={handleOpenAddSheet}
           />
 
           <View style={[styles.section, { backgroundColor: colors.surface }]}>
@@ -590,7 +580,7 @@ export default function SetupScreen() {
                   label="Add Your First Club"
                   icon={<Plus size={18} color={colors.textInverse} />}
                   variant="primary"
-                  onPress={handleOpenAddModal}
+                  onPress={handleOpenAddSheet}
                   style={{ marginTop: 12 }}
                 />
               </View>
@@ -618,7 +608,7 @@ export default function SetupScreen() {
                     </View>
                     <View style={styles.clubActions}>
                       <Pressable
-                        onPress={() => handleOpenEditModal(clubId)}
+                        onPress={() => handleOpenEditSheet(clubId)}
                         style={[styles.clubAction, { backgroundColor: colors.backgroundAlt }]}
                         accessibilityLabel={`Edit ${club.name}`}
                         accessibilityRole="button"
@@ -756,100 +746,47 @@ export default function SetupScreen() {
           />
           {expandedSections.units && (
           <View style={[styles.section, { backgroundColor: colors.surface }]}>
-            <View style={styles.unitSelector}>
-              <Pressable
-                onPress={() => handleUnitChange('imperial')}
-                style={[
-                  styles.unitOption,
-                  {
-                    backgroundColor: !isMetric ? colors.brandMuted : 'transparent',
-                    borderColor: !isMetric ? colors.brand : colors.border,
-                  },
-                ]}
-                accessibilityLabel="Imperial units: Yards, Fahrenheit, mph"
-                accessibilityRole="button"
-                accessibilityState={{ selected: !isMetric }}
-              >
-                <Text
-                  style={[
-                    styles.unitOptionLabel,
-                    { color: !isMetric ? colors.brand : colors.textMuted },
-                  ]}
-                >
-                  Imperial
-                </Text>
-                <Text style={[styles.unitOptionDetail, { color: colors.textMuted }]}>
-                  Yards, °F, mph
-                </Text>
-              </Pressable>
-
-              <Pressable
-                onPress={() => handleUnitChange('metric')}
-                style={[
-                  styles.unitOption,
-                  {
-                    backgroundColor: isMetric ? colors.brandMuted : 'transparent',
-                    borderColor: isMetric ? colors.brand : colors.border,
-                  },
-                ]}
-                accessibilityLabel="Metric units: Meters, Celsius, km/h"
-                accessibilityRole="button"
-                accessibilityState={{ selected: isMetric }}
-              >
-                <Text
-                  style={[
-                    styles.unitOptionLabel,
-                    { color: isMetric ? colors.brand : colors.textMuted },
-                  ]}
-                >
-                  Metric
-                </Text>
-                <Text style={[styles.unitOptionDetail, { color: colors.textMuted }]}>
-                  Meters, °C, km/h
-                </Text>
-              </Pressable>
+            {/* Distance Unit Selector - Native SegmentedControl */}
+            <View style={styles.segmentedControlContainer}>
+              <Text style={[styles.segmentedControlLabel, { color: colors.textPrimary }]}>
+                Distance & Temperature
+              </Text>
+              <SegmentedControl
+                values={['Imperial (yds, °F)', 'Metric (m, °C)']}
+                selectedIndex={isMetric ? 1 : 0}
+                onChange={(event) => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  handleUnitChange(event.nativeEvent.selectedSegmentIndex === 0 ? 'imperial' : 'metric');
+                }}
+                style={styles.segmentedControl}
+                tintColor={colors.brand}
+                fontStyle={{ color: colors.textMuted }}
+                activeFontStyle={{ color: colors.textPrimary }}
+              />
             </View>
 
-            {/* Wind Speed Unit Selector */}
-            <View style={[styles.settingRow, { borderBottomColor: colors.divider, borderBottomWidth: 0 }]}>
-              <View style={styles.settingRowLeft}>
-                <View style={[styles.settingIcon, { backgroundColor: colors.brandMuted }]}>
-                  <Wind size={18} color={colors.brand} />
-                </View>
-                <Text style={[styles.settingLabel, { color: colors.textPrimary }]}>
+            {/* Wind Speed Unit Selector - Native SegmentedControl */}
+            <View style={styles.segmentedControlContainer}>
+              <View style={styles.segmentedControlLabelRow}>
+                <Wind size={18} color={colors.brand} />
+                <Text style={[styles.segmentedControlLabel, { color: colors.textPrimary }]}>
                   Wind Speed
                 </Text>
               </View>
-            </View>
-            <View style={styles.windUnitSelector}>
-              {(['mph', 'kph', 'kts', 'mps'] as const).map((unit) => (
-                <Pressable
-                  key={unit}
-                  onPress={() => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    updateSettings({ windSpeedUnit: unit, speedUnit: unit });
-                  }}
-                  style={[
-                    styles.windUnitOption,
-                    {
-                      backgroundColor: settings.speedUnit === unit ? colors.brandMuted : 'transparent',
-                      borderColor: settings.speedUnit === unit ? colors.brand : colors.border,
-                    },
-                  ]}
-                  accessibilityLabel={`Wind speed in ${unit === 'mps' ? 'meters per second' : unit}`}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: settings.speedUnit === unit }}
-                >
-                  <Text
-                    style={[
-                      styles.windUnitOptionLabel,
-                      { color: settings.speedUnit === unit ? colors.brand : colors.textMuted },
-                    ]}
-                  >
-                    {unit === 'mps' ? 'm/s' : unit}
-                  </Text>
-                </Pressable>
-              ))}
+              <SegmentedControl
+                values={['mph', 'kph', 'kts', 'm/s']}
+                selectedIndex={['mph', 'kph', 'kts', 'mps'].indexOf(settings.speedUnit)}
+                onChange={(event) => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  const units = ['mph', 'kph', 'kts', 'mps'] as const;
+                  const selectedUnit = units[event.nativeEvent.selectedSegmentIndex];
+                  updateSettings({ windSpeedUnit: selectedUnit, speedUnit: selectedUnit });
+                }}
+                style={styles.segmentedControl}
+                tintColor={colors.brand}
+                fontStyle={{ color: colors.textMuted }}
+                activeFontStyle={{ color: colors.textPrimary }}
+              />
             </View>
           </View>
           )}
@@ -1029,103 +966,99 @@ export default function SetupScreen() {
         </Text>
       </ScrollView>
 
-      {/* Club Edit/Add Modal */}
-      <Modal
-        visible={modalVisible}
-        animationType="slide"
-        transparent
-        onRequestClose={() => setModalVisible(false)}
+      {/* Club Edit/Add TrueSheet */}
+      <TrueSheet
+        ref={clubSheetRef}
+        detents={['auto']}
+        grabber
+        backgroundColor={colors.surface}
+        cornerRadius={24}
       >
-        <Pressable
-          style={styles.modalOverlay}
-          onPress={() => setModalVisible(false)}
-        >
-          <Pressable style={[styles.modalContent, { backgroundColor: colors.surface }]} onPress={() => {}}>
-            {/* Modal Header */}
-            <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>
-                {editingClubId ? 'Edit Club' : 'Add Club'}
-              </Text>
-              <Pressable
-                onPress={() => setModalVisible(false)}
-                style={styles.modalClose}
-                accessibilityLabel="Close modal"
-                accessibilityRole="button"
-              >
-                <X size={24} color={colors.textMuted} />
-              </Pressable>
-            </View>
-
-            {/* Quick Add Section (only when adding) */}
-            {!editingClubId && (
-              <View style={styles.quickAddContainer}>
-                <Text style={[styles.quickAddTitle, { color: colors.textMuted }]}>
-                  Quick Add
-                </Text>
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  style={styles.quickAddScroll}
-                >
-                  {QUICK_ADD_CLUBS.map((preset) => (
-                    <Pressable
-                      key={preset.name}
-                      onPress={() => handleQuickAdd(preset.name, preset.yardage)}
-                      style={[styles.quickAddChip, { backgroundColor: colors.backgroundAlt, borderColor: colors.border }]}
-                      accessibilityRole="button"
-                      accessibilityLabel={`Quick add ${preset.name}, ${preset.yardage} yards`}
-                    >
-                      <Text style={[styles.quickAddChipText, { color: colors.textPrimary }]}>
-                        {preset.name}
-                      </Text>
-                    </Pressable>
-                  ))}
-                </ScrollView>
-              </View>
-            )}
-
-            {/* Club Name Input */}
-            <TextInput
-              style={[styles.input, { backgroundColor: colors.backgroundAlt, color: colors.textPrimary, borderColor: colors.border }]}
-              placeholder="Club Name"
-              placeholderTextColor={colors.textMuted}
-              value={clubName}
-              onChangeText={setClubName}
-              accessibilityLabel="Club name"
-            />
-
-            {/* Distance Input */}
-            <TextInput
-              style={[styles.input, { backgroundColor: colors.backgroundAlt, color: colors.textPrimary, borderColor: colors.border }]}
-              placeholder={`Distance (${settings.distanceUnit})`}
-              placeholderTextColor={colors.textMuted}
-              value={clubDistance}
-              onChangeText={setClubDistance}
-              keyboardType="numeric"
-              accessibilityLabel={`Club distance in ${settings.distanceUnit}`}
-            />
-
-            {/* Save Button */}
+        <View style={styles.sheetContent}>
+          {/* Sheet Header */}
+          <View style={styles.sheetHeader}>
+            <Text style={[styles.sheetTitle, { color: colors.textPrimary }]}>
+              {editingClubId ? 'Edit Club' : 'Add Club'}
+            </Text>
             <Pressable
-              onPress={handleSaveClub}
-              disabled={!clubName.trim() || !clubDistance.trim()}
-              style={[
-                styles.saveButton,
-                {
-                  backgroundColor: clubName.trim() && clubDistance.trim() ? colors.brand : colors.border,
-                },
-              ]}
-              accessibilityLabel={editingClubId ? 'Update club' : 'Add club'}
+              onPress={() => clubSheetRef.current?.dismiss()}
+              style={styles.sheetClose}
+              accessibilityLabel="Close sheet"
               accessibilityRole="button"
             >
-              <Text style={[styles.saveButtonText, { color: colors.textInverse }]}>
-                {editingClubId ? 'Update Club' : 'Add Club'}
-              </Text>
+              <X size={24} color={colors.textMuted} />
             </Pressable>
+          </View>
+
+          {/* Quick Add Section (only when adding) */}
+          {!editingClubId && (
+            <View style={styles.quickAddContainer}>
+              <Text style={[styles.quickAddTitle, { color: colors.textMuted }]}>
+                Quick Add
+              </Text>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={styles.quickAddScroll}
+              >
+                {QUICK_ADD_CLUBS.map((preset) => (
+                  <Pressable
+                    key={preset.name}
+                    onPress={() => handleQuickAdd(preset.name, preset.yardage)}
+                    style={[styles.quickAddChip, { backgroundColor: colors.backgroundAlt, borderColor: colors.border }]}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Quick add ${preset.name}, ${preset.yardage} yards`}
+                  >
+                    <Text style={[styles.quickAddChipText, { color: colors.textPrimary }]}>
+                      {preset.name}
+                    </Text>
+                  </Pressable>
+                ))}
+              </ScrollView>
+            </View>
+          )}
+
+          {/* Club Name Input */}
+          <TextInput
+            style={[styles.input, { backgroundColor: colors.backgroundAlt, color: colors.textPrimary, borderColor: colors.border }]}
+            placeholder="Club Name"
+            placeholderTextColor={colors.textMuted}
+            value={clubName}
+            onChangeText={setClubName}
+            accessibilityLabel="Club name"
+          />
+
+          {/* Distance Input */}
+          <TextInput
+            style={[styles.input, { backgroundColor: colors.backgroundAlt, color: colors.textPrimary, borderColor: colors.border }]}
+            placeholder={`Distance (${settings.distanceUnit})`}
+            placeholderTextColor={colors.textMuted}
+            value={clubDistance}
+            onChangeText={setClubDistance}
+            keyboardType="numeric"
+            accessibilityLabel={`Club distance in ${settings.distanceUnit}`}
+          />
+
+          {/* Save Button */}
+          <Pressable
+            onPress={handleSaveClub}
+            disabled={!clubName.trim() || !clubDistance.trim()}
+            style={[
+              styles.saveButton,
+              {
+                backgroundColor: clubName.trim() && clubDistance.trim() ? colors.brand : colors.border,
+              },
+            ]}
+            accessibilityLabel={editingClubId ? 'Update club' : 'Add club'}
+            accessibilityRole="button"
+          >
+            <Text style={[styles.saveButtonText, { color: colors.textInverse }]}>
+              {editingClubId ? 'Update Club' : 'Add Club'}
+            </Text>
           </Pressable>
-        </Pressable>
-      </Modal>
-    </SafeAreaView>
+        </View>
+      </TrueSheet>
+    </View>
   );
 }
 
@@ -1138,24 +1071,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
+  scrollView: {
+    flex: 1,
+  },
+
   scrollContent: {
     paddingHorizontal: 16,
-    paddingTop: 8,
-  },
-
-  header: {
-    marginBottom: 24,
-  },
-
-  title: {
-    fontSize: 32,
-    fontWeight: '700',
-    letterSpacing: -0.5,
-  },
-
-  subtitle: {
-    fontSize: 16,
-    marginTop: 4,
+    gap: 8,
   },
 
   // Sections
@@ -1290,7 +1212,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    paddingVertical: 12,
+    minHeight: 48, // 48dp minimum touch target
+    paddingVertical: 14,
     borderRadius: 12,
     borderWidth: 1.5,
   },
@@ -1310,6 +1233,8 @@ const styles = StyleSheet.create({
   unitOption: {
     flex: 1,
     alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 56, // Larger touch target for primary selection
     paddingVertical: 16,
     borderRadius: 12,
     borderWidth: 1.5,
@@ -1337,8 +1262,10 @@ const styles = StyleSheet.create({
   windUnitOption: {
     flex: 1,
     minWidth: 60,
+    minHeight: 48, // 48dp minimum touch target
     alignItems: 'center',
-    paddingVertical: 10,
+    justifyContent: 'center',
+    paddingVertical: 12,
     paddingHorizontal: 8,
     borderRadius: 10,
     borderWidth: 1.5,
@@ -1360,10 +1287,12 @@ const styles = StyleSheet.create({
   handOption: {
     flex: 1,
     alignItems: 'center',
-    paddingVertical: 12,
+    minHeight: 48, // 48dp minimum touch target
+    paddingVertical: 14,
     paddingHorizontal: 16,
     borderRadius: 12,
     borderWidth: 1.5,
+    justifyContent: 'center',
   },
 
   handOptionLabel: {
@@ -1412,34 +1341,53 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
 
-  // Modal Styles
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    justifyContent: 'flex-end',
-  },
-
-  modalContent: {
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+  // TrueSheet Styles
+  sheetContent: {
     padding: 24,
     paddingBottom: 40,
   },
 
-  modalHeader: {
+  sheetHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 24,
   },
 
-  modalTitle: {
+  sheetTitle: {
     fontSize: 20,
     fontWeight: '700',
   },
 
-  modalClose: {
-    padding: 8,
+  sheetClose: {
+    padding: 12,
+    minWidth: 48,
+    minHeight: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  // SegmentedControl Styles
+  segmentedControlContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+  },
+
+  segmentedControlLabel: {
+    fontSize: 15,
+    fontWeight: '600',
+    marginBottom: 12,
+  },
+
+  segmentedControlLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
+  },
+
+  segmentedControl: {
+    height: 36,
   },
 
   quickAddContainer: {
@@ -1458,10 +1406,12 @@ const styles = StyleSheet.create({
 
   quickAddChip: {
     paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
+    paddingVertical: 14,
+    minHeight: 48,
+    borderRadius: 24,
     borderWidth: 1,
     marginRight: 8,
+    justifyContent: 'center',
   },
 
   quickAddChipText: {

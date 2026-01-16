@@ -90,23 +90,16 @@ export const MetricTile: React.FC<MetricTileProps> = ({
     }
   };
 
-  // Shadow style for highlight effect - using Bold & Colorful glow
+  // Shadow style for highlight effect - CSS boxShadow (New Architecture)
   const getShadowStyle = (): ViewStyle => {
     if (highlight && isDark) {
+      // Bold & Colorful glow using CSS boxShadow
       return {
-        shadowColor: boldColors.glowEmerald,
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.5,
-        shadowRadius: 16,
-        elevation: 8,
+        boxShadow: `0 0 16px rgba(52, 211, 153, 0.5)`,
       };
     }
     return {
-      shadowColor: t.colors.shadow,
-      shadowOffset: t.shadow.subtle.shadowOffset,
-      shadowOpacity: t.shadow.subtle.shadowOpacity,
-      shadowRadius: t.shadow.subtle.shadowRadius,
-      elevation: t.shadow.subtle.elevation,
+      boxShadow: `0 ${t.shadow.subtle.shadowOffset.height}px ${t.shadow.subtle.shadowRadius}px ${t.colors.shadowAlpha}`,
     };
   };
 

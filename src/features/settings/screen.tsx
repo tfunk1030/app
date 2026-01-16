@@ -263,8 +263,8 @@ const ClubItem = React.memo<ClubItemProps>(({
       gap: t.spacing.sm,
     },
     actionButton: {
-      width: t.containerSize.icon.md, // 44px
-      height: t.containerSize.icon.md,
+      width: t.containerSize.icon.lg, // 48dp minimum touch target
+      height: t.containerSize.icon.lg,
       borderRadius: t.borderRadius.lg,
       alignItems: 'center' as const,
       justifyContent: 'center' as const,
@@ -276,7 +276,9 @@ const ClubItem = React.memo<ClubItemProps>(({
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
       style={[clubStyles.item, animatedStyle]}
+      accessibilityRole="button"
       accessibilityLabel={`${club.name}, ${Math.round(displayYardage)} ${unit}`}
+      accessibilityHint="Double tap to edit or delete"
     >
       <View style={clubStyles.info}>
         <Text style={[clubStyles.name, { color: t.colors.textPrimary }]}>{club.name}</Text>
@@ -368,8 +370,8 @@ const createStyles = (t: Tokens) => ({
     marginTop: t.spacing.base,
   } as TextStyle,
   addButton: {
-    width: t.containerSize.icon.md,
-    height: t.containerSize.icon.md,
+    width: t.containerSize.icon.lg, // 48dp minimum touch target
+    height: t.containerSize.icon.lg,
     borderRadius: t.borderRadius.lg,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,

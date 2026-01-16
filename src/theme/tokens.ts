@@ -103,6 +103,11 @@ export interface Tokens {
     dangerBackgroundAlpha: string;
     successBackgroundAlpha: string;
     successGlow: string;
+
+    // CSS boxShadow alpha values (New Architecture)
+    shadowAlpha: string;
+    glowPrimaryAlpha: string;
+    glowSecondaryAlpha: string;
   };
 
   gradients: {
@@ -444,6 +449,11 @@ export const darkTokens: Tokens = {
     dangerBackgroundAlpha: 'rgba(239, 68, 68, 0.15)',
     successBackgroundAlpha: 'rgba(34, 197, 94, 0.15)',
     successGlow: 'rgba(34, 197, 94, 0.5)',
+
+    // CSS boxShadow alpha values (New Architecture)
+    shadowAlpha: 'rgba(0, 0, 0, 0.25)',
+    glowPrimaryAlpha: 'rgba(45, 212, 191, 0.5)',
+    glowSecondaryAlpha: 'rgba(34, 211, 238, 0.6)',
   },
 
   gradients: {
@@ -585,6 +595,11 @@ export const lightTokens: Tokens = {
     dangerBackgroundAlpha: 'rgba(220, 38, 38, 0.1)',
     successBackgroundAlpha: 'rgba(22, 163, 74, 0.1)',
     successGlow: 'rgba(22, 163, 74, 0.3)',
+
+    // CSS boxShadow alpha values (New Architecture)
+    shadowAlpha: 'rgba(0, 0, 0, 0.1)',
+    glowPrimaryAlpha: 'rgba(13, 148, 136, 0.3)',
+    glowSecondaryAlpha: 'rgba(13, 148, 136, 0.3)',
   },
 
   gradients: {

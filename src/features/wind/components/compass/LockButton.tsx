@@ -105,10 +105,10 @@ const LockButton: React.FC<LockButtonProps> = ({
                 ? tokens.colors.success
                 : tokens.colors.border,
               borderWidth: 2,
-              shadowColor: isLocked ? tokens.colors.success : tokens.colors.shadow,
-              shadowOpacity: isLocked ? 0.3 : 0.1,
-              shadowOffset: { width: 0, height: isLocked ? 4 : 2 },
-              shadowRadius: isLocked ? 12 : 8,
+              // CSS boxShadow (New Architecture)
+              boxShadow: isLocked
+                ? `0 4px 12px ${tokens.colors.success}4D` // 30% opacity
+                : `0 2px 8px rgba(0, 0, 0, 0.1)`,
             },
           ]}
         >

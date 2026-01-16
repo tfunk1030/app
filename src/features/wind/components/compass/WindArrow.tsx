@@ -10,12 +10,42 @@ import { getCenterElementSizes } from '@/src/utils/responsive';
 import { WindArrowProps } from './types';
 import { arrowStyles as styles } from './styles';
 
+/**
+ * Calculate arrow scale factor based on wind magnitude
+ * Maps 0-30mph to 0.4-1.0 scale range
+ */
+function getMagnitudeScale(magnitude: number): number {
+  const MIN_SCALE = 0.4;
+  const MAX_SCALE = 1.0;
+  const MAX_WIND = 30; // mph
+
+  const clampedMagnitude = Math.min(Math.max(magnitude, 0), MAX_WIND);
+  const normalized = clampedMagnitude / MAX_WIND;
+  return MIN_SCALE + normalized * (MAX_SCALE - MIN_SCALE);
+}
+
+/**
+ * Calculate base opacity based on wind magnitude
+ * Stronger wind = more opaque (0.3-0.8 range)
+ */
+function getMagnitudeOpacity(magnitude: number): number {
+  const MIN_OPACITY = 0.3;
+  const MAX_OPACITY = 0.8;
+  const MAX_WIND = 30;
+
+  const clampedMagnitude = Math.min(Math.max(magnitude, 0), MAX_WIND);
+  const normalized = clampedMagnitude / MAX_WIND;
+  return MIN_OPACITY + normalized * (MAX_OPACITY - MIN_OPACITY);
+}
+
 const WindArrow: React.FC<WindArrowProps> = ({
   angle,
   brandAlt,
   success,
   border,
   compassSize,
+  magnitude = 10, // Default moderate wind
+  reducedMotion = false,
 }) => {
   const rotateAnim = useRef(new Animated.Value(angle)).current;
   const arrowAnimValues = useRef([
@@ -29,15 +59,25 @@ const WindArrow: React.FC<WindArrowProps> = ({
 
   const { windOriginIndicator } = getCenterElementSizes(compassSize);
 
+  // Calculate magnitude-based values
+  const magnitudeScale = getMagnitudeScale(magnitude);
+  const baseOpacity = getMagnitudeOpacity(magnitude);
+
   useEffect(() => {
     Animated.timing(rotateAnim, {
       toValue: angle,
-      duration: 1,
+      duration: reducedMotion ? 0 : 1,
       useNativeDriver: true,
     }).start();
-  }, [angle]);
+  }, [angle, reducedMotion]);
 
   useEffect(() => {
+    // Skip flow animation if reduced motion is enabled
+    if (reducedMotion) {
+      arrowAnimValues.forEach(anim => anim.setValue(0.5)); // Static middle state
+      return;
+    }
+
     const createFlowAnimation = () => {
       arrowAnimValues.forEach(anim => anim.setValue(0));
       const animations = arrowAnimValues.map((anim, index) =>
@@ -67,7 +107,7 @@ const WindArrow: React.FC<WindArrowProps> = ({
       }
       arrowAnimValues.forEach(anim => anim.stopAnimation());
     };
-  }, []);
+  }, [reducedMotion]);
 
   const rotateInterpolate = rotateAnim.interpolate({
     inputRange: [0, 360],
@@ -76,22 +116,39 @@ const WindArrow: React.FC<WindArrowProps> = ({
 
   const createWindArrows = () => {
     const arrows = [];
-    for (let i = 0; i < 5; i++) {
-      const position = 0.75 - i * 0.18;
+    // Number of arrows scales with magnitude (3-5)
+    const arrowCount = Math.max(3, Math.min(5, Math.floor(magnitude / 6)));
+
+    for (let i = 0; i < arrowCount; i++) {
+      // Scale position based on magnitude
+      const position = (0.75 - i * 0.18) * magnitudeScale;
       const opacityAnim = arrowAnimValues[i];
+      // Opacity decreases for further arrows, scaled by magnitude
+      const maxOpacity = baseOpacity * (1 - i * 0.1);
+
       arrows.push(
         <Animated.View
           key={`arrow-${i}`}
           style={[
             styles.smallWindArrow,
             {
-              transform: [{ translateY: -(position * 135) }, { rotate: '180deg' }],
+              transform: [
+                { translateY: -(position * 135) },
+                { rotate: '180deg' },
+                { scale: magnitudeScale }, // Scale arrow size with magnitude
+              ],
               left: '50%',
               marginLeft: -6,
-              opacity: opacityAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 0.6] }),
+              opacity: reducedMotion
+                ? maxOpacity * 0.5 // Static opacity for reduced motion
+                : opacityAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, maxOpacity],
+                  }),
               borderBottomColor: brandAlt,
             },
           ]}
+          accessibilityElementsHidden
         />
       );
     }
@@ -128,7 +185,9 @@ export default React.memo(
       prevProps.brandAlt === nextProps.brandAlt &&
       prevProps.success === nextProps.success &&
       prevProps.border === nextProps.border &&
-      prevProps.compassSize === nextProps.compassSize
+      prevProps.compassSize === nextProps.compassSize &&
+      Math.abs((prevProps.magnitude ?? 10) - (nextProps.magnitude ?? 10)) < 1 &&
+      prevProps.reducedMotion === nextProps.reducedMotion
     );
   }
 );

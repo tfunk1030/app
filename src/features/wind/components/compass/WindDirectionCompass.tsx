@@ -23,11 +23,16 @@ import {
 import { useCompassLock } from '../../context/compass-lock';
 import { useSensorData } from '../../context/sensor-data';
 
+import { useReduceMotionValue } from '@/src/hooks/useReduceMotion';
+
 import DegreeMarks from './DegreeMarks';
 import CardinalDirections from './CardinalDirections';
 import WindArrow from './WindArrow';
 import PhoneArrow from './PhoneArrow';
 import LockButton from './LockButton';
+import CrosswindIndicator from './CrosswindIndicator';
+import WindMagnitudeLegend from './WindMagnitudeLegend';
+import AccuracyIndicator from './AccuracyIndicator';
 import {
   WindDirectionCompassProps,
   WindRelationship,
@@ -35,6 +40,21 @@ import {
   getCardinalDirection,
 } from './types';
 import { compassStyles as styles } from './styles';
+
+/**
+ * Calculate crosswind component from relative wind angle and speed
+ * Returns magnitude (always positive) and direction ('left' or 'right')
+ */
+function calculateCrosswind(relativeAngle: number, windSpeed: number): { magnitude: number; direction: 'left' | 'right' } {
+  const normalizedAngle = ((relativeAngle % 360) + 360) % 360;
+  // Sine of angle gives crosswind component
+  const crosswindRaw = Math.sin((normalizedAngle * Math.PI) / 180) * windSpeed;
+
+  return {
+    magnitude: Math.abs(crosswindRaw),
+    direction: crosswindRaw >= 0 ? 'right' : 'left',
+  };
+}
 
 // Create a dedicated logger
 const logger = LogManager.getLogger('WindDirectionCompass');
@@ -80,7 +100,9 @@ const WindDirectionCompass: React.FC<WindDirectionCompassProps> = ({
   shotDirection,
   onChange,
   lockShot,
-  // windSpeed and speedUnit props preserved for backwards compatibility but no longer displayed
+  windSpeed: propWindSpeed,
+  speedUnit = 'mph',
+  hideLockButton = false,
 }) => {
   // Use responsive size calculation
   const size = propSize || getResponsiveCompassSize();
@@ -91,9 +113,19 @@ const WindDirectionCompass: React.FC<WindDirectionCompassProps> = ({
   const tokens = useTokens();
   const { scheme, isDark } = useThemeMode();
   const { settings } = useSettings();
+  const reducedMotion = useReduceMotionValue();
 
   // Wind direction and relationship
   const windRelationship = getWindRelationship(relativeWindAngle);
+
+  // Wind speed - prefer prop, fall back to conditions
+  const windSpeed = propWindSpeed ?? conditions?.windSpeed ?? 10;
+
+  // Calculate crosswind component for the indicator
+  const crosswindData = useMemo(
+    () => calculateCrosswind(relativeWindAngle, windSpeed),
+    [relativeWindAngle, windSpeed]
+  );
 
   // Animation values - simplified, single pulse for center dot
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -168,11 +200,8 @@ const WindDirectionCompass: React.FC<WindDirectionCompassProps> = ({
               backgroundColor: tokens.colors.surface,
               borderColor: isLocked ? tokens.colors.success : tokens.colors.border,
               borderWidth: 2,
-              shadowColor: tokens.colors.shadow,
-              shadowOpacity: 0.1,
-              shadowOffset: { width: 0, height: 2 },
-              shadowRadius: 8,
-              elevation: 4,
+              // CSS boxShadow (New Architecture)
+              boxShadow: `0 2px 8px ${tokens.colors.shadowAlpha}`,
             },
           ]}
         >
@@ -204,6 +233,21 @@ const WindDirectionCompass: React.FC<WindDirectionCompassProps> = ({
             success={tokens.colors.success}
             border={tokens.colors.border}
             compassSize={size}
+            magnitude={windSpeed}
+            reducedMotion={reducedMotion}
+          />
+
+          {/* Crosswind indicator - perpendicular to wind arrow */}
+          <CrosswindIndicator
+            magnitude={crosswindData.magnitude}
+            direction={crosswindData.direction}
+            unit="yds"
+            compassSize={size}
+            colors={{
+              warning: tokens.colors.warning,
+              neutral: tokens.colors.textMuted,
+              text: tokens.colors.textPrimary,
+            }}
           />
 
           <Animated.View
@@ -215,10 +259,10 @@ const WindDirectionCompass: React.FC<WindDirectionCompassProps> = ({
                 height: getCenterElementSizes(size).centerDot,
                 borderRadius: getCenterElementSizes(size).centerDot / 2,
                 backgroundColor: tokens.colors.brandAlt,
-                shadowColor: isDark ? tokens.colors.glowSecondary : tokens.colors.shadow,
-                shadowOpacity: isDark ? 0.8 : 0.15,
-                shadowRadius: isDark ? 12 : 4,
-                shadowOffset: { width: 0, height: 0 },
+                // CSS boxShadow with conditional glow
+                boxShadow: isDark
+                  ? `0 0 12px ${tokens.colors.glowSecondaryAlpha}`
+                  : `0 0 4px ${tokens.colors.shadowAlpha}`,
               },
             ]}
           />
@@ -235,12 +279,30 @@ const WindDirectionCompass: React.FC<WindDirectionCompassProps> = ({
           brandAltColor={tokens.colors.brandAlt}
         />
 
+        {/* Accuracy indicator in top-right corner - only shows for medium/low accuracy */}
+        <View style={localStyles.accuracyContainer}>
+          <AccuracyIndicator
+            accuracy={accuracy}
+            colors={{
+              success: tokens.colors.success,
+              warning: tokens.colors.warning,
+              error: tokens.colors.danger,
+              background: tokens.colors.surface,
+            }}
+            size={24}
+          />
+        </View>
+
         {/* Top-centered Wind Label or Locked chip overlay inside compass - positioned below N cardinal */}
         <View
           pointerEvents="none"
           style={[styles.windLabelContainer, { top: Math.max(size * 0.28, 58) }]}
           accessibilityRole="text"
-          accessibilityLabel={isLocked ? 'Locked' : `Wind is ${windRelationship.toLowerCase()}`}
+          accessibilityLabel={
+            isLocked
+              ? `Locked at ${Math.round(referenceHeading)} degrees`
+              : `Wind ${Math.round(windSpeed)} ${speedUnit}, ${Math.abs(Math.round(relativeWindAngle))} degrees ${relativeWindAngle >= 0 ? 'right' : 'left'} of target, ${windRelationship.toLowerCase()}`
+          }
         >
           {isLocked ? (
             <View
@@ -282,16 +344,29 @@ const WindDirectionCompass: React.FC<WindDirectionCompassProps> = ({
           )}
         </View>
 
-        <LockButton
-          isLocked={isLocked}
-          onPress={handleLockPress}
-          compassSize={size}
-          tokens={tokens}
-          mode={scheme}
-          pulseAnim={pulseAnim}
-          side={settings.dominantHand}
-        />
+        {!hideLockButton && (
+          <LockButton
+            isLocked={isLocked}
+            onPress={handleLockPress}
+            compassSize={size}
+            tokens={tokens}
+            mode={scheme}
+            pulseAnim={pulseAnim}
+            side={settings.dominantHand}
+          />
+        )}
       </View>
+
+      {/* Wind magnitude legend below compass */}
+      <WindMagnitudeLegend
+        windSpeed={Math.round(windSpeed)}
+        unit={speedUnit}
+        colors={{
+          text: tokens.colors.textPrimary,
+          subtext: tokens.colors.textMuted,
+          icon: tokens.colors.brandAlt,
+        }}
+      />
     </View>
   );
 };
@@ -314,6 +389,12 @@ const localStyles = StyleSheet.create({
   },
   centerDot: {
     position: 'absolute',
+  },
+  accuracyContainer: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    zIndex: 30,
   },
 });
 
