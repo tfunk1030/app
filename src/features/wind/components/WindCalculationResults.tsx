@@ -29,7 +29,8 @@ interface WindCalculationResultsProps {
  * in a structured, accessible format with progressive disclosure of details.
  */
 export const WindCalculationResults = memo(({ result }: WindCalculationResultsProps) => {
-  const { formatSpeed } = useSettings();
+  const { formatSpeed, settings } = useSettings();
+  const defaultExpanded = settings.breakdownDefault === 'expanded';
   // Memoize props for child components to prevent unnecessary re-renders
   const primaryRecommendationProps = useMemo(
     () => ({
@@ -110,7 +111,7 @@ export const WindCalculationResults = memo(({ result }: WindCalculationResultsPr
       <EffectsGrid {...effectsGridProps} />
 
       {/* Collapsible iteration details */}
-      <IterationDetails {...iterationDetailsProps} />
+      <IterationDetails {...iterationDetailsProps} defaultExpanded={defaultExpanded} />
     </ResultCard>
   );
 });

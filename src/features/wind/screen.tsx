@@ -21,7 +21,7 @@ import { safeScaledFontSize, getScrollPadding } from '@/src/utils/responsive';
 import { useAccessibleAnimations } from '@/src/hooks/useAccessibility';
 import { Crown, Wind } from 'lucide-react-native';
 import React, { useEffect, useMemo, useState } from 'react';
-import { Platform, Pressable, ScrollView, Text, View, ViewStyle, TextStyle, Alert } from 'react-native';
+import { Platform, Pressable, ScrollView, Text, View, ViewStyle, TextStyle, Alert, TextInput } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -83,6 +83,109 @@ const YardagePresetButton = React.memo<YardagePresetButtonProps>(({
 
 YardagePresetButton.displayName = 'YardagePresetButton';
 
+interface InlineEditablePillProps {
+  label: string;
+  value: string;
+  unit?: string;
+  isEditing: boolean;
+  isOverridden: boolean;
+  onPress: () => void;
+  onChangeText: (text: string) => void;
+  onSubmit: () => void;
+  onBlur: () => void;
+  tokens: Tokens;
+}
+
+const InlineEditablePill = React.memo<InlineEditablePillProps>(({
+  label,
+  value,
+  unit,
+  isEditing,
+  isOverridden,
+  onPress,
+  onChangeText,
+  onSubmit,
+  onBlur,
+  tokens: t,
+}) => {
+  const pillStyles = useMemo(() => ({
+    container: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: t.spacing.xs,
+      paddingVertical: t.spacing.xs,
+      paddingHorizontal: t.spacing.sm,
+      borderRadius: t.borderRadius.full,
+      borderWidth: t.borderWidth.thin,
+      borderColor: isOverridden ? t.colors.warning : t.colors.border,
+      backgroundColor: t.colors.surface,
+      minHeight: t.touchTarget.minimum,
+    },
+    label: {
+      fontSize: safeScaledFontSize(t.fontSize.xs),
+      fontWeight: t.fontWeight.semibold as TextStyle['fontWeight'],
+      color: t.colors.textMuted,
+      textTransform: 'uppercase' as const,
+      letterSpacing: t.letterSpacing.wider,
+    },
+    value: {
+      fontSize: safeScaledFontSize(t.fontSize.sm),
+      fontWeight: t.fontWeight.semibold as TextStyle['fontWeight'],
+      color: t.colors.textPrimary,
+      minWidth: 40,
+      textAlign: 'center' as const,
+    },
+    unit: {
+      fontSize: safeScaledFontSize(t.fontSize.xs),
+      color: t.colors.textMuted,
+    },
+    input: {
+      fontSize: safeScaledFontSize(t.fontSize.sm),
+      fontWeight: t.fontWeight.semibold as TextStyle['fontWeight'],
+      color: t.colors.textPrimary,
+      minWidth: 40,
+      textAlign: 'center' as TextStyle['textAlign'],
+      paddingVertical: 0,
+    },
+    overrideDot: {
+      width: t.spacing.xs,
+      height: t.spacing.xs,
+      borderRadius: t.borderRadius.full,
+      backgroundColor: t.colors.warning,
+    },
+  }), [t, isOverridden]);
+
+  return (
+    <Pressable
+      onPress={onPress}
+      style={pillStyles.container}
+      accessibilityRole="button"
+      accessibilityLabel={`${label}: ${value}${unit ? ` ${unit}` : ''}${isOverridden ? ', overridden' : ''}`}
+      accessibilityHint="Double tap to edit"
+    >
+      {isOverridden && <View style={pillStyles.overrideDot} accessibilityElementsHidden={true} />}
+      <Text style={pillStyles.label}>{label}</Text>
+      {isEditing ? (
+        <TextInput
+          value={value}
+          onChangeText={onChangeText}
+          onSubmitEditing={onSubmit}
+          onBlur={onBlur}
+          keyboardType="numeric"
+          style={pillStyles.input}
+          accessibilityLabel={`${label} override value`}
+          returnKeyType="done"
+        />
+      ) : (
+        <Text style={pillStyles.value}>{value}</Text>
+      )}
+      {unit ? <Text style={pillStyles.unit}>{unit}</Text> : null}
+    </Pressable>
+  );
+});
+
+InlineEditablePill.displayName = 'InlineEditablePill';
+
 // Wind calculation component
 function WindCalculatorComponent() {
   // Get all required hooks
@@ -98,6 +201,10 @@ function WindCalculatorComponent() {
 
   // State for result modal
   const [showResultModal, setShowResultModal] = useState(false);
+  const [editingPill, setEditingPill] = useState<'wind' | 'gust' | 'direction' | null>(null);
+  const [windOverride, setWindOverride] = useState<string>('');
+  const [gustOverride, setGustOverride] = useState<string>('');
+  const [directionOverride, setDirectionOverride] = useState<string>('');
 
   // Memoized styles
   const styles = useMemo(() => createStyles(t), [t]);
@@ -112,6 +219,42 @@ function WindCalculatorComponent() {
     });
     calculate(relativeWindAngle);
     setShowResultModal(true);
+  };
+
+  const lockButtonPosition = settings.lockButtonPosition ?? 'both';
+
+  const speedUnitLabel = settings.speedUnit === 'mps' ? 'm/s' : settings.speedUnit;
+  const windSpeedLabel = speedUnitLabel;
+  const baseWindSpeed = Math.round(conditions?.windSpeed || 0);
+  const baseWindGust = Math.round(conditions?.windGust || 0);
+  const baseWindDirection = Math.round(conditions?.windDirection || 0);
+
+  const effectiveWindSpeed = windOverride !== '' ? parseInt(windOverride, 10) : baseWindSpeed;
+  const effectiveGust = gustOverride !== '' ? parseInt(gustOverride, 10) : baseWindGust;
+  const effectiveDirection = directionOverride !== '' ? parseInt(directionOverride, 10) : baseWindDirection;
+
+  const handlePillCommit = (type: 'wind' | 'gust' | 'direction') => {
+    if (type === 'wind') {
+      const value = parseInt(windOverride, 10);
+      if (Number.isFinite(value)) {
+        setWindSpeed(value);
+      } else {
+        setWindOverride('');
+      }
+    }
+    if (type === 'gust') {
+      const value = parseInt(gustOverride, 10);
+      if (!Number.isFinite(value)) {
+        setGustOverride('');
+      }
+    }
+    if (type === 'direction') {
+      const value = parseInt(directionOverride, 10);
+      if (!Number.isFinite(value)) {
+        setDirectionOverride('');
+      }
+    }
+    setEditingPill(null);
   };
 
   // Handle modal dismiss
@@ -235,38 +378,43 @@ function WindCalculatorComponent() {
         </Text>
         {/* Current wind conditions - always visible */}
         <View style={[styles.currentWindRow, { borderColor: t.colors.border }]}>
-          <View style={styles.windStatItem}>
-            <Text style={[styles.windStatLabel, { color: t.colors.textMuted }]}>Wind</Text>
-            <Text
-              style={[styles.windStatValue, { color: t.colors.brand }]}
-              accessibilityLabel={`Wind speed ${conditions?.windSpeed || 0} miles per hour`}
-            >
-              {Math.round(conditions?.windSpeed || 0)} mph
-            </Text>
-          </View>
-          <View style={[styles.windStatDivider, { backgroundColor: t.colors.border }]} />
-          <View style={styles.windStatItem}>
-            <Text style={[styles.windStatLabel, { color: t.colors.textMuted }]}>From</Text>
-            <Text
-              style={[styles.windStatValue, { color: t.colors.textPrimary }]}
-              accessibilityLabel={`Wind from ${Math.round(conditions?.windDirection || 0)} degrees`}
-            >
-              {Math.round(conditions?.windDirection || 0)}°
-            </Text>
-          </View>
-          {conditions?.windGust && conditions.windGust > (conditions?.windSpeed || 0) && (
-            <>
-              <View style={[styles.windStatDivider, { backgroundColor: t.colors.border }]} />
-              <View style={styles.windStatItem}>
-                <Text style={[styles.windStatLabel, { color: t.colors.textMuted }]}>Gusts</Text>
-                <Text
-                  style={[styles.windStatValue, { color: t.colors.warning }]}
-                  accessibilityLabel={`Gusts to ${Math.round(conditions.windGust)} miles per hour`}
-                >
-                  {Math.round(conditions.windGust)} mph
-                </Text>
-              </View>
-            </>
+          <InlineEditablePill
+            label="Wind"
+            value={String(effectiveWindSpeed)}
+            unit={speedUnitLabel}
+            isEditing={editingPill === 'wind'}
+            isOverridden={windOverride !== ''}
+            onPress={() => setEditingPill('wind')}
+            onChangeText={(text) => setWindOverride(text.replace(/[^0-9]/g, ''))}
+            onSubmit={() => handlePillCommit('wind')}
+            onBlur={() => handlePillCommit('wind')}
+            tokens={t}
+          />
+          <InlineEditablePill
+            label="From"
+            value={String(effectiveDirection)}
+            unit="°"
+            isEditing={editingPill === 'direction'}
+            isOverridden={directionOverride !== ''}
+            onPress={() => setEditingPill('direction')}
+            onChangeText={(text) => setDirectionOverride(text.replace(/[^0-9]/g, ''))}
+            onSubmit={() => handlePillCommit('direction')}
+            onBlur={() => handlePillCommit('direction')}
+            tokens={t}
+          />
+          {baseWindGust > baseWindSpeed && (
+            <InlineEditablePill
+              label="Gusts"
+              value={String(effectiveGust)}
+              unit={speedUnitLabel}
+              isEditing={editingPill === 'gust'}
+              isOverridden={gustOverride !== ''}
+              onPress={() => setEditingPill('gust')}
+              onChangeText={(text) => setGustOverride(text.replace(/[^0-9]/g, ''))}
+              onSubmit={() => handlePillCommit('gust')}
+              onBlur={() => handlePillCommit('gust')}
+              tokens={t}
+            />
           )}
         </View>
       </Animated.View>
@@ -283,7 +431,7 @@ function WindCalculatorComponent() {
             Point phone in shot direction and tap lock
           </Text>
           <View style={styles.compassWrapper}>
-            <WindDirectionCompass />
+            <WindDirectionCompass windDirection={effectiveDirection} windSpeed={effectiveWindSpeed} speedUnit={speedUnitLabel} />
           </View>
         </GlassCard>
       </Animated.View>
@@ -291,30 +439,35 @@ function WindCalculatorComponent() {
       {/* Wind Speed Slider */}
       <Animated.View entering={cardEntering(2)}>
         <GlassCard style={styles.sliderCard}>
-          <Slider
-            value={windSpeed}
-            onValueChange={setWindSpeed}
-            min={0}
-            max={50}
-            step={1}
-            label="Wind Speed"
-            unit="mph"
-          />
+            <Slider
+              value={windSpeed}
+              onValueChange={(value) => {
+                setWindSpeed(value);
+                if (windOverride !== '') {
+                  setWindOverride('');
+                }
+              }}
+              min={0}
+              max={50}
+              step={1}
+              label="Wind Speed"
+              unit={windSpeedLabel}
+            />
         </GlassCard>
       </Animated.View>
 
       {/* Target Yardage Section */}
       <Animated.View entering={cardEntering(3)}>
         <GlassCard style={styles.yardageCard}>
-          <Slider
-            value={targetYardage}
-            onValueChange={setTargetYardage}
-            min={50}
-            max={300}
-            step={1}
-            label="Target Yardage"
-            unit="yds"
-          />
+            <Slider
+              value={targetYardage}
+              onValueChange={setTargetYardage}
+              min={50}
+              max={300}
+              step={1}
+              label="Target Yardage"
+              unit="yds"
+            />
 
           {/* Quick Presets */}
           <View style={[styles.presetsContainer, { borderTopColor: t.colors.border }]}>
@@ -363,11 +516,22 @@ function WindCalculatorComponent() {
       </ScrollView>
 
       {/* Thumb-zone lock button - positioned for one-handed use */}
-      <ThumbZoneLockButton
-        side={settings.dominantHand}
-        isLocked={isLocked}
-        onPress={toggleLock}
-      />
+      {(lockButtonPosition === 'left' || lockButtonPosition === 'both') && (
+        <ThumbZoneLockButton
+          side="left"
+          isLocked={isLocked}
+          onPress={toggleLock}
+          accessibilityLabel={isLocked ? 'Unlock compass, left' : 'Lock compass, left'}
+        />
+      )}
+      {(lockButtonPosition === 'right' || lockButtonPosition === 'both') && (
+        <ThumbZoneLockButton
+          side="right"
+          isLocked={isLocked}
+          onPress={toggleLock}
+          accessibilityLabel={isLocked ? 'Unlock compass, right' : 'Lock compass, right'}
+        />
+      )}
 
       {/* Result takeover modal - shows on calculation */}
       <ResultTakeoverModal
@@ -496,13 +660,14 @@ const createStyles = (t: Tokens) => ({
   currentWindRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'space-between',
     marginBottom: t.spacing.lg, // 24dp - section gap
     paddingVertical: t.spacing.base,
     paddingHorizontal: t.spacing.md,
     borderRadius: t.borderRadius.lg,
     borderWidth: t.borderWidth.thin,
     backgroundColor: 'transparent',
+    gap: t.spacing.sm,
   } as ViewStyle,
   windStatItem: {
     alignItems: 'center',

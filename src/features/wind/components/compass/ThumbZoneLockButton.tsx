@@ -30,9 +30,16 @@ interface ThumbZoneLockButtonProps {
   isLocked: boolean;
   /** Callback when button is pressed */
   onPress: () => void;
+  /** Optional accessibility label override */
+  accessibilityLabel?: string;
 }
 
-export function ThumbZoneLockButton({ side, isLocked, onPress }: ThumbZoneLockButtonProps) {
+export function ThumbZoneLockButton({
+  side,
+  isLocked,
+  onPress,
+  accessibilityLabel,
+}: ThumbZoneLockButtonProps) {
   const t = useTokens();
   const styles = createStyles(t);
 
@@ -63,7 +70,9 @@ export function ThumbZoneLockButton({ side, isLocked, onPress }: ThumbZoneLockBu
       onPress={handlePress}
       hitSlop={{ top: 12, bottom: 12, left: 8, right: 8 }}
       accessibilityRole="button"
-      accessibilityLabel={isLocked ? 'Unlock compass' : 'Lock compass direction'}
+      accessibilityLabel={
+        accessibilityLabel || (isLocked ? 'Unlock compass' : 'Lock compass direction')
+      }
       accessibilityHint="Locks the shot direction for wind calculations"
     >
       <MaterialCommunityIcons

@@ -13,6 +13,7 @@ import { Pressable, Text, View } from 'react-native';
 
 interface IterationDetailsProps {
   iterationSummary?: string;
+  defaultExpanded?: boolean;
 }
 
 /**
@@ -62,10 +63,11 @@ function createStyles(t: Tokens) {
 
 export const IterationDetails = memo(function IterationDetails({
   iterationSummary,
+  defaultExpanded = false,
 }: IterationDetailsProps) {
   const t = useTokens();
   const styles = useMemo(() => createStyles(t), [t]);
-  const [showDetails, setShowDetails] = useState(false);
+  const [showDetails, setShowDetails] = useState(defaultExpanded);
 
   const toggleDetails = useCallback(() => {
     setShowDetails(prev => !prev);

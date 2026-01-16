@@ -17,6 +17,12 @@ export interface Settings {
   windSpeedUnit: 'mph' | 'kph' | 'kts' | 'mps';
   /** Dominant hand - positions lock button on preferred side */
   dominantHand: 'right' | 'left';
+  /** Lock button position preference */
+  lockButtonPosition: 'left' | 'right' | 'both';
+  /** Default breakdown view for results */
+  breakdownDefault: 'collapsed' | 'expanded';
+  /** Quick select presets for yardage */
+  quickSelectPresets: number[];
   version: number;
 }
 
@@ -48,6 +54,9 @@ const defaultSettings: Settings = {
   sunlightModeEnabled: false,
   windSpeedUnit: 'mph',
   dominantHand: 'right',
+  lockButtonPosition: 'both',
+  breakdownDefault: 'collapsed',
+  quickSelectPresets: [100, 125, 150, 175, 200],
   version: 1,
 };
 
@@ -97,7 +106,7 @@ export function SettingsProvider({ children }: Readonly<{ children: React.ReactN
         if (saved) {
           const parsedSettings = JSON.parse(saved);
           // Initialize with saved settings
-          dispatch({ type: 'INITIALIZE', settings: parsedSettings });
+          dispatch({ type: 'INITIALIZE', settings: { ...defaultSettings, ...parsedSettings } });
         }
       } catch (error) {
         console.error('Failed to load settings:', error);

@@ -9,6 +9,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, Pressable, LayoutAnimation, Platform, UIManager } from 'react-native';
 import { ChevronDown, ChevronUp, Wind, ArrowUp, ArrowRight } from 'lucide-react-native';
 import { useReduceMotionValue } from '@/src/hooks/useReduceMotion';
+import { useSettings } from '@/src/core/context/settings';
 
 // Enable LayoutAnimation on Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -71,7 +72,8 @@ const InlineResult: React.FC<InlineResultProps> = ({
   breakdown,
   colors,
 }) => {
-  const [isExpanded, setIsExpanded] = useState(false);
+  const { settings } = useSettings();
+  const [isExpanded, setIsExpanded] = useState(settings.breakdownDefault === 'expanded');
   const reducedMotion = useReduceMotionValue();
 
   if (!isVisible) {

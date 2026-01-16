@@ -26,6 +26,8 @@ import {
   Settings,
   Sun,
   Trash2,
+  List,
+  MousePointerClick,
 } from 'lucide-react-native';
 import * as React from 'react';
 import { Platform, Pressable, ScrollView, Text, TextInput, View, ViewStyle, TextStyle } from 'react-native';
@@ -645,6 +647,55 @@ export default function SettingsScreen() {
           />
           <Text style={[styles.unitHint, { color: tokens.colors.textMuted }]}>
             Controls lock button position on Wind Calculator
+          </Text>
+        </GlassCard>
+      </Animated.View>
+
+      {/* Lock Button Position */}
+      <Animated.View entering={cardEntering(1.8)}>
+        <GlassCard style={styles.sectionCard}>
+          <View style={styles.sectionHeader}>
+            <MousePointerClick size={20} color={tokens.colors.brand} accessibilityElementsHidden={true} />
+            <Text style={[styles.sectionTitle, { color: tokens.colors.textPrimary }]} accessibilityRole="header">
+              Lock Button Position
+            </Text>
+          </View>
+          <SegmentedControl
+            options={[
+              { label: 'Left', value: 'left' },
+              { label: 'Right', value: 'right' },
+              { label: 'Both', value: 'both' },
+            ]}
+            value={settings.lockButtonPosition}
+            onChange={(value) => updateSettings({ lockButtonPosition: value as 'left' | 'right' | 'both' })}
+            tokens={tokens}
+          />
+          <Text style={[styles.unitHint, { color: tokens.colors.textMuted }]}>
+            Choose where lock buttons appear on the Wind screen
+          </Text>
+        </GlassCard>
+      </Animated.View>
+
+      {/* Breakdown Default */}
+      <Animated.View entering={cardEntering(2.1)}>
+        <GlassCard style={styles.sectionCard}>
+          <View style={styles.sectionHeader}>
+            <List size={20} color={tokens.colors.brand} accessibilityElementsHidden={true} />
+            <Text style={[styles.sectionTitle, { color: tokens.colors.textPrimary }]} accessibilityRole="header">
+              Breakdown Default
+            </Text>
+          </View>
+          <SegmentedControl
+            options={[
+              { label: 'Collapsed', value: 'collapsed' },
+              { label: 'Expanded', value: 'expanded' },
+            ]}
+            value={settings.breakdownDefault}
+            onChange={(value) => updateSettings({ breakdownDefault: value as 'collapsed' | 'expanded' })}
+            tokens={tokens}
+          />
+          <Text style={[styles.unitHint, { color: tokens.colors.textMuted }]}>
+            Default view for calculation details
           </Text>
         </GlassCard>
       </Animated.View>
