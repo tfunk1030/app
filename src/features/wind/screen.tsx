@@ -112,9 +112,16 @@ function WindCalculatorComponent() {
       <View style={[styles.container, styles.centerContent, { backgroundColor: t.colors.background }]}>
         <Animated.View entering={headerEntering} style={styles.premiumContainer}>
           <View style={[styles.premiumIconContainer, { backgroundColor: t.colors.brandBackgroundAlpha }]}>
-            <Crown size={t.containerSize.icon.lg} color={t.colors.brand} />
+            <Crown
+              size={t.containerSize.icon.lg}
+              color={t.colors.brand}
+              accessibilityElementsHidden={true}
+            />
           </View>
-          <Text style={[styles.premiumTitle, { color: t.colors.textPrimary }]}>
+          <Text
+            style={[styles.premiumTitle, { color: t.colors.textPrimary }]}
+            accessibilityRole="header"
+          >
             Premium Feature
           </Text>
           <Text style={[styles.premiumText, { color: t.colors.textMuted }]}>
@@ -125,6 +132,8 @@ function WindCalculatorComponent() {
             variant="neon"
             size="lg"
             style={styles.premiumButton}
+            accessibilityLabel="Upgrade to premium subscription"
+            accessibilityHint="Opens premium subscription options"
           >
             Upgrade to Premium
           </Button>
@@ -532,7 +541,7 @@ const createStyles = (t: Tokens) => ({
   errorContainer: {
     alignItems: 'center',
     padding: t.spacing.xl,
-    maxWidth: t.spacing['5xl'] * 1.5, // ~180px
+    maxWidth: t.containerSize.contentMaxWidth.error,
   } as ViewStyle,
   errorIconContainer: {
     width: t.containerSize.icon['2xl'],
@@ -552,14 +561,14 @@ const createStyles = (t: Tokens) => ({
     fontSize: safeScaledFontSize(t.fontSize.base),
     textAlign: 'center',
     marginBottom: t.spacing.lg,
-    lineHeight: 22,
+    lineHeight: t.lineHeight.relaxed,
   } as TextStyle,
   errorText: {
     fontSize: safeScaledFontSize(t.fontSize.base),
     marginTop: t.spacing.md,
   } as TextStyle,
   retryButton: {
-    minWidth: t.spacing['4xl'] + t.spacing['3xl'] + t.spacing.xs, // ~160px
+    minWidth: t.containerSize.buttonMinWidth.default,
   } as ViewStyle,
   premiumContainer: {
     alignItems: 'center',
@@ -584,6 +593,6 @@ const createStyles = (t: Tokens) => ({
     marginBottom: t.spacing.lg,
   } as TextStyle,
   premiumButton: {
-    minWidth: t.spacing['4xl'] + t.spacing['3xl'] + t.spacing['2xl'] - t.spacing.sm, // ~200px
+    minWidth: t.containerSize.buttonMinWidth.wide,
   } as ViewStyle,
 });

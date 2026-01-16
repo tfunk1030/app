@@ -147,6 +147,7 @@ export interface Tokens {
   containerSize: typeof containerSize;
   borderWidth: typeof borderWidth;
   opacity: typeof opacity;
+  lineHeight: typeof lineHeight;
 }
 
 // =============================================================================
@@ -300,6 +301,26 @@ export const containerSize = {
     thumb: 26,
     thumbDense: 22,
   },
+  /** Semantic button minimum widths - avoid arithmetic in styles */
+  buttonMinWidth: {
+    default: 160,
+    wide: 200,
+  },
+  /** Container max widths for centered content */
+  contentMaxWidth: {
+    error: 280,
+    modal: 320,
+  },
+} as const;
+
+/**
+ * Line height values for text elements
+ */
+export const lineHeight = {
+  tight: 18,
+  normal: 20,
+  relaxed: 22,
+  loose: 26,
 } as const;
 
 /**
@@ -522,6 +543,7 @@ export const darkTokens: Tokens = {
   containerSize,
   borderWidth,
   opacity,
+  lineHeight,
 };
 
 // =============================================================================
@@ -668,6 +690,7 @@ export const lightTokens: Tokens = {
   containerSize,
   borderWidth,
   opacity,
+  lineHeight,
 };
 
 // =============================================================================
