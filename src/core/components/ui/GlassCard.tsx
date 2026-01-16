@@ -12,6 +12,7 @@ import Animated, {
   withSpring,
 } from 'react-native-reanimated';
 import { useReduceMotionValue } from '@/src/hooks/useReduceMotion';
+import { useReduceTransparencyValue } from '@/src/hooks/useReduceTransparency';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -26,6 +27,7 @@ interface GlassCardProps {
    * - Non-iOS platforms (Android, web)
    * - iOS < 26
    * - When user has "Reduce Motion" accessibility enabled
+   * - When user has "Reduce Transparency" accessibility enabled (uses solid background)
    */
   liquidGlass?: boolean;
   onPress?: () => void; // Optional press handler
@@ -46,6 +48,7 @@ export const GlassCard: React.FC<GlassCardProps> = ({
   const t = useTokens();
   const { isDark } = useThemeMode();
   const reduceMotion = useReduceMotionValue();
+  const reduceTransparency = useReduceTransparencyValue();
   const padding = getScrollPadding(t.spacing.md, { minPadding: t.spacing.base, maxPadding: 20 });
 
   // Token-based border radius values for consistency
@@ -53,9 +56,8 @@ export const GlassCard: React.FC<GlassCardProps> = ({
   const gradientBorderWidth = t.borderWidth.medium; // 1.5
   const innerBorderRadius = cardBorderRadius - gradientBorderWidth; // 14.5
 
-  // Animation values
+  // Animation value for press feedback
   const scale = useSharedValue(1);
-  const isPressed = useSharedValue(false);
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
@@ -68,9 +70,8 @@ export const GlassCard: React.FC<GlassCardProps> = ({
         stiffness: t.animation.spring.stiffness,
         mass: t.animation.spring.mass,
       });
-      isPressed.value = true;
     }
-  }, [onPress, disabled, scale, isPressed, t.animation.spring]);
+  }, [onPress, disabled, scale, t.animation.spring]);
 
   const handlePressOut = useCallback(() => {
     scale.value = withSpring(1, {
@@ -78,8 +79,7 @@ export const GlassCard: React.FC<GlassCardProps> = ({
       stiffness: t.animation.spring.stiffness,
       mass: t.animation.spring.mass,
     });
-    isPressed.value = false;
-  }, [scale, isPressed, t.animation.spring]);
+  }, [scale, t.animation.spring]);
 
   // Determine shadow style based on glow prop (CSS boxShadow - New Architecture)
   const shadowStyle = glow
@@ -143,9 +143,33 @@ export const GlassCard: React.FC<GlassCardProps> = ({
 
       {/* Glassmorphism background */}
       {isDark ? (
-        liquidGlass && Platform.OS === 'ios' && !reduceMotion ? (
+        // Check for Reduce Transparency accessibility setting - use solid background
+        reduceTransparency ? (
+          // Solid background fallback for Reduce Transparency accessibility
+          <View
+            style={[
+              dynamicStyles.lightContainer,
+              gradient && dynamicStyles.withGradientBorder,
+              {
+                backgroundColor: t.colors.surface,
+                borderColor: gradient ? 'transparent' : t.colors.border,
+                borderWidth: gradient ? 0 : t.borderWidth.thin,
+              },
+            ]}
+          >
+            {accent && (
+              <LinearGradient
+                colors={t.gradients.primary as [string, string, ...string[]]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={dynamicStyles.accent}
+              />
+            )}
+            <View style={{ padding }}>{children}</View>
+          </View>
+        ) : liquidGlass && Platform.OS === 'ios' && !reduceMotion ? (
           // iOS 26+ Liquid Glass effect via expo-glass-effect
-          // Respects user's reduce motion preference for accessibility
+          // Respects user's reduce motion and reduce transparency preferences
           <GlassView
             style={[
               dynamicStyles.blurContainer,

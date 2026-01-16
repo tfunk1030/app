@@ -15,6 +15,7 @@ export { default as CardinalDirections } from './CardinalDirections';
 export { default as WindArrow } from './WindArrow';
 export { default as PhoneArrow } from './PhoneArrow';
 export { default as LockButton } from './LockButton';
+export { ThumbZoneLockButton } from './ThumbZoneLockButton';
 
 // Types and utilities
 export * from './types';

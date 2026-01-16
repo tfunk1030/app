@@ -16,6 +16,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import {
   ChevronRight,
   Crown,
+  Hand,
   Moon,
   Palette,
   Pencil,
@@ -470,14 +471,28 @@ export default function SettingsScreen() {
   const padding = getScrollPadding(tokens.spacing.md, { minPadding: tokens.spacing.base, maxPadding: 20 });
 
   const handleSave = () => {
+    // Validate required fields before saving
+    const trimmedName = newClub.name.trim();
+    if (!trimmedName) {
+      console.warn('Club name is required');
+      return;
+    }
+
     const numericYardage = parseInt(newClub.normalYardage) || 0;
+    if (numericYardage <= 0) {
+      console.warn('Valid yardage is required');
+      return;
+    }
+
     const processedYardage =
       settings.distanceUnit === 'meters'
         ? convertDistance(numericYardage, 'yards')
         : numericYardage;
 
-    const clubData: Partial<ClubData> = {
-      name: newClub.name,
+    // Construct validated club data with all required fields
+    const clubData: ClubData = {
+      id: editingClubId ?? `club-${Date.now()}`, // Provide ID for new clubs
+      name: trimmedName,
       normalYardage: processedYardage,
       ball_speed: 0,
       launch_angle: 0,
@@ -489,9 +504,9 @@ export default function SettingsScreen() {
     };
 
     if (editingClubId !== null) {
-      updateClub(editingClubId, clubData as ClubData);
+      updateClub(editingClubId, clubData);
     } else {
-      addClub(clubData as ClubData);
+      addClub(clubData);
     }
 
     setNewClub({ name: '', normalYardage: '', loft: '' });
@@ -606,6 +621,30 @@ export default function SettingsScreen() {
           />
           <Text style={[styles.unitHint, { color: tokens.colors.textMuted }]}>
             {isImperial ? 'Yards, Fahrenheit, Feet, MPH' : 'Meters, Celsius, Meters, KPH'}
+          </Text>
+        </GlassCard>
+      </Animated.View>
+
+      {/* Dominant Hand - for lock button positioning */}
+      <Animated.View entering={cardEntering(1.5)}>
+        <GlassCard style={styles.sectionCard}>
+          <View style={styles.sectionHeader}>
+            <Hand size={20} color={tokens.colors.brand} accessibilityElementsHidden={true} />
+            <Text style={[styles.sectionTitle, { color: tokens.colors.textPrimary }]} accessibilityRole="header">
+              Dominant Hand
+            </Text>
+          </View>
+          <SegmentedControl
+            options={[
+              { label: 'Left', value: 'left' },
+              { label: 'Right', value: 'right' },
+            ]}
+            value={settings.dominantHand}
+            onChange={(value) => updateSettings({ dominantHand: value as 'left' | 'right' })}
+            tokens={tokens}
+          />
+          <Text style={[styles.unitHint, { color: tokens.colors.textMuted }]}>
+            Controls lock button position on Wind Calculator
           </Text>
         </GlassCard>
       </Animated.View>

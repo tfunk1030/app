@@ -10,7 +10,8 @@ import { BlurView } from 'expo-blur';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { getLockButtonMetrics } from '@/src/utils/responsive';
 import { lockButtonStyles as styles } from './styles';
-import { useReducedMotion } from '@/src/hooks/useAccessibility';
+import { useReduceMotionValue } from '@/src/hooks/useReduceMotion';
+import { useReduceTransparencyValue } from '@/src/hooks/useReduceTransparency';
 
 interface LockButtonProps {
   isLocked: boolean;
@@ -40,7 +41,8 @@ const LockButton: React.FC<LockButtonProps> = ({
   pulseAnim,
   side = 'right',
 }) => {
-  const reduceMotion = useReducedMotion();
+  const reduceMotion = useReduceMotionValue();
+  const reduceTransparency = useReduceTransparencyValue();
   const rippleColor = mode === 'dark' ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)';
   const lockMetrics = getLockButtonMetrics(compassSize, side);
   const glowSize = lockMetrics.size + 8;
@@ -112,7 +114,14 @@ const LockButton: React.FC<LockButtonProps> = ({
             },
           ]}
         >
-          {!isLocked && <BlurView intensity={15} style={StyleSheet.absoluteFill} />}
+          {/* Blur effect when unlocked - falls back to solid when Reduce Transparency is enabled */}
+          {!isLocked && (
+            reduceTransparency ? (
+              <View style={[StyleSheet.absoluteFill, { backgroundColor: tokens.colors.surface }]} />
+            ) : (
+              <BlurView intensity={15} style={StyleSheet.absoluteFill} />
+            )
+          )}
           {isLocked && (
             <Animated.View
               style={[

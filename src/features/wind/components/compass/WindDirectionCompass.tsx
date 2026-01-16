@@ -121,6 +121,9 @@ const WindDirectionCompass: React.FC<WindDirectionCompassProps> = ({
   // Wind speed - prefer prop, fall back to conditions
   const windSpeed = propWindSpeed ?? conditions?.windSpeed ?? 10;
 
+  // Wind gust speed for pulse animation
+  const gustSpeed = conditions?.windGust;
+
   // Calculate crosswind component for the indicator
   const crosswindData = useMemo(
     () => calculateCrosswind(relativeWindAngle, windSpeed),
@@ -131,16 +134,32 @@ const WindDirectionCompass: React.FC<WindDirectionCompassProps> = ({
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
-    Animated.loop(
+    // Track animation instance for proper cleanup
+    let animation: Animated.CompositeAnimation | null = null;
+
+    // Skip continuous animations when Reduce Motion accessibility is enabled
+    if (reducedMotion) {
+      // Stop any running animation first, then reset to static value
+      pulseAnim.stopAnimation();
+      pulseAnim.setValue(1);
+      return;
+    }
+
+    // Start pulse animation loop
+    animation = Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, { toValue: 1.05, duration: 2000, useNativeDriver: true }),
         Animated.timing(pulseAnim, { toValue: 1, duration: 2000, useNativeDriver: true }),
       ])
-    ).start();
+    );
+    animation.start();
+
     return () => {
+      // Explicit cleanup prevents animation overlap when preference changes
+      animation?.stop();
       pulseAnim.stopAnimation();
     };
-  }, []);
+  }, [reducedMotion, pulseAnim]);
 
   // Announce lock state changes for accessibility
   useEffect(() => {
@@ -178,7 +197,16 @@ const WindDirectionCompass: React.FC<WindDirectionCompassProps> = ({
   );
 
   const handleLockPress = async () => {
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    if (!isLocked) {
+      // Locking - medium impact then success notification
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      setTimeout(() => {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }, 100);
+    } else {
+      // Unlocking - light impact
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
     toggleLock();
   };
 
@@ -225,7 +253,7 @@ const WindDirectionCompass: React.FC<WindDirectionCompassProps> = ({
             textColor={tokens.colors.textMuted}
           />
 
-          <PhoneArrow success={tokens.colors.success} />
+          <PhoneArrow color="#FFFFFF" />
 
           <WindArrow
             angle={relativeWindAngle}
@@ -235,6 +263,10 @@ const WindDirectionCompass: React.FC<WindDirectionCompassProps> = ({
             compassSize={size}
             magnitude={windSpeed}
             reducedMotion={reducedMotion}
+            windRelationship={windRelationship}
+            danger={tokens.colors.danger}
+            warning={tokens.colors.warning}
+            gustSpeed={gustSpeed}
           />
 
           {/* Crosswind indicator - perpendicular to wind arrow */}
@@ -301,7 +333,7 @@ const WindDirectionCompass: React.FC<WindDirectionCompassProps> = ({
           accessibilityLabel={
             isLocked
               ? `Locked at ${Math.round(referenceHeading)} degrees`
-              : `Wind ${Math.round(windSpeed)} ${speedUnit}, ${Math.abs(Math.round(relativeWindAngle))} degrees ${relativeWindAngle >= 0 ? 'right' : 'left'} of target, ${windRelationship.toLowerCase()}`
+              : `Point device at target to lock direction`
           }
         >
           {isLocked ? (
@@ -322,23 +354,24 @@ const WindDirectionCompass: React.FC<WindDirectionCompassProps> = ({
                 numberOfLines={1}
                 ellipsizeMode="tail"
               >
-                Locked
+                LOCKED
               </Text>
             </View>
           ) : (
             <View
               style={[
                 styles.windLabel,
-                { backgroundColor: getWindLabelGlow(windRelationship, tokens) },
+                { backgroundColor: tokens.colors.surfaceAlt },
               ]}
             >
+              <MaterialCommunityIcons name="crosshairs-gps" size={14} color={tokens.colors.textMuted} style={{ marginRight: 4 }} />
               <Text
                 style={[
                   styles.windLabelText,
-                  { color: getWindLabelColor(windRelationship, tokens) },
+                  { color: tokens.colors.textMuted },
                 ]}
               >
-                {windRelationship}
+                POINT AT TARGET
               </Text>
             </View>
           )}

@@ -44,6 +44,14 @@ export interface WindArrowProps {
   magnitude?: number;
   /** Whether to respect reduced motion accessibility setting */
   reducedMotion?: boolean;
+  /** Wind relationship type for dynamic coloring */
+  windRelationship?: WindRelationship;
+  /** Danger color for headwind */
+  danger?: string;
+  /** Warning color for crosswind */
+  warning?: string;
+  /** Wind gust speed in mph - triggers pulse animation when > magnitude */
+  gustSpeed?: number;
 }
 
 export interface CrosswindIndicatorProps {
@@ -77,7 +85,8 @@ export interface WindMagnitudeLegendProps {
 }
 
 export interface PhoneArrowProps {
-  success: string;
+  /** Arrow color - use white/neutral for user heading arrow */
+  color: string;
 }
 
 export interface LockButtonProps {

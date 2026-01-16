@@ -100,6 +100,8 @@ export const compassStyles = StyleSheet.create({
     zIndex: 30,
   },
   windLabel: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 8,
@@ -137,7 +139,8 @@ export const compassStyles = StyleSheet.create({
   },
   lockedChipText: {
     fontSize: scaledFontSize(12),
-    fontWeight: '600',
+    fontWeight: '700',
+    letterSpacing: 1,
   },
 });
 

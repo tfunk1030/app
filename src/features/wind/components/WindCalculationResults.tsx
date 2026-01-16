@@ -12,6 +12,7 @@ import React, { memo, useMemo } from 'react';
 
 // Import sub-components
 import { ClubRecommendation } from './results/ClubRecommendation';
+import { DualResultCard } from './results/DualResultCard';
 import { EffectsGrid } from './results/EffectsGrid';
 import { IterationDetails } from './results/IterationDetails';
 import { LateralAdjustment } from './results/LateralAdjustment';
@@ -36,6 +37,18 @@ export const WindCalculationResults = memo(({ result }: WindCalculationResultsPr
     }),
     [result.effectivePlayingDistance]
   );
+
+  // Props for dual result card (sustained vs gust)
+  const dualResultProps = useMemo(
+    () => ({
+      sustainedDistance: result.effectivePlayingDistance,
+      gustDistance: result.gustResult?.effectivePlayingDistance,
+      unit: 'yds' as const,
+    }),
+    [result.effectivePlayingDistance, result.gustResult?.effectivePlayingDistance]
+  );
+
+  const hasGustResult = !!result.gustResult;
 
   const clubRecommendationProps = useMemo(
     () => ({
@@ -79,15 +92,19 @@ export const WindCalculationResults = memo(({ result }: WindCalculationResultsPr
   );
   return (
     <ResultCard>
-      {/* Primary distance recommendation */}
-      <PrimaryRecommendation {...primaryRecommendationProps} />
+      {/* Primary distance recommendation - show dual card when gusts present */}
+      {hasGustResult ? (
+        <DualResultCard {...dualResultProps} />
+      ) : (
+        <PrimaryRecommendation {...primaryRecommendationProps} />
+      )}
+
+      {/* Lateral adjustment if needed - promoted for visibility */}
+      <LateralAdjustment {...lateralAdjustmentProps} />
+      <AimOffsetViz lateralEffect={result.lateralEffect} />
 
       {/* Club recommendation with convergence details */}
       <ClubRecommendation {...clubRecommendationProps} />
-
-      {/* Lateral adjustment if needed */}
-      <LateralAdjustment {...lateralAdjustmentProps} />
-      <AimOffsetViz lateralEffect={result.lateralEffect} />
 
       {/* Grid of environmental and wind effects */}
       <EffectsGrid {...effectsGridProps} />

@@ -35,6 +35,8 @@ export interface WindCalculatorResult extends RecursiveWindCalculationResult {
   clubChange: boolean;
   clubChangeMessage: string;
   iterationSummary?: string;
+  /** Optional gust-based calculation when gustSpeed > windSpeed */
+  gustResult?: RecursiveWindCalculationResult;
 }
 
 /**
@@ -206,6 +208,32 @@ export function useWindCalculator() {
             ? generateIterationSummary(calculationResult)
             : undefined;
 
+          // Calculate gust result if gusts are higher than sustained wind
+          let gustResult: RecursiveWindCalculationResult | undefined;
+          if (currentConditions.windGust && currentConditions.windGust > currentWindSpeed) {
+            logger.info('Calculating gust effect', { gustSpeed: currentConditions.windGust });
+            gustResult = calculateWindEffectRecursive(
+              {
+                targetYardage: currentTargetYardage,
+                windSpeed: currentConditions.windGust,
+                windAngle,
+                clubName: initialClub.name,
+                conditions: currentConditions,
+                logger: windCalcLogger
+              },
+              currentGetRecommendedClub,
+              {
+                maxIterations: 3,
+                includeIterationDetails: false, // Skip details for gust calc
+                convergenceThreshold: (distance) => {
+                  if (distance < 100) return 1;
+                  if (distance < 200) return 2;
+                  return 3;
+                }
+              }
+            );
+          }
+
           logger.info('Wind calculation complete', {
             initialClub: calculationResult.initialClub,
             finalClub: calculationResult.finalClub,
@@ -213,6 +241,7 @@ export function useWindCalculator() {
             iterations: calculationResult.iterations,
             convergedReason: calculationResult.convergedReason,
             clubChanged,
+            hasGustResult: !!gustResult,
           });
 
           // Set the result with UI enhancements
@@ -221,7 +250,8 @@ export function useWindCalculator() {
             recommendedClub: calculationResult.finalClub,
             clubChange: clubChanged,
             clubChangeMessage,
-            iterationSummary
+            iterationSummary,
+            gustResult,
           });
         } else {
           logger.error('Wind calculation failed to produce a result');

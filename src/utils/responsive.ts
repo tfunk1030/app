@@ -334,8 +334,8 @@ export function clamp(value: number, min: number, max: number): number {
 }
 
 export function getResponsiveCompassSize(): number {
-  const { width, height } = getScreen();
-  const base = Math.min(width, height) * 0.65;
+  const { width } = getScreen();
+  const base = width * 0.70; // 70% of screen width for better visibility
   return clamp(base, 220, 380);
 }
 

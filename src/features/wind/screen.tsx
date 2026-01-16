@@ -5,6 +5,9 @@ import { GlassCard } from '@/src/core/components/ui/GlassCard';
 import { Slider } from '@/src/core/components/ui/slider';
 import { usePremium } from '@/src/features/settings/context/premium';
 import WindDirectionCompass from '@/src/features/wind/components/compass';
+import { ThumbZoneLockButton } from '@/src/features/wind/components/compass/ThumbZoneLockButton';
+import { useSettings } from '@/src/core/context/settings';
+import { ResultTakeoverModal } from '@/src/features/wind/components/ResultTakeoverModal';
 import { WindCalculationResults } from '@/src/features/wind/components/WindCalculationResults';
 import { WindHourlyForecastBar } from '@/src/features/wind/components/WindHourlyForecastBar';
 import { CompassLockProvider, useCompassLock } from '@/src/features/wind/context/compass-lock';
@@ -85,12 +88,16 @@ function WindCalculatorComponent() {
   // Get all required hooks
   const { isPremium } = usePremium();
   const { conditions, forceRefresh } = useEnhancedEnvironmental();
-  const { relativeWindAngle } = useCompassLock();
+  const { relativeWindAngle, isLocked, toggleLock } = useCompassLock();
   const { isLoading, windSpeed, setWindSpeed, targetYardage, setTargetYardage, result, calculate } =
     useWindCalculator();
   const t = useTokens();
   const insets = useSafeAreaInsets();
   const { headerEntering, cardEntering } = useAccessibleAnimations();
+  const { settings } = useSettings();
+
+  // State for result modal
+  const [showResultModal, setShowResultModal] = useState(false);
 
   // Memoized styles
   const styles = useMemo(() => createStyles(t), [t]);
@@ -104,6 +111,12 @@ function WindCalculatorComponent() {
       windAngle: relativeWindAngle,
     });
     calculate(relativeWindAngle);
+    setShowResultModal(true);
+  };
+
+  // Handle modal dismiss
+  const handleDismissModal = () => {
+    setShowResultModal(false);
   };
 
   // Premium check
@@ -205,14 +218,16 @@ function WindCalculatorComponent() {
   }
 
   return (
-    <ScrollView
-      style={[styles.container, { backgroundColor: t.colors.background }]}
-      contentContainerStyle={[
-        styles.contentContainer,
-        { paddingTop: insets.top + t.spacing.md, paddingHorizontal: padding },
-      ]}
-      showsVerticalScrollIndicator={false}
-    >
+    <View style={{ flex: 1, backgroundColor: t.colors.background }}>
+      <ScrollView
+        testID="wind-scroll-view"
+        style={styles.container}
+        contentContainerStyle={[
+          styles.contentContainer,
+          { paddingTop: insets.top + t.spacing.lg, paddingHorizontal: padding },
+        ]}
+        showsVerticalScrollIndicator={false}
+      >
       {/* Header with Current Wind Display */}
       <Animated.View entering={headerEntering}>
         <Text style={[styles.title, { color: t.colors.textPrimary }]} accessibilityRole="header">
@@ -268,7 +283,7 @@ function WindCalculatorComponent() {
             Point phone in shot direction and tap lock
           </Text>
           <View style={styles.compassWrapper}>
-            <WindDirectionCompass size={260} />
+            <WindDirectionCompass />
           </View>
         </GlassCard>
       </Animated.View>
@@ -345,7 +360,22 @@ function WindCalculatorComponent() {
           <WindCalculationResults result={result} />
         </Animated.View>
       )}
-    </ScrollView>
+      </ScrollView>
+
+      {/* Thumb-zone lock button - positioned for one-handed use */}
+      <ThumbZoneLockButton
+        side={settings.dominantHand}
+        isLocked={isLocked}
+        onPress={toggleLock}
+      />
+
+      {/* Result takeover modal - shows on calculation */}
+      <ResultTakeoverModal
+        visible={showResultModal && result !== null}
+        result={result}
+        onDismiss={handleDismissModal}
+      />
+    </View>
   );
 }
 
@@ -467,7 +497,7 @@ const createStyles = (t: Tokens) => ({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: t.spacing.md,
+    marginBottom: t.spacing.lg, // 24dp - section gap
     paddingVertical: t.spacing.base,
     paddingHorizontal: t.spacing.md,
     borderRadius: t.borderRadius.lg,
@@ -494,7 +524,7 @@ const createStyles = (t: Tokens) => ({
     fontWeight: t.fontWeight.bold,
   } as TextStyle,
   compassCard: {
-    marginBottom: t.spacing.md,
+    marginBottom: t.spacing.lg, // 24dp - section gap
     alignItems: 'center',
   } as ViewStyle,
   compassHint: {
@@ -508,14 +538,14 @@ const createStyles = (t: Tokens) => ({
     justifyContent: 'center',
   } as ViewStyle,
   sliderCard: {
-    marginBottom: t.spacing.md,
+    marginBottom: t.spacing.lg, // 24dp - section gap
   } as ViewStyle,
   yardageCard: {
-    marginBottom: t.spacing.md,
+    marginBottom: t.spacing.lg, // 24dp - section gap
   } as ViewStyle,
   presetsContainer: {
-    marginTop: t.spacing.md + t.spacing.xs, // 20px
-    paddingTop: t.spacing.md,
+    marginTop: t.spacing.sm, // 8dp - related element gap
+    paddingTop: t.spacing.sm, // 8dp - related element gap
     borderTopWidth: t.borderWidth.thin,
   } as ViewStyle,
   presetsLabel: {
@@ -530,7 +560,7 @@ const createStyles = (t: Tokens) => ({
     gap: t.spacing.sm,
   } as ViewStyle,
   calculateButton: {
-    marginBottom: t.spacing.md,
+    marginBottom: t.spacing.lg, // 24dp - section gap before results
   } as ViewStyle,
   loadingPulse: {
     borderRadius: t.borderRadius.lg,

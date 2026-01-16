@@ -9,10 +9,10 @@ import { View } from 'react-native';
 import { PhoneArrowProps } from './types';
 import { arrowStyles as styles } from './styles';
 
-const PhoneArrow: React.FC<PhoneArrowProps> = ({ success }) => (
+const PhoneArrow: React.FC<PhoneArrowProps> = ({ color }) => (
   <View style={styles.arrowContainer}>
-    <View style={[styles.arrow, { backgroundColor: success }]} />
-    <View style={[styles.arrowHead, { borderBottomColor: success }]} />
+    <View style={[styles.arrow, { backgroundColor: color }]} />
+    <View style={[styles.arrowHead, { borderBottomColor: color }]} />
   </View>
 );
 

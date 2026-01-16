@@ -5,6 +5,7 @@
  * including club changes and convergence details.
  */
 
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTokens } from '@/src/theme/useTokens';
 import type { Tokens } from '@/src/theme/tokens';
 import { safeScaledFontSize } from '@/src/utils/responsive';
@@ -33,13 +34,20 @@ function createStyles(t: Tokens) {
       borderWidth: t.borderWidth.thin, // 1
       borderColor: t.colors.border,
     },
+    clubContainer: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+      gap: t.spacing.sm, // 8
+      marginBottom: t.spacing.xs, // 4
+    },
     recommendationText: {
       fontSize: safeScaledFontSize(t.fontSize.base, { maxScale: 1.25 }), // 16
       color: t.colors.textPrimary,
-      marginBottom: t.spacing.xs, // 4
       textAlign: 'center' as const,
     },
     clubName: {
+      fontSize: safeScaledFontSize(t.fontSize.xl, { maxScale: 1.25 }), // 20
       fontWeight: t.fontWeight.bold, // '700'
       color: t.colors.brand,
     },
@@ -108,12 +116,16 @@ export const ClubRecommendation = memo(function ClubRecommendation({
 
   return (
     <View style={styles.clubRecommendation}>
-      <Text
-        style={styles.recommendationText}
+      <View
+        style={styles.clubContainer}
         accessibilityRole="text"
         accessibilityLabel={recommendedClubAccessibilityLabel}
       >
-        Recommended Club: <Text style={styles.clubName}>{recommendedClub}</Text>
+        <MaterialCommunityIcons name="golf" size={24} color={t.colors.brand} />
+        <Text style={styles.clubName}>{recommendedClub}</Text>
+      </View>
+      <Text style={styles.recommendationText}>
+        Recommended Club
       </Text>
 
       {clubChange && (

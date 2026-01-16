@@ -26,16 +26,37 @@ function getMagnitudeScale(magnitude: number): number {
 
 /**
  * Calculate base opacity based on wind magnitude
- * Stronger wind = more opaque (0.3-0.8 range)
+ * Stronger wind = more opaque (0.4-1.0 range)
  */
 function getMagnitudeOpacity(magnitude: number): number {
-  const MIN_OPACITY = 0.3;
-  const MAX_OPACITY = 0.8;
+  const MIN_OPACITY = 0.4;
+  const MAX_OPACITY = 1.0;
   const MAX_WIND = 30;
 
   const clampedMagnitude = Math.min(Math.max(magnitude, 0), MAX_WIND);
   const normalized = clampedMagnitude / MAX_WIND;
   return MIN_OPACITY + normalized * (MAX_OPACITY - MIN_OPACITY);
+}
+
+/**
+ * Get arrow color based on wind relationship
+ * TAILWIND = green (helps), HEADWIND = red (hurts), CROSSWIND = yellow (lateral)
+ */
+function getWindArrowColor(
+  windRelationship: 'HEADWIND' | 'TAILWIND' | 'CROSSWIND' | 'QUARTERING' | undefined,
+  colors: { success: string; danger: string; warning: string; brandAlt: string }
+): string {
+  switch (windRelationship) {
+    case 'TAILWIND':
+      return colors.success;  // Green - helps (adds distance)
+    case 'HEADWIND':
+      return colors.danger;   // Red - hurts (reduces distance)
+    case 'CROSSWIND':
+      return colors.warning;  // Yellow - lateral effect
+    case 'QUARTERING':
+    default:
+      return colors.brandAlt; // Default brand color
+  }
 }
 
 const WindArrow: React.FC<WindArrowProps> = ({
@@ -46,8 +67,25 @@ const WindArrow: React.FC<WindArrowProps> = ({
   compassSize,
   magnitude = 10, // Default moderate wind
   reducedMotion = false,
+  windRelationship,
+  danger = '#DC2626', // Default danger color
+  warning = '#F59E0B', // Default warning color
+  gustSpeed,
 }) => {
+  // Calculate dynamic arrow color based on wind relationship
+  const baseArrowColor = getWindArrowColor(windRelationship, {
+    success,
+    danger,
+    warning,
+    brandAlt,
+  });
+
+  // Apply opacity to color based on wind magnitude (pale for weak, vivid for strong)
+  const colorOpacity = getMagnitudeOpacity(magnitude);
+  const arrowColor = `${baseArrowColor}${Math.round(colorOpacity * 255).toString(16).padStart(2, '0')}`;
+
   const rotateAnim = useRef(new Animated.Value(angle)).current;
+  const scaleAnim = useRef(new Animated.Value(1)).current;
   const arrowAnimValues = useRef([
     new Animated.Value(0),
     new Animated.Value(0),
@@ -56,6 +94,7 @@ const WindArrow: React.FC<WindArrowProps> = ({
     new Animated.Value(0),
   ]).current;
   const animationRef = useRef<Animated.CompositeAnimation | null>(null);
+  const gustAnimRef = useRef<Animated.CompositeAnimation | null>(null);
 
   const { windOriginIndicator } = getCenterElementSizes(compassSize);
 
@@ -109,6 +148,38 @@ const WindArrow: React.FC<WindArrowProps> = ({
     };
   }, [reducedMotion]);
 
+  // Gust pulse animation - pulses when gustSpeed > wind speed
+  const gustActive = gustSpeed !== undefined && gustSpeed > magnitude;
+
+  useEffect(() => {
+    if (gustActive && !reducedMotion) {
+      // Pulse animation when gusts are active
+      gustAnimRef.current = Animated.loop(
+        Animated.sequence([
+          Animated.timing(scaleAnim, {
+            toValue: 1.15,
+            duration: 500,
+            useNativeDriver: true,
+          }),
+          Animated.timing(scaleAnim, {
+            toValue: 1,
+            duration: 500,
+            useNativeDriver: true,
+          }),
+        ])
+      );
+      gustAnimRef.current.start();
+    } else {
+      // Reset scale when gusts stop
+      scaleAnim.setValue(1);
+    }
+    return () => {
+      if (gustAnimRef.current) {
+        gustAnimRef.current.stop();
+      }
+    };
+  }, [gustActive, reducedMotion, scaleAnim]);
+
   const rotateInterpolate = rotateAnim.interpolate({
     inputRange: [0, 360],
     outputRange: ['0deg', '360deg'],
@@ -145,7 +216,7 @@ const WindArrow: React.FC<WindArrowProps> = ({
                     inputRange: [0, 1],
                     outputRange: [0, maxOpacity],
                   }),
-              borderBottomColor: brandAlt,
+              borderBottomColor: arrowColor,
             },
           ]}
           accessibilityElementsHidden
@@ -157,7 +228,7 @@ const WindArrow: React.FC<WindArrowProps> = ({
 
   return (
     <Animated.View
-      style={[styles.arrowContainer, { transform: [{ rotate: rotateInterpolate }] }]}
+      style={[styles.arrowContainer, { transform: [{ rotate: rotateInterpolate }, { scale: scaleAnim }] }]}
     >
       <View
         style={[
@@ -167,7 +238,7 @@ const WindArrow: React.FC<WindArrowProps> = ({
             width: windOriginIndicator,
             height: windOriginIndicator,
             borderRadius: windOriginIndicator / 2,
-            backgroundColor: brandAlt,
+            backgroundColor: arrowColor,
             borderColor: border,
           },
         ]}
@@ -187,7 +258,11 @@ export default React.memo(
       prevProps.border === nextProps.border &&
       prevProps.compassSize === nextProps.compassSize &&
       Math.abs((prevProps.magnitude ?? 10) - (nextProps.magnitude ?? 10)) < 1 &&
-      prevProps.reducedMotion === nextProps.reducedMotion
+      prevProps.reducedMotion === nextProps.reducedMotion &&
+      prevProps.windRelationship === nextProps.windRelationship &&
+      prevProps.danger === nextProps.danger &&
+      prevProps.warning === nextProps.warning &&
+      Math.abs((prevProps.gustSpeed ?? 0) - (nextProps.gustSpeed ?? 0)) < 1
     );
   }
 );
