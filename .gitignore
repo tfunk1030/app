@@ -39,3 +39,4 @@ nul
 
 expo-env.d.ts
 # @end expo-cli
+*:Zone.Identifier
