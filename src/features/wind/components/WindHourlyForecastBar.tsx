@@ -63,7 +63,7 @@ const createStyles = (t: Tokens) => ({
   },
 });
 
-export function WindHourlyForecastBar() {
+export function WindHourlyForecastBar(): React.JSX.Element {
   const t = useTokens();
   const { convertSpeed, settings } = useSettings();
 
@@ -120,13 +120,33 @@ export function WindHourlyForecastBar() {
     };
   }, []);
 
-  const formatHour = React.useCallback((isoLike: string) => {
+  const formatHour = React.useCallback((isoLike: string): string => {
     try {
       const d = new Date(isoLike);
       return d.toLocaleTimeString([], { hour: 'numeric' });
     } catch {
       return isoLike;
     }
+  }, []);
+
+  // Permission error CTA handlers
+  const handleRequestPermission = useCallback(async (): Promise<void> => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status === 'granted') {
+        // Re-trigger the effect by clearing error state
+        setError(null);
+        setLoading(true);
+      }
+    } catch (e) {
+      logger.error('Failed to request location permission', e as Error);
+    }
+  }, []);
+
+  const handleOpenSettings = useCallback((): void => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    Linking.openSettings();
   }, []);
 
   // Use getTouchTargetSize to ensure 44pt minimum for icon circles
@@ -144,26 +164,6 @@ export function WindHourlyForecastBar() {
       </GlassCard>
     );
   }
-
-  // Permission error CTA handlers
-  const handleRequestPermission = useCallback(async () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status === 'granted') {
-        // Re-trigger the effect by clearing error state
-        setError(null);
-        setLoading(true);
-      }
-    } catch (e) {
-      logger.error('Failed to request location permission', e as Error);
-    }
-  }, []);
-
-  const handleOpenSettings = useCallback(() => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    Linking.openSettings();
-  }, []);
 
   const isPermissionError = error?.includes('permission') || error?.includes('Location');
 
@@ -192,6 +192,7 @@ export function WindHourlyForecastBar() {
                   borderRadius: t.borderRadius.md,
                   minHeight: 44,
                 }}
+                testID="wind-hourly-forecast-grant-permission"
                 accessibilityRole="button"
                 accessibilityLabel="Grant location permission"
                 accessibilityHint="Opens permission request to allow location access for weather forecast"
@@ -215,6 +216,7 @@ export function WindHourlyForecastBar() {
                   borderColor: t.colors.border,
                   minHeight: 44,
                 }}
+                testID="wind-hourly-forecast-open-settings"
                 accessibilityRole="button"
                 accessibilityLabel="Open settings"
                 accessibilityHint="Opens app settings to manage location permissions"
