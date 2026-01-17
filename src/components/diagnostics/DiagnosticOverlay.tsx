@@ -38,9 +38,6 @@ interface DiagnosticOverlayProps {
  * when enabled via the DIAGNOSTIC_MODE or ALLOW_DEBUG_OVERLAY feature flags.
  */
 export const DiagnosticOverlay: React.FC<DiagnosticOverlayProps> = ({ isVisible, onClose }) => {
-  // Skip rendering if not visible
-  if (!isVisible) return null;
-
   const [activeTab, setActiveTab] = useState<DiagnosticTab>('logs');
   const [logs, setLogs] = useState<any[]>([]);
   const [sensorStatus, setSensorStatus] = useState<Record<string, any>>({});
@@ -376,6 +373,8 @@ export const DiagnosticOverlay: React.FC<DiagnosticOverlayProps> = ({ isVisible,
         return styles.logText;
     }
   };
+
+  if (!isVisible) return null;
 
   // Render the overlay
   return (

@@ -1,0 +1,245 @@
+{
+  "issues": [
+    {
+      "id": "UI-001",
+      "priority": "P0",
+      "title": "Touch targets are not consistently ≥48dp (constraint violation)",
+      "screen": "Global",
+      "files": [
+        "src/utils/responsive.ts",
+        "src/core/components/ui/button.tsx",
+        "src/core/components/ui/slider.tsx",
+        "components/Button.tsx"
+      ],
+      "evidence": [
+        "src/utils/responsive.ts: `const MIN_TOUCH_TARGET = 44;`",
+        "src/core/components/ui/button.tsx: `minHeight: getTouchTargetSize(44)`",
+        "components/Button.tsx: `minHeight: 44`"
+      ],
+      "whyItMatters": "Miss-taps and fatigue increase (especially outdoors/gloves) and this fails the stated ≥48dp requirement.",
+      "recommendedFix": "Set the minimum touch target to 48 in the responsive layer and ensure shared controls (Button/Slider/etc.) use token-driven minimums consistently.",
+      "acceptanceCriteria": [
+        "All tappable controls meet or exceed 48dp in their rendered size (excluding explicit exceptions with documented rationale).",
+        "Shared primitives (Button, Slider steppers, icon buttons) enforce the minimum without per-screen fixes."
+      ],
+      "effort": "M",
+      "category": "ux"
+    },
+    {
+      "id": "UI-002",
+      "priority": "P0",
+      "title": "Interactive elements missing accessibilityRole/accessibilityLabel in overlays and error UI",
+      "screen": "Overlays / Error states",
+      "files": [
+        "src/components/diagnostics/DiagnosticOverlay.tsx",
+        "src/components/ContextualOverlay.tsx",
+        "src/components/error-boundary/ErrorBoundary.tsx",
+        "app/(tabs-redesign)/setup.tsx"
+      ],
+      "evidence": [
+        "src/components/diagnostics/DiagnosticOverlay.tsx: multiple `Pressable` controls (tabs/close/expand/clear) without explicit accessibility props.",
+        "src/components/ContextualOverlay.tsx: close button `Pressable` lacks `accessibilityRole`/`accessibilityLabel`; `OverlayItem` wraps `Pressable onPress={onPress}` without a11y props.",
+        "src/components/error-boundary/ErrorBoundary.tsx: `Pressable ... onPress={resetError}` without a11y props."
+      ],
+      "whyItMatters": "Screen reader users may not discover or understand controls; violates the stated requirement that all interactive elements have role + label.",
+      "recommendedFix": "Add `accessibilityRole`, `accessibilityLabel`, and appropriate `accessibilityState` to all interactive Pressables; for modal backdrops either hide from SR or label as 'Dismiss'.",
+      "acceptanceCriteria": [
+        "All Pressable/Touchable interactive elements in the listed files include `accessibilityRole` and `accessibilityLabel` (or are explicitly hidden from accessibility).",
+        "Modal close/dismiss actions are discoverable and work via screen reader navigation."
+      ],
+      "effort": "M",
+      "category": "a11y"
+    },
+    {
+      "id": "UI-003",
+      "priority": "P0",
+      "title": "Navigation preference (classic vs redesign) is misleading; app always redirects to redesign tabs",
+      "screen": "Setup → Navigation Style",
+      "files": [
+        "app/index.tsx",
+        "src/stores/navigationPreference.ts",
+        "app/(tabs-redesign)/setup.tsx"
+      ],
+      "evidence": [
+        "app/index.tsx: `<Redirect href=\"/(tabs-redesign)\" />`",
+        "src/stores/navigationPreference.ts: supports `style: 'classic' | 'redesign'`",
+        "app/(tabs-redesign)/setup.tsx: offers Classic (5 tabs) and triggers reload"
+      ],
+      "whyItMatters": "Users are told they can switch layouts, but routing appears to ignore the preference, harming trust and discoverability.",
+      "recommendedFix": "Either implement classic routes and conditionally route based on stored preference, or remove/disable the classic option until supported.",
+      "acceptanceCriteria": [
+        "Selecting 'classic' results in the classic tab layout being shown after reload.",
+        "Or, if classic is not supported, UI does not present the option."
+      ],
+      "effort": "M",
+      "category": "navigation"
+    },
+    {
+      "id": "UI-004",
+      "priority": "P0",
+      "title": "Permissions UX is fragmented (startup prompting + repeated requests; toggles not aligned to OS permissions)",
+      "screen": "Startup / Setup → Permissions",
+      "files": [
+        "app/_layout.tsx",
+        "src/features/wind/context/sensor-data.tsx",
+        "src/services/enhanced-environmental-service.ts",
+        "app/(tabs-redesign)/setup.tsx",
+        "src/utils/permissions.ts"
+      ],
+      "evidence": [
+        "app/_layout.tsx: calls `Location.requestForegroundPermissionsAsync()` on mount.",
+        "src/features/wind/context/sensor-data.tsx: requests location permission in multiple effects.",
+        "src/utils/permissions.ts: notification permissions 'not yet implemented'; compass permission simplified."
+      ],
+      "whyItMatters": "Users can be prompted without context and see toggles that don't reflect actual OS state; this can reduce conversions and cause review issues.",
+      "recommendedFix": "Centralize permission checks/requests, dedupe prompts, gate prompting behind explicit user action, and have toggles reflect OS state (with Settings deep-link when denied).",
+      "acceptanceCriteria": [
+        "No OS permission prompt appears on cold start without an explicit user action that requires it (unless product explicitly wants otherwise).",
+        "Permission toggles reflect the OS permission state and can trigger a guided request flow."
+      ],
+      "effort": "L",
+      "category": "ux"
+    },
+    {
+      "id": "UI-005",
+      "priority": "P1",
+      "title": "Reduced Motion preference not consistently respected (paywall/onboarding/overlays)",
+      "screen": "Paywall / Onboarding / Overlays",
+      "files": [
+        "src/core/components/ui/Paywall.tsx",
+        "src/components/onboarding/OnboardingFlow.tsx",
+        "src/components/ContextualOverlay.tsx"
+      ],
+      "evidence": [
+        "src/core/components/ui/Paywall.tsx: `withRepeat(...)` crown animation without reduce-motion gating.",
+        "src/components/onboarding/OnboardingFlow.tsx: uses `FadeInDown`, `FadeInUp`, `withSpring` without reduce-motion checks."
+      ],
+      "whyItMatters": "Continuous or animated transitions can cause discomfort for users with vestibular sensitivity; this is a common accessibility expectation.",
+      "recommendedFix": "Gate animations with `useReduceMotionValue()`/`useAccessibleAnimations()`; disable continuous animations and use instant transitions when reduced motion is enabled.",
+      "acceptanceCriteria": [
+        "With Reduce Motion enabled, paywall/onboarding/overlay transitions are instant or significantly reduced.",
+        "No continuous repeating animations run when Reduce Motion is enabled."
+      ],
+      "effort": "M",
+      "category": "a11y"
+    },
+    {
+      "id": "UI-006",
+      "priority": "P1",
+      "title": "Design-token inconsistency and hardcoded values remain across audited UI paths",
+      "screen": "Global",
+      "files": [
+        "app/(tabs-redesign)/index.tsx",
+        "app/(tabs-redesign)/wind.tsx",
+        "app/(tabs-redesign)/setup.tsx",
+        "src/core/components/ui/Input.tsx",
+        "src/components/error-boundary/ErrorBoundary.tsx",
+        "src/components/diagnostics/DiagnosticOverlay.tsx",
+        "src/components/EmptyState.tsx"
+      ],
+      "evidence": [
+        "app/(tabs-redesign)/index.tsx: hardcoded `paddingHorizontal: 16`, `fontSize: 32`, etc.",
+        "src/components/error-boundary/ErrorBoundary.tsx: `buttonText: { color: '#fff' }`",
+        "src/components/diagnostics/DiagnosticOverlay.tsx: `backgroundColor: 'rgba(0, 0, 0, 0.85)'` and `'#4FB3F6'`"
+      ],
+      "whyItMatters": "Hardcoded values increase theme drift and undermine light/dark/outdoor consistency; violates the stated 'no hardcoded colors/spacing' constraint.",
+      "recommendedFix": "Standardize token usage per surface (legacy vs redesign), remove hardcoded colors/spacing/typography in screens and shared components, and enforce via linting or review checks.",
+      "acceptanceCriteria": [
+        "Audited screens do not introduce new hardcoded colors/spacing/typography outside token sources.",
+        "Existing hardcoded values in listed files are migrated to tokens or justified exceptions are documented in code."
+      ],
+      "effort": "L",
+      "category": "consistency"
+    },
+    {
+      "id": "UI-007",
+      "priority": "P1",
+      "title": "Outdoor readability strategy is inconsistent (outdoor theme exists only in redesign provider; glass effects may reduce clarity)",
+      "screen": "Global",
+      "files": [
+        "src/theme/ThemeProvider.tsx",
+        "src/theme/redesign/RedesignThemeProvider.tsx",
+        "src/core/components/ui/GlassCard.tsx"
+      ],
+      "evidence": [
+        "src/theme/redesign/RedesignThemeProvider.tsx: supports `mode: 'light' | 'dark' | 'outdoor'`",
+        "src/theme/ThemeProvider.tsx: supports only `system|light|dark` (no outdoor)",
+        "src/core/components/ui/GlassCard.tsx: uses `BlurView` and `surfaceGlass` for dark mode cards"
+      ],
+      "whyItMatters": "Sunlight use-cases need predictable high-contrast rendering; mixed theme systems and glassmorphism can reduce legibility outdoors.",
+      "recommendedFix": "Decide how 'outdoor' mode should apply across the whole app (including legacy screens/components) and ensure critical data surfaces avoid low-contrast/glassy treatments in outdoor mode.",
+      "acceptanceCriteria": [
+        "Outdoor mode can be applied consistently across redesign and non-redesign screens (or the app clearly restricts outdoor mode scope).",
+        "Primary decision outputs remain high-contrast in outdoor mode."
+      ],
+      "effort": "L",
+      "category": "visual"
+    },
+    {
+      "id": "UI-008",
+      "priority": "P2",
+      "title": "Error states sometimes lack recovery actions (e.g., conditions unavailable)",
+      "screen": "Wind Calculator (classic)",
+      "files": [
+        "src/features/wind/screen.tsx"
+      ],
+      "evidence": [
+        "src/features/wind/screen.tsx: when `!conditions` renders `Unable to load conditions` with no retry CTA."
+      ],
+      "whyItMatters": "On-course usage requires quick recovery; without retry or guidance, users may abandon the flow.",
+      "recommendedFix": "Add an explicit retry action (e.g., call `forceRefresh`) and show brief guidance (connectivity/permissions) when conditions are unavailable.",
+      "acceptanceCriteria": [
+        "When conditions fail to load, UI offers a visible retry action.",
+        "The retry action triggers a data refresh attempt and provides feedback."
+      ],
+      "effort": "S",
+      "category": "ux"
+    },
+    {
+      "id": "UI-009",
+      "priority": "P2",
+      "title": "Wind unit display/controls not fully aligned with user settings",
+      "screen": "Wind + Weather (classic)",
+      "files": [
+        "src/features/wind/screen.tsx",
+        "src/features/home/screen.tsx",
+        "src/core/context/settings.tsx"
+      ],
+      "evidence": [
+        "src/features/wind/screen.tsx: wind speed slider uses `unit=\"mph\"`.",
+        "src/features/home/screen.tsx: displays wind speed as `mph`.",
+        "src/core/context/settings.tsx: supports `speedUnit: 'mph'|'kph'|'kts'|'mps'`."
+      ],
+      "whyItMatters": "Incorrect or inconsistent units can cause real-world decision errors (club choice, aim adjustments).",
+      "recommendedFix": "Use `settings.speedUnit` (and conversion helpers) consistently for wind displays and inputs.",
+      "acceptanceCriteria": [
+        "Changing speed unit in settings updates wind speed units everywhere in UI.",
+        "Underlying calculations and displayed values remain consistent after unit changes."
+      ],
+      "effort": "M",
+      "category": "consistency"
+    },
+    {
+      "id": "UI-010",
+      "priority": "P3",
+      "title": "Potential list scaling/performance risk: map-rendered lists instead of FlashList",
+      "screen": "Setup / Settings",
+      "files": [
+        "app/(tabs-redesign)/setup.tsx",
+        "src/features/settings/screen.tsx"
+      ],
+      "evidence": [
+        "app/(tabs-redesign)/setup.tsx: renders clubs via `clubs.map(...)`.",
+        "src/features/settings/screen.tsx: renders clubs via `clubs.map(...)`."
+      ],
+      "whyItMatters": "If club/preset counts grow, ScrollView/map patterns can cause memory and performance issues.",
+      "recommendedFix": "Adopt FlashList for any list that can grow beyond a small threshold, or add a threshold-based switch to FlashList.",
+      "acceptanceCriteria": [
+        "Lists that can exceed a small count (e.g., >25) use FlashList or equivalent virtualization.",
+        "Scrolling remains smooth under larger datasets."
+      ],
+      "effort": "M",
+      "category": "performance"
+    }
+  ]
+}

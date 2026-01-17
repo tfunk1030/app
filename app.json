@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "aicaddypro",
+    "name": "AI Caddy Pro",
     "slug": "aicaddypro",
     "version": "1.2.0",
     "orientation": "portrait",
@@ -32,7 +32,7 @@
       "expo-web-browser"
     ],
     "ios": {
-      "supportsTablet": true,
+      "supportsTablet": false,
       "bundleIdentifier": "com.tfunk1030.aicaddypro",
       "buildNumber": "1.2.0",
       "infoPlist": {

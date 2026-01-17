@@ -1,0 +1,239 @@
+{
+  "generatedAt": "2026-01-14",
+  "repo": "AICaddyPro",
+  "synthesizedFrom": ["audit-gpt-5.2", "audit-opus-4.5", "audit-gemini-3-pro", "crossreview-gpt-5.2", "crossreview-opus-4.5", "crossreview-gemini-3-pro"],
+  "summary": {
+    "totalIssues": 18,
+    "p0Count": 3,
+    "p1Count": 7,
+    "p2Count": 6,
+    "p3Count": 2,
+    "prCount": 6,
+    "filesAffected": 35,
+    "criticalBlocking": [
+      "Theme logic bug: mode='system' treated as always dark (19 files)",
+      "Wind calculation failures are silent with no recovery",
+      "Home screen lacks all accessibility markup"
+    ]
+  },
+  "prs": [
+    {
+      "id": "PR-1",
+      "title": "Fix Theme Correctness — Expose isDark/effectiveScheme",
+      "priority": "P0",
+      "issues": ["THEME-001", "THEME-002"],
+      "files": [
+        "src/theme/ThemeProvider.tsx",
+        "src/components/ContextualOverlay.tsx",
+        "src/components/PresetSelector.tsx",
+        "src/components/EmptyState.tsx",
+        "src/components/onboarding/OnboardingStep.tsx",
+        "src/components/onboarding/OnboardingFlow.tsx",
+        "src/core/components/ui/BoldCard.tsx",
+        "src/core/components/ui/MetricTile.tsx",
+        "src/core/components/ui/FloatingTabBar.tsx",
+        "src/core/components/ui/button.tsx",
+        "src/core/components/ui/BoldTabBar.tsx",
+        "src/core/components/ui/Input.tsx",
+        "src/core/components/ui/SectionHeader.tsx",
+        "src/core/components/ui/card.tsx",
+        "src/core/components/ui/GlassCard.tsx",
+        "src/core/components/ui/GradientHero.tsx",
+        "src/core/components/ui/slider.tsx",
+        "src/features/home/screen.tsx",
+        "src/features/wind/screen.tsx",
+        "src/features/calculator/screen.tsx"
+      ],
+      "tasks": [
+        "Extend ThemeProvider to expose effectiveScheme and isDark from context",
+        "Add Appearance.addChangeListener for live OS theme updates",
+        "Create useIsDark() hook for consumers",
+        "Replace all mode === 'dark' || mode === 'system' patterns with isDark from hook",
+        "Add unit test for theme derivation logic"
+      ],
+      "acceptanceCriteria": [
+        "System+OS light renders light tokens; System+OS dark renders dark tokens",
+        "Changing OS appearance updates UI live without app restart",
+        "No remaining mode === 'system' checks in UI code",
+        "yarn tsc and yarn lint pass"
+      ]
+    },
+    {
+      "id": "PR-2",
+      "title": "Wind Flow Robustness — Surface Failures + Retry",
+      "priority": "P0",
+      "issues": ["WIND-001"],
+      "files": [
+        "src/features/wind/screen.tsx",
+        "src/features/wind/hooks/useWindCalculator.ts"
+      ],
+      "tasks": [
+        "Explicitly detect and represent calculation/data failure states",
+        "Add accessible error panel with Retry action",
+        "Wire Retry to hook-level refetch/recompute",
+        "Add unit tests for error state transitions"
+      ],
+      "acceptanceCriteria": [
+        "Calculation failures show clear error state (not blank/partial UI)",
+        "Retry action restores normal UI when data available",
+        "VoiceOver/TalkBack announces error and Retry button clearly",
+        "Tests cover error→retry→success flow"
+      ]
+    },
+    {
+      "id": "PR-3",
+      "title": "Core Accessibility — Home + Calculator Screens",
+      "priority": "P1",
+      "issues": ["A11Y-001", "A11Y-002"],
+      "files": [
+        "src/features/home/screen.tsx",
+        "src/features/calculator/screen.tsx",
+        "src/core/components/ui/MetricTile.tsx"
+      ],
+      "tasks": [
+        "Add accessibilityRole='header' to screen titles",
+        "Add accessibilityLabel to Home metrics with full context",
+        "Add accessible loading state announcement",
+        "Update Calculator ConditionChip labels with metric context",
+        "Mark decorative icons as hidden from accessibility tree"
+      ],
+      "acceptanceCriteria": [
+        "Screen readers announce titles as headers",
+        "Home metrics announce label + value + unit",
+        "Loading state is announced",
+        "Calculator chips announce metric name + value"
+      ]
+    },
+    {
+      "id": "PR-4",
+      "title": "Touch Targets + Tokens Cleanup",
+      "priority": "P1",
+      "issues": ["TOUCH-001", "TOKENS-001"],
+      "files": [
+        "src/utils/responsive.ts",
+        "src/components/ContextualOverlay.tsx",
+        "src/components/error-boundary/ErrorBoundary.tsx",
+        "src/components/EmptyState.tsx",
+        "src/features/wind/components/compass/WindDirectionCompass.tsx",
+        "src/theme/tokens.ts"
+      ],
+      "tasks": [
+        "Change MIN_TOUCH_TARGET from 44 to 48",
+        "Audit dense controls and use hitSlop where needed",
+        "Replace hardcoded hex/rgba with semantic tokens",
+        "Replace #22C55E and #000 in compass with token references",
+        "Smoke test compact device layouts"
+      ],
+      "acceptanceCriteria": [
+        "All minimum-sized interactive controls ≥48dp",
+        "No critical layout regressions on compact devices",
+        "No hardcoded hex/rgba in targeted components",
+        "Visual parity across light/dark themes"
+      ]
+    },
+    {
+      "id": "PR-5",
+      "title": "Interactive Controls A11y — Slider + Input",
+      "priority": "P1",
+      "issues": ["A11Y-003", "A11Y-004", "PERM-001"],
+      "files": [
+        "src/core/components/ui/slider.tsx",
+        "src/core/components/ui/Input.tsx",
+        "app/_layout.tsx"
+      ],
+      "tasks": [
+        "Slider: Add accessibilityValue with min/max/now + text with unit",
+        "Slider: Add accessibilityHint for +/- and drag interactions",
+        "Input: Add error prop with token-based danger border styling",
+        "Input: Set accessibilityState.invalid when error",
+        "Input: Add dev-time enforcement for missing accessibilityLabel",
+        "Remove unconditional location permission request from app startup",
+        "Add rationale UI before requesting location"
+      ],
+      "acceptanceCriteria": [
+        "Slider announces value with unit and provides actionable hints",
+        "Inputs visually and semantically communicate validation errors",
+        "Missing Input labels caught during development",
+        "No location prompt at app launch",
+        "Permission requested only in location-dependent flows"
+      ]
+    },
+    {
+      "id": "PR-6",
+      "title": "Polish — Overlays, Onboarding, Compass",
+      "priority": "P2",
+      "issues": ["A11Y-005", "A11Y-006", "UX-001", "UX-002", "ONBOARD-001", "COMPASS-001"],
+      "files": [
+        "src/components/diagnostics/DiagnosticOverlay.tsx",
+        "src/components/onboarding/OnboardingFlow.tsx",
+        "src/components/onboarding/OnboardingStep.tsx",
+        "src/features/wind/components/compass/WindDirectionCompass.tsx",
+        "src/features/wind/components/WindHourlyForecastBar.tsx"
+      ],
+      "tasks": [
+        "DiagnosticOverlay: Add a11y roles/labels to expand/close/tabs",
+        "DiagnosticOverlay: Ensure ≥48dp hit targets",
+        "DiagnosticOverlay: Replace hardcoded colors with tokens",
+        "Onboarding: Add Step X of Y accessible announcement",
+        "Compass: Enhance lock announcement with wind context",
+        "Forecast: Add permission/settings CTAs when unavailable"
+      ],
+      "acceptanceCriteria": [
+        "DiagnosticOverlay controls announced by screen readers",
+        "Onboarding progress navigable via screen reader",
+        "Compass lock announces full wind context",
+        "Forecast errors offer actionable CTAs"
+      ]
+    }
+  ],
+  "droppedIssues": [
+    {
+      "id": "UI-002",
+      "title": "ResultCard accessibility labels",
+      "reason": "False positive — code already has accessibilityRole/accessibilityLabel when pressable"
+    },
+    {
+      "id": "PERF-001",
+      "title": "FlatList → FlashList in OnboardingFlow",
+      "reason": "Only ~5 items; adds dependency for minimal gain; optional P3"
+    },
+    {
+      "id": "UI-009",
+      "title": "Tab bar icons accessibilityState",
+      "reason": "Expo Router handles this; no concrete SR regression observed"
+    },
+    {
+      "id": "TOKENS-MISSING",
+      "title": "Missing token definitions",
+      "reason": "Resolved — onBrand, onDanger, glowSecondary now exist in tokens"
+    }
+  ],
+  "validation": {
+    "typecheck": "yarn tsc --noEmit",
+    "lint": "yarn lint",
+    "test": "yarn test:ci",
+    "manualQA": [
+      "iOS + Android theme switching (light/dark/system)",
+      "VoiceOver (iOS) + TalkBack (Android) on modified screens",
+      "Compact device layout after 48dp touch target change"
+    ]
+  },
+  "risks": [
+    {
+      "risk": "Theme SOT divergence (legacy vs redesign)",
+      "mitigation": "PR-1 fixes logic bug; full unification is P3 scope"
+    },
+    {
+      "risk": "Breaking change for Input a11y contract",
+      "mitigation": "Use dev warnings first; require accessibilityLabel in future minor"
+    },
+    {
+      "risk": "Tokens-only scope creep",
+      "mitigation": "Scope PR-4 to listed user-facing components only"
+    },
+    {
+      "risk": "Permission UX platform differences",
+      "mitigation": "Handle both 'ask again' and 'open settings' flows"
+    }
+  ]
+}

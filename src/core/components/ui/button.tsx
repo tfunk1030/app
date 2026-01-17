@@ -16,7 +16,6 @@ import {
   Platform,
   Pressable,
   PressableProps,
-  StyleSheet,
   Text,
   TextStyle,
   View,
@@ -67,6 +66,10 @@ export interface ButtonProps extends PressableProps {
   textStyle?: TextStyle;
   title?: string;
   glow?: boolean; // Enable glow effect on brand buttons
+  /** Accessibility label for screen readers - defaults to title if not provided */
+  accessibilityLabel?: string;
+  /** Accessibility role - defaults to 'button' */
+  accessibilityRole?: 'button' | 'link' | 'none';
 }
 
 const Button = ({
@@ -77,11 +80,12 @@ const Button = ({
   style,
   textStyle,
   glow = false,
+  accessibilityLabel,
+  accessibilityRole = 'button',
   ...props
 }: ButtonProps) => {
   const t = useTokens();
-  const { mode } = useThemeMode();
-  const isDark = mode === 'dark' || mode === 'system';
+  const { isDark } = useThemeMode();
   const reduceMotion = useReduceMotionValue();
   const rippleColor = isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)';
 
@@ -193,47 +197,30 @@ const Button = ({
     }
   };
 
-  // Determine shadow style based on variant and glow prop
+  // Determine shadow style based on variant and glow prop (CSS boxShadow - New Architecture)
   const getShadowStyle = (): ViewStyle => {
     const shouldGlow =
       glow || variant === 'primary' || variant === 'premium' || variant === 'neon';
 
     // Primary/neon/premium buttons get glow effect in dark mode
     if (shouldGlow && isDark) {
-      const glowShadow =
-        variant === 'neon' || variant === 'primary'
-          ? t.shadow.glow
-          : variant === 'premium'
-          ? t.shadow.glowSecondary
-          : t.shadow.glow;
-
+      // Use appropriate glow alpha color for variant
+      const glowAlpha = variant === 'premium' ? t.colors.glowSecondaryAlpha : t.colors.glowPrimaryAlpha;
       return {
-        shadowColor: glowShadow.shadowColor,
-        shadowOffset: glowShadow.shadowOffset,
-        shadowOpacity: glowShadow.shadowOpacity * 0.7, // Reduced for buttons to prevent over-saturation
-        shadowRadius: glowShadow.shadowRadius,
-        elevation: glowShadow.elevation,
+        boxShadow: `0 0 ${t.shadow.glow.shadowRadius}px ${glowAlpha}`,
       };
     }
 
     // Destructive buttons get danger glow
     if (variant === 'destructive') {
       return {
-        shadowColor: t.shadow.dangerGlow.shadowColor,
-        shadowOffset: t.shadow.dangerGlow.shadowOffset,
-        shadowOpacity: t.shadow.dangerGlow.shadowOpacity * 0.8,
-        shadowRadius: t.shadow.dangerGlow.shadowRadius,
-        elevation: t.shadow.dangerGlow.elevation,
+        boxShadow: `0 0 ${t.shadow.dangerGlow.shadowRadius}px rgba(239, 68, 68, 0.4)`,
       };
     }
 
     // Default subtle shadow for other variants
     return {
-      shadowColor: t.shadow.subtle.shadowColor,
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: t.shadow.subtle.shadowOpacity * 1.2,
-      shadowRadius: t.shadow.subtle.shadowRadius * 2,
-      elevation: t.shadow.subtle.elevation * 2,
+      boxShadow: `0 2px ${t.shadow.subtle.shadowRadius * 2}px ${t.colors.shadowAlpha}`,
     };
   };
 
@@ -265,6 +252,8 @@ const Button = ({
   };
 
   const buttonText = title || children;
+  const effectiveAccessibilityLabel = accessibilityLabel ?? 
+    (typeof buttonText === 'string' ? buttonText : undefined);
   const textFontSize = size === 'sm' ? 14 : size === 'lg' ? 18 : 16;
   const isNeon = variant === 'neon';
 
@@ -339,6 +328,8 @@ const Button = ({
         onPressOut={handlePressOut}
         android_ripple={{ color: rippleColor, borderless: false }}
         style={[animatedStyle, style]}
+        accessibilityLabel={effectiveAccessibilityLabel}
+        accessibilityRole={accessibilityRole}
       >
         <View style={[styles.neonContainer, getShadowStyle()]}>
           <LinearGradient
@@ -377,6 +368,8 @@ const Button = ({
         onPressOut={handlePressOut}
         android_ripple={{ color: rippleColor, borderless: false }}
         style={[animatedStyle, style]}
+        accessibilityLabel={effectiveAccessibilityLabel}
+        accessibilityRole={accessibilityRole}
       >
         <LinearGradient
           colors={gradientColors}
@@ -403,6 +396,8 @@ const Button = ({
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
       android_ripple={{ color: rippleColor, borderless: false }}
+      accessibilityLabel={effectiveAccessibilityLabel}
+      accessibilityRole={accessibilityRole}
       style={[
         styles.base,
         getSizeStyle(),
@@ -417,38 +412,5 @@ const Button = ({
     </AnimatedPressable>
   );
 };
-
-const staticStyles = StyleSheet.create({
-  base: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 12,
-  },
-  gradientButton: {
-    overflow: 'hidden',
-  },
-  text: {
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  disabled: {
-    opacity: 0.5,
-  },
-  neonContainer: {
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  neonGradient: {
-    padding: 1.5, // Creates the gradient border effect
-    borderRadius: 12,
-  },
-  neonInner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 10.5,
-  },
-});
 
 export { Button };

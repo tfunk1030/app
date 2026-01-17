@@ -89,6 +89,14 @@ const featureConfigurations: Record<string, FeatureConfiguration> = {
     description: 'Uses instant initialization pattern with placeholder data',
     remoteOverrideEnabled: true, // Can be toggled remotely
   },
+
+  // Phase 1 accessibility enhancements - enables instant rollback
+  PHASE1_ACCESSIBILITY_ENHANCEMENTS: {
+    development: true,
+    production: false, // Start disabled, enable after testing
+    description: 'Phase 1 accessibility and loading state improvements',
+    remoteOverrideEnabled: true,
+  },
 };
 
 // Remote overrides (would normally come from a server/API)
@@ -136,6 +144,10 @@ export class FeatureFlags {
 
   static get DIAGNOSTIC_MODE(): boolean {
     return FeatureFlags.isEnabled('DIAGNOSTIC_MODE');
+  }
+
+  static get PHASE1_ACCESSIBILITY_ENHANCEMENTS(): boolean {
+    return FeatureFlags.isEnabled('PHASE1_ACCESSIBILITY_ENHANCEMENTS');
   }
 
   /**

@@ -44,8 +44,7 @@ const TabButton: React.FC<TabButtonProps> = ({
   options,
 }) => {
   const t = useTokens();
-  const { mode } = useThemeMode();
-  const isDark = mode === 'dark' || mode === 'system';
+  const { isDark } = useThemeMode();
   const reduceMotion = useReduceMotionValue();
 
   // Use useDerivedValue for better performance - animates directly on UI thread
@@ -123,6 +122,9 @@ const TabButton: React.FC<TabButtonProps> = ({
         color: isDark ? 'rgba(16, 185, 129, 0.2)' : 'rgba(16, 185, 129, 0.15)',
         borderless: true,
       }}
+      accessibilityRole="tab"
+      accessibilityLabel={typeof label === 'string' ? label : route.name}
+      accessibilityState={{ selected: isFocused }}
     >
       <View style={styles.tabButtonContent}>
         {/* Active indicator with gradient */}
@@ -161,8 +163,7 @@ const TabButton: React.FC<TabButtonProps> = ({
 };
 
 export const BoldTabBar: React.FC<BottomTabBarProps> = ({ state, descriptors, navigation }) => {
-  const { mode } = useThemeMode();
-  const isDark = mode === 'dark' || mode === 'system';
+  const { isDark } = useThemeMode();
   const insets = useSafeAreaInsets();
 
   // Select gradient based on theme
@@ -220,6 +221,7 @@ export const BoldTabBar: React.FC<BottomTabBarProps> = ({ state, descriptors, na
                   : 'rgba(226, 232, 240, 0.8)',
               },
             ]}
+            accessibilityRole="tablist"
           >
             {state.routes.map((route, index) => {
               const { options } = descriptors[route.key];

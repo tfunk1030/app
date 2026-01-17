@@ -196,12 +196,12 @@ function determineAccuracyLevel(
 }
 
 // Throttle function to limit update frequency
-function throttle<T extends (...args: any[]) => any>(
-  func: T,
+function throttle<Args extends unknown[], R>(
+  func: (...args: Args) => R,
   delay: number
-): (...args: Parameters<T>) => void {
+): (...args: Args) => void {
   let lastCall = 0;
-  return (...args: Parameters<T>) => {
+  return (...args: Args) => {
     const now = Date.now();
     if (now - lastCall >= delay) {
       lastCall = now;
@@ -412,8 +412,9 @@ export function SensorDataProvider({ children }: SensorDataProviderProps) {
       setCacheTimestamp(cache.timestamp);
 
       return isValid;
-    } catch (error: any) {
-      logger.error('Sensor cache validation error', { error: error?.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      logger.error('Sensor cache validation error', { error: message });
       setCacheState('unknown');
       return false;
     }
@@ -437,8 +438,9 @@ export function SensorDataProvider({ children }: SensorDataProviderProps) {
       setCacheTimestamp(data.timestamp);
 
       logger.info('Sensor cache updated successfully', { timestamp: new Date(data.timestamp).toISOString() });
-    } catch (error: any) {
-      logger.error('Sensor cache update error', { error: error?.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      logger.error('Sensor cache update error', { error: message });
     }
   }, []);
 

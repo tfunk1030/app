@@ -3,10 +3,12 @@
  *
  * Provides animation utilities that respect user's reduced motion preferences.
  * All screen animations should use these hooks instead of direct Reanimated imports.
+ *
+ * NOTE: This file uses the consolidated useReduceMotionValue hook internally.
+ * For simple boolean checks, prefer importing directly from useReduceMotion.ts.
  */
 
-import { useCallback, useEffect, useState } from 'react';
-import { AccessibilityInfo } from 'react-native';
+import { useCallback } from 'react';
 import {
   Easing,
   FadeIn,
@@ -18,6 +20,7 @@ import {
   type WithSpringConfig,
   type WithTimingConfig,
 } from 'react-native-reanimated';
+import { useReduceMotionValue } from './useReduceMotion';
 
 // Spring configurations from design system
 const springConfigs = {
@@ -39,30 +42,10 @@ const instantTiming: WithTimingConfig = { duration: 0 };
 
 /**
  * Hook to detect if user prefers reduced motion
+ * @deprecated Use useReduceMotionValue from '@/src/hooks/useReduceMotion' instead
  */
 export function useReducedMotion(): boolean {
-  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
-
-  useEffect(() => {
-    // Check initial state
-    AccessibilityInfo.isReduceMotionEnabled().then((enabled) => {
-      setPrefersReducedMotion(enabled);
-    });
-
-    // Listen for changes
-    const subscription = AccessibilityInfo.addEventListener(
-      'reduceMotionChanged',
-      (enabled) => {
-        setPrefersReducedMotion(enabled);
-      }
-    );
-
-    return () => {
-      subscription.remove();
-    };
-  }, []);
-
-  return prefersReducedMotion;
+  return useReduceMotionValue();
 }
 
 /**
@@ -85,7 +68,7 @@ export function useReducedMotion(): boolean {
  * ```
  */
 export function useAccessibleAnimations() {
-  const prefersReducedMotion = useReducedMotion();
+  const prefersReducedMotion = useReduceMotionValue();
 
   /**
    * Wraps an entering animation, returning undefined if reduced motion is enabled

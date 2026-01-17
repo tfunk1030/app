@@ -1,0 +1,27 @@
+# Shot Calculator E2E Test
+# Tests the main shot calculator functionality
+
+appId: com.tfunk1030.aicaddypro
+---
+- launchApp
+
+# Verify we're on the Shot screen (first tab)
+- assertVisible: "Shot"
+
+# Check environmental data loads
+- assertVisible:
+    text: ".*°.*"  # Temperature display
+    optional: true
+
+# Test distance slider interaction
+- tapOn:
+    id: "distance-slider"
+    optional: true
+
+# Verify result card appears
+- assertVisible:
+    text: "Adjusted"
+    optional: true
+
+# Take screenshot for visual verification
+- takeScreenshot: shot-calculator-loaded

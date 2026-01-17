@@ -1,0 +1,17 @@
+# CODEOWNERS - AICaddy Pro
+# These owners will be requested for review when someone opens a pull request.
+# See: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default owner for everything
+* @tfunk1030
+
+# Core application code
+/app/ @tfunk1030
+/src/ @tfunk1030
+
+# Configuration files
+/*.json @tfunk1030
+/.github/ @tfunk1030
+
+# Documentation
+*.md @tfunk1030

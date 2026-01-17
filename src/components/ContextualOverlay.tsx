@@ -94,8 +94,7 @@ export const ContextualOverlay: React.FC<ContextualOverlayProps> = ({
   maxHeightPercent = 0.8,
 }) => {
   const t = useTokens();
-  const { mode } = useThemeMode();
-  const isDark = mode === 'dark' || mode === 'system';
+  const { isDark } = useThemeMode();
   const padding = getScrollPadding(20, { minPadding: 16, maxPadding: 24 });
 
   // Animation values
@@ -345,8 +344,7 @@ export const OverlaySection: React.FC<OverlaySectionProps> = ({
   style,
 }) => {
   const t = useTokens();
-  const { mode } = useThemeMode();
-  const isDark = mode === 'dark' || mode === 'system';
+  const { isDark } = useThemeMode();
 
   return (
     <View style={[styles.section, style]}>
@@ -387,8 +385,7 @@ export const OverlayItem: React.FC<OverlayItemProps> = ({
   style,
 }) => {
   const t = useTokens();
-  const { mode } = useThemeMode();
-  const isDark = mode === 'dark' || mode === 'system';
+  const { isDark } = useThemeMode();
 
   const content = (
     <View

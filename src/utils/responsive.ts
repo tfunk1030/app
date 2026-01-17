@@ -5,7 +5,7 @@ const BASE_WIDTH = 375;
 const BASE_HEIGHT = 812;
 
 // Accessibility constants
-const MIN_TOUCH_TARGET = 44; // iOS minimum touch target size in points
+const MIN_TOUCH_TARGET = 48; // Project requirement: 48dp for glove use (increased from iOS 44pt minimum)
 const MAX_FONT_SCALE = 1.35; // Maximum font scale to prevent layout breaking
 const MIN_FONT_SCALE = 0.85; // Minimum font scale for readability
 const SAFE_FONT_SCALE_FACTOR = 0.3; // How much to respect system font scale (0-1)
@@ -334,8 +334,8 @@ export function clamp(value: number, min: number, max: number): number {
 }
 
 export function getResponsiveCompassSize(): number {
-  const { width, height } = getScreen();
-  const base = Math.min(width, height) * 0.65;
+  const { width } = getScreen();
+  const base = width * 0.70; // 70% of screen width for better visibility
   return clamp(base, 220, 380);
 }
 
@@ -460,14 +460,24 @@ export function getCompassScaledValue(
 
 /**
  * Get lock button position and size based on compass size
- * Returns position and size for proper placement relative to compass
+ * Returns position and size for proper placement OUTSIDE the compass circle
+ * @param compassSize - Size of the compass in pixels
+ * @param side - 'left' or 'right' based on user's dominant hand preference
  */
-export function getLockButtonMetrics(compassSize: number) {
+export function getLockButtonMetrics(compassSize: number, side: 'left' | 'right' = 'right') {
+  const buttonSize = getCompassScaledValue(compassSize, 0.18, 48, 56);
+  const halfCompass = compassSize / 2;
+
+  // Position the button BELOW and to the side of the compass circle
+  // This prevents overlap with the S cardinal direction
   return {
     position: 'absolute' as const,
-    bottom: -getCompassScaledValue(compassSize, 0.18, 40, 50),
-    right: -getCompassScaledValue(compassSize, 0.12, 26, 34),
-    size: getCompassScaledValue(compassSize, 0.20, 48, 64),
+    bottom: -(buttonSize + 12), // Position below the compass with 12px gap
+    // Center horizontally with slight offset toward preferred hand side
+    ...(side === 'right'
+      ? { right: halfCompass - buttonSize / 2 - 20, left: undefined }
+      : { left: halfCompass - buttonSize / 2 - 20, right: undefined }),
+    size: buttonSize,
   };
 }
 
@@ -482,18 +492,22 @@ export function getCardinalDirectionStyles(
   const isNorth = direction === 'N';
   const isMain = ['E', 'S', 'W'].includes(direction);
   const isIntercardinal = ['NE', 'SE', 'SW', 'NW'].includes(direction);
-  
+
+  // Use smaller sizes for compasses under 240px to prevent overlap
+  const isSmallCompass = compassSize < 240;
+  const sizeReduction = isSmallCompass ? 0.8 : 1;
+
   return {
-    containerSize: getCompassScaledValue(compassSize, 0.14, 32, 40),
+    containerSize: getCompassScaledValue(compassSize, 0.14 * sizeReduction, 26, 40),
     fontSize: getCompassScaledValue(
       compassSize,
-      isNorth ? 0.072 : isMain ? 0.06 : 0.05,
-      isNorth ? 16 : isMain ? 13 : 11,
+      (isNorth ? 0.072 : isMain ? 0.06 : 0.05) * sizeReduction,
+      isNorth ? 14 : isMain ? 11 : 9,
       isNorth ? 20 : isMain ? 17 : 14
     ),
     fontWeight: isNorth ? '800' : isMain ? '700' : '600',
     opacity: isNorth ? 1 : isMain ? 0.9 : 0.7,
-    sizeMultiplier: isNorth ? 1.2 : isMain ? 1.0 : 0.85,
+    sizeMultiplier: (isNorth ? 1.2 : isMain ? 1.0 : 0.85) * sizeReduction,
     showDegrees: isMain && compassSize >= 240,
     showIntercardinalDegrees: isIntercardinal && compassSize >= 260,
   };
@@ -546,11 +560,25 @@ export function getCompassProgressiveFeatures(compassSize: number) {
 /**
  * Get the radius for positioning cardinal directions
  * Calculates optimal distance from compass center
+ * Scales proportionally for smaller compasses to prevent overlap
+ * Accounts for minimum container size clamping in getCardinalDirectionStyles
  */
 export function getCardinalDirectionRadius(compassSize: number): number {
-  // Position using formula: radius = compassSize/2 + (compassSize * 0.08)
-  // Cardinals stay outside the compass for visibility
-  return compassSize / 2 + getCompassScaledValue(compassSize, 0.08, 16, 22);
+  // For small compasses (<240px), cardinals need to be closer to center
+  // because their container sizes are clamped to minimums
+  const isSmallCompass = compassSize < 240;
+  
+  // Calculate actual container size (accounting for clamping)
+  const sizeReduction = isSmallCompass ? 0.8 : 1;
+  const rawContainerSize = compassSize * 0.14 * sizeReduction;
+  const actualContainerSize = Math.max(26, Math.min(40, rawContainerSize));
+  
+  // Position cardinals so their center is at this radius from compass center
+  // Smaller offset for small compasses to keep cardinals inside the ring
+  const baseRadius = (compassSize - actualContainerSize) / 2;
+  const offset = isSmallCompass ? -2 : 2;
+  
+  return baseRadius + offset;
 }
 
 /**
@@ -562,4 +590,70 @@ export function getCenterElementSizes(compassSize: number) {
     centerDot: getCompassScaledValue(compassSize, 0.04, 9, 11),
     windOriginIndicator: getCompassScaledValue(compassSize, 0.08, 18, 22),
   };
+}
+
+// =============================================================================
+// WIND SCREEN LAYOUT UTILITIES (Height Breakpoints)
+// =============================================================================
+
+/**
+ * Height breakpoint constants for responsive layout modes
+ * - compact: <700pt (iPhone SE, small screens)
+ * - regular: 700-850pt (iPhone 14, standard screens)
+ * - large: >850pt (iPhone Pro Max, large screens)
+ */
+export const HEIGHT_BREAKPOINTS = {
+  COMPACT_MAX: 700,
+  REGULAR_MAX: 850,
+} as const;
+
+export type LayoutMode = 'compact' | 'regular' | 'large';
+
+/**
+ * Get layout mode based on screen height
+ * Used for adapting Wind screen layout to different device sizes
+ */
+export function getLayoutMode(screenHeight: number): LayoutMode {
+  if (screenHeight < HEIGHT_BREAKPOINTS.COMPACT_MAX) {
+    return 'compact';
+  }
+  if (screenHeight <= HEIGHT_BREAKPOINTS.REGULAR_MAX) {
+    return 'regular';
+  }
+  return 'large';
+}
+
+/**
+ * Get optimal compass size based on layout mode and screen width
+ * Ensures compass doesn't exceed container bounds while maximizing visual impact
+ */
+export function getCompassSizeByMode(
+  mode: LayoutMode,
+  screenWidth: number
+): number {
+  // Maximum compass size constraints per mode
+  const maxSizes: Record<LayoutMode, number> = {
+    compact: 200,
+    regular: 260,
+    large: 320,
+  };
+
+  // Calculate size based on screen width (max 80% of screen width)
+  const widthBasedSize = screenWidth * 0.8;
+
+  // Use the smaller of width-based size or mode max
+  return Math.min(widthBasedSize, maxSizes[mode]);
+}
+
+/**
+ * Get action bar height based on layout mode
+ * Compact mode uses shorter bar to save vertical space
+ */
+export function getActionBarHeight(mode: LayoutMode): number {
+  const heights: Record<LayoutMode, number> = {
+    compact: 64,
+    regular: 72,
+    large: 80,
+  };
+  return heights[mode];
 }

@@ -10,7 +10,6 @@
  * </GradientHero>
  */
 
-import { useThemeMode } from '@/src/theme/ThemeProvider';
 import { useTokens } from '@/src/theme/useTokens';
 import { gradients, GradientColors } from '@/src/theme/gradients';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -104,8 +103,6 @@ export const GradientHero: React.FC<GradientHeroProps> = ({
 }) => {
   const t = useTokens();
   const insets = useSafeAreaInsets();
-  const { mode } = useThemeMode();
-  const isDark = mode === 'dark' || mode === 'system';
 
   // Get gradient colors based on variant or custom colors
   const getGradientColors = (): GradientColors => {

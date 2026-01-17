@@ -18,8 +18,11 @@ export async function fetchNwsWx(lat: number, lon: number): Promise<WxPoint[] | 
     if (!gridRes.ok) return null;
     const gridData = await gridRes.json();
 
-    const toVal = (series: any) => (series?.values?.[0]?.value ?? null) as number | null;
-    const toTs = (series: any) =>
+    interface NWSGridSeries {
+      values?: Array<{ value?: number; validTime?: string }>;
+    }
+    const toVal = (series: NWSGridSeries | undefined) => (series?.values?.[0]?.value ?? null) as number | null;
+    const toTs = (series: NWSGridSeries | undefined) =>
       series?.values?.[0]?.validTime?.split('/')?.[0] ?? new Date().toISOString();
 
     const wind_ms =

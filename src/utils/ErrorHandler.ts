@@ -7,6 +7,12 @@
 
 import { LogManager } from './LogManager';
 
+/**
+ * Error details type - allows structured objects or catch block values.
+ * Uses a record type to enable spreading while allowing various value types.
+ */
+export type ErrorDetails = Record<string, unknown> | undefined;
+
 // Create a logger for the error handler
 const logger = LogManager.getLogger('ErrorHandler');
 
@@ -73,7 +79,7 @@ export class AppError extends Error {
   type: ErrorType;
   severity: ErrorSeverity;
   recoveryStrategies: RecoveryStrategy[];
-  details?: any;
+  details?: ErrorDetails;
   timestamp: number;
 
   constructor(
@@ -81,7 +87,7 @@ export class AppError extends Error {
     type: ErrorType = ErrorType.UNKNOWN_ERROR,
     severity: ErrorSeverity = ErrorSeverity.ERROR,
     recoveryStrategies: RecoveryStrategy[] = [RecoveryStrategy.NOTIFY],
-    details?: any
+    details?: ErrorDetails
   ) {
     super(message);
     this.name = 'AppError';
@@ -170,7 +176,7 @@ export const ErrorFactory = {
   /**
    * Create a validation error
    */
-  validation(message: string, details?: any): AppError {
+  validation(message: string, details?: ErrorDetails): AppError {
     return new AppError(
       message,
       ErrorType.VALIDATION_ERROR,
@@ -183,7 +189,7 @@ export const ErrorFactory = {
   /**
    * Create a network error
    */
-  network(message: string, details?: any): AppError {
+  network(message: string, details?: ErrorDetails): AppError {
     return new AppError(
       message,
       ErrorType.NETWORK_ERROR,
@@ -196,7 +202,7 @@ export const ErrorFactory = {
   /**
    * Create a calculation error
    */
-  calculation(message: string, details?: any): AppError {
+  calculation(message: string, details?: ErrorDetails): AppError {
     return new AppError(
       message,
       ErrorType.CALCULATION_ERROR,
@@ -209,7 +215,7 @@ export const ErrorFactory = {
   /**
    * Create a permission error
    */
-  permission(message: string, details?: any): AppError {
+  permission(message: string, details?: ErrorDetails): AppError {
     return new AppError(
       message,
       ErrorType.PERMISSION_DENIED,
@@ -222,7 +228,7 @@ export const ErrorFactory = {
   /**
    * Create a sensor error
    */
-  sensor(message: string, details?: any): AppError {
+  sensor(message: string, details?: ErrorDetails): AppError {
     return new AppError(
       message,
       ErrorType.SENSOR_ERROR,
@@ -235,7 +241,7 @@ export const ErrorFactory = {
   /**
    * Create a data not found error
    */
-  dataNotFound(message: string, details?: any): AppError {
+  dataNotFound(message: string, details?: ErrorDetails): AppError {
     return new AppError(
       message,
       ErrorType.DATA_NOT_FOUND,
@@ -284,7 +290,7 @@ export const ErrorHandler = {
     type: ErrorType,
     severity: ErrorSeverity,
     recoveryStrategies: RecoveryStrategy[],
-    details?: any,
+    details?: ErrorDetails,
     context?: string
   ): AppError {
     const error = new AppError(message, type, severity, recoveryStrategies, details);

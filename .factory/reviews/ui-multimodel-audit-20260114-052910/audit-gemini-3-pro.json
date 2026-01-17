@@ -1,0 +1,95 @@
+{
+  "issues": [
+    {
+      "id": "UI-001",
+      "priority": "P1",
+      "title": "Missing Accessibility Roles on Custom Controls",
+      "screen": "Wind Calculator",
+      "files": [
+        "src/features/wind/screen.tsx",
+        "src/features/wind/components/compass/WindDirectionCompass.tsx"
+      ],
+      "evidence": "YardagePresetButton uses accessibilityRole='button' but compass interactions often rely on generic View/Pressable without explicit roles.",
+      "whyItMatters": "Screen readers cannot identify the element type (button, slider, etc.), making it unusable for blind users.",
+      "recommendedFix": "Add accessibilityRole='button' | 'adjustable' and meaningful accessibilityLabel to all interactive compass elements.",
+      "acceptanceCriteria": [
+        "All interactive elements announce their role.",
+        "State changes (locked/unlocked) are announced."
+      ],
+      "effort": "M",
+      "category": "a11y"
+    },
+    {
+      "id": "UI-002",
+      "priority": "P2",
+      "title": "Potential Small Touch Targets",
+      "screen": "Wind Calculator / Settings",
+      "files": [
+        "src/features/wind/screen.tsx",
+        "src/components/PresetSelector.tsx"
+      ],
+      "evidence": "YardagePresetButton minHeight is t.touchTarget.minimum. Delete button in PresetSelector has small icon size.",
+      "whyItMatters": "Frustrating for users with large fingers; leads to accidental taps.",
+      "recommendedFix": "Ensure t.touchTarget.minimum is >= 48dp. Increase hitSlop for small icon-only buttons like the delete trash icon.",
+      "acceptanceCriteria": [
+        "All interactive elements have a tappable area of at least 48x48dp."
+      ],
+      "effort": "S",
+      "category": "ux"
+    },
+    {
+      "id": "UI-003",
+      "priority": "P2",
+      "title": "Use of ScrollView for List Data",
+      "screen": "Settings / Presets",
+      "files": [
+        "src/components/PresetSelector.tsx"
+      ],
+      "evidence": "Uses ScrollView with .map() to render filteredPresets.",
+      "whyItMatters": "Performance issues (memory/CPU) if the user saves many presets. FlashList recycles views.",
+      "recommendedFix": "Replace ScrollView with FlashList from @shopify/flash-list.",
+      "acceptanceCriteria": [
+        "Preset list uses FlashList.",
+        "Scrolling is smooth with 50+ presets."
+      ],
+      "effort": "M",
+      "category": "performance"
+    },
+    {
+      "id": "UI-004",
+      "priority": "P2",
+      "title": "Hardcoded Colors in Tailwind Config",
+      "screen": "Global",
+      "files": [
+        "tailwind.config.js"
+      ],
+      "evidence": "colors: { primary: '#2E8B57', ... } defined directly in config.",
+      "whyItMatters": "Duplication of truth vs src/theme/tokens.ts. Harder to update brand colors globally.",
+      "recommendedFix": "Reference token values in tailwind.config.js or strictly use useTokens() hook for dynamic theming.",
+      "acceptanceCriteria": [
+        "Color definitions are single-sourced."
+      ],
+      "effort": "M",
+      "category": "consistency"
+    },
+    {
+      "id": "UI-005",
+      "priority": "P3",
+      "title": "Tab Bar Content Overlap Risk",
+      "screen": "Main Tabs",
+      "files": [
+        "src/core/components/ui/BoldTabBar.tsx",
+        "src/features/wind/screen.tsx",
+        "src/features/calculator/screen.tsx"
+      ],
+      "evidence": "BoldTabBar is absolute positioned. Screens generally add paddingBottom, but need to ensure it exactly matches tab bar height + safe area.",
+      "whyItMatters": "Content at the bottom of the list might be unreachable.",
+      "recommendedFix": "Create a global constant for TAB_BAR_HEIGHT and use it in contentContainerStyle paddingBottom calculations.",
+      "acceptanceCriteria": [
+        "Last item in any scroll view is fully visible above the tab bar."
+      ],
+      "effort": "S",
+      "category": "navigation"
+    }
+  ]
+}

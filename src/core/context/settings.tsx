@@ -1,7 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as React from 'react';
+import { errorNotificationService } from '@/src/services/notification/error-notification';
 
-interface Settings {
+export interface Settings {
   distanceUnit: 'yards' | 'meters';
   temperatureUnit: 'celsius' | 'fahrenheit';
   altitudeUnit: 'feet' | 'meters';
@@ -10,13 +11,28 @@ interface Settings {
   compassEnabled: boolean;
   notificationsEnabled: boolean;
   activityTrackingEnabled: boolean;
-  version: number; // Added version field to force re-renders
+  /** Sunlight mode for outdoor visibility - high contrast theme */
+  sunlightModeEnabled: boolean;
+  /** Wind speed unit (separate from speedUnit for granular control) */
+  windSpeedUnit: 'mph' | 'kph' | 'kts' | 'mps';
+  /** Dominant hand - positions lock button on preferred side */
+  dominantHand: 'right' | 'left';
+  /** Lock button position preference */
+  lockButtonPosition: 'left' | 'right' | 'both';
+  /** Default breakdown view for results */
+  breakdownDefault: 'collapsed' | 'expanded';
+  /** Quick select presets for yardage */
+  quickSelectPresets: number[];
+  version: number;
 }
 
 interface SettingsContextType {
   settings: Settings;
   updateSettings: (newSettings: Partial<Settings>) => Promise<void>;
-  convertDistance: (distance: number, to?: 'yards' | 'meters') => number;
+  /** Convert distance from yards to target unit. Input assumed to be yards. */
+  convertDistance: (distanceYards: number, to?: 'yards' | 'meters') => number;
+  /** Convert between any distance units explicitly */
+  convertDistanceExplicit: (value: number, from: 'yards' | 'meters', to: 'yards' | 'meters') => number;
   convertTemperature: (temp: number, to?: 'celsius' | 'fahrenheit') => number;
   convertAltitude: (altitude: number, to?: 'feet' | 'meters') => number;
   convertSpeed: (speedMph: number, to?: 'mph' | 'kph' | 'kts' | 'mps') => number;
@@ -35,13 +51,20 @@ const defaultSettings: Settings = {
   compassEnabled: false,
   notificationsEnabled: false,
   activityTrackingEnabled: false,
-  version: 1, // Initialize version field
+  sunlightModeEnabled: false,
+  windSpeedUnit: 'mph',
+  dominantHand: 'right',
+  lockButtonPosition: 'both',
+  breakdownDefault: 'collapsed',
+  quickSelectPresets: [100, 125, 150, 175, 200],
+  version: 1,
 };
 
 const SettingsContext = React.createContext<SettingsContextType>({
   settings: defaultSettings,
   updateSettings: async () => {},
   convertDistance: () => 0,
+  convertDistanceExplicit: () => 0,
   convertTemperature: () => 0,
   convertAltitude: () => 0,
   convertSpeed: () => 0,
@@ -83,8 +106,7 @@ export function SettingsProvider({ children }: Readonly<{ children: React.ReactN
         if (saved) {
           const parsedSettings = JSON.parse(saved);
           // Initialize with saved settings
-          dispatch({ type: 'INITIALIZE', settings: parsedSettings });
-          console.log('Settings loaded from AsyncStorage:', parsedSettings);
+          dispatch({ type: 'INITIALIZE', settings: { ...defaultSettings, ...parsedSettings } });
         }
       } catch (error) {
         console.error('Failed to load settings:', error);
@@ -95,8 +117,6 @@ export function SettingsProvider({ children }: Readonly<{ children: React.ReactN
 
   const updateSettings = async (newSettings: Partial<Settings>) => {
     try {
-      console.log('Updating settings:', newSettings);
-
       // Update state first for immediate UI response
       dispatch({ type: 'UPDATE', newSettings });
 
@@ -104,19 +124,31 @@ export function SettingsProvider({ children }: Readonly<{ children: React.ReactN
       const updated = { ...settings, ...newSettings, version: settings.version + 1 };
       try {
         await AsyncStorage.setItem('userSettings', JSON.stringify(updated));
-        console.log('Settings saved to AsyncStorage');
       } catch (error) {
         console.error('Failed to save settings to AsyncStorage:', error);
+        errorNotificationService.showToast({
+          message: 'Could not save settings. Changes may not persist.',
+          type: 'warning',
+          duration: 4000,
+        });
       }
     } catch (error) {
       console.error('Failed to update settings:', error);
     }
   };
 
-  // Conversion functions remain unchanged
-  const convertDistance = (distance: number, to?: 'yards' | 'meters') => {
+  // Distance conversion: yards to target unit (input assumed to be yards)
+  const convertDistance = (distanceYards: number, to?: 'yards' | 'meters') => {
     const unit = to || settings.distanceUnit;
-    return unit === 'meters' ? distance * 0.9144 : distance / 0.9144;
+    return unit === 'meters' ? distanceYards * 0.9144 : distanceYards;
+  };
+
+  // Explicit conversion between any units
+  const convertDistanceExplicit = (value: number, from: 'yards' | 'meters', to: 'yards' | 'meters') => {
+    if (from === to) return value;
+    if (from === 'yards' && to === 'meters') return value * 0.9144;
+    if (from === 'meters' && to === 'yards') return value / 0.9144;
+    return value;
   };
 
   const convertTemperature = (temp: number, to?: 'celsius' | 'fahrenheit') => {
@@ -166,6 +198,7 @@ export function SettingsProvider({ children }: Readonly<{ children: React.ReactN
         settings,
         updateSettings,
         convertDistance,
+        convertDistanceExplicit,
         convertTemperature,
         convertAltitude,
         convertSpeed,

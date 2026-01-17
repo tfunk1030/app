@@ -14,11 +14,31 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const logger = LogManager.getLogger('EnhancedEnvironmentalProvider');
 
+interface ThrottlerStatus {
+  isAppActive: boolean;
+  currentInterval: number;
+  timeSinceLastCall: number;
+  hasPendingCall: boolean;
+  hasLastArgs: boolean;
+}
+
+interface ThrottlingStatus {
+  location: ThrottlerStatus;
+  weather: ThrottlerStatus;
+  update: ThrottlerStatus;
+  isActive: boolean;
+  lastFetchTime: number;
+  timeSinceLastFetch: number;
+  provider: string | null;
+  providerLatencyMs: number;
+  fallbackUsed: boolean;
+}
+
 interface EnhancedEnvironmentalContextType {
   conditions: EnvironmentalConditions | null;
   isLoading: boolean;
   isActive: boolean;
-  throttlingStatus: any;
+  throttlingStatus: ThrottlingStatus | null;
   lastUpdatedTimestamp: number | null; // Added timestamp
   refreshData: () => Promise<void>;
   forceRefresh: () => Promise<void>; // New method to force refresh
@@ -49,7 +69,7 @@ export function EnhancedEnvironmentalProvider({
   const [conditions, setConditions] = useState<EnvironmentalConditions | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isActive, setIsActive] = useState(true);
-  const [throttlingStatus, setThrottlingStatus] = useState<any>(null);
+  const [throttlingStatus, setThrottlingStatus] = useState<ThrottlingStatus | null>(null);
   const [lastUpdatedTimestamp, setLastUpdatedTimestamp] = useState<number | null>(null); // State for timestamp
 
   // Load cached data immediately on mount

@@ -86,6 +86,9 @@ const TabButton: React.FC<TabButtonProps> = ({
         color: t.colors.ripple,
         borderless: true,
       }}
+      accessibilityRole="tab"
+      accessibilityLabel={typeof label === 'string' ? label : route.name}
+      accessibilityState={{ selected: isFocused }}
     >
       <View style={styles.tabButtonContent}>
         {/* Glow effect for active tab */}
@@ -136,8 +139,7 @@ const TabButton: React.FC<TabButtonProps> = ({
 
 export const FloatingTabBar: React.FC<BottomTabBarProps> = ({ state, descriptors, navigation }) => {
   const t = useTokens();
-  const { mode } = useThemeMode();
-  const isDark = mode === 'dark' || mode === 'system';
+  const { isDark } = useThemeMode();
   const insets = useSafeAreaInsets();
   const styles = useMemo(() => createStyles(t), [t]);
 
@@ -175,6 +177,7 @@ export const FloatingTabBar: React.FC<BottomTabBarProps> = ({ state, descriptors
                   borderColor: t.colors.border,
                 },
               ]}
+              accessibilityRole="tablist"
             >
             {state.routes.map((route, index) => {
               const { options } = descriptors[route.key];
@@ -228,6 +231,7 @@ export const FloatingTabBar: React.FC<BottomTabBarProps> = ({ state, descriptors
               elevation: t.shadow.card.elevation,
             },
           ]}
+          accessibilityRole="tablist"
         >
           {state.routes.map((route, index) => {
             const { options } = descriptors[route.key];

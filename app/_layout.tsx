@@ -5,7 +5,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import { useFonts } from 'expo-font';
 import * as Location from 'expo-location';
 import * as Notifications from 'expo-notifications';
-import { Stack, Redirect } from 'expo-router';
+import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useState } from 'react';
 import { LogBox, Platform, Text as RNText } from 'react-native';
@@ -13,7 +13,6 @@ import 'react-native-reanimated';
 import SegmentedCacheManager from '../src/utils/SegmentedCacheManager';
 import CacheManager from '../src/utils/cacheManager';
 import { runCacheValidation } from '@/src/startup/cacheValidation';
-import { useNavigationPreference } from '@/src/stores/navigationPreference';
 
 // TypeScript doesn't know about React Native's global ErrorUtils
 const globalAny = global as any;
@@ -24,6 +23,11 @@ import { useColorScheme } from '@/components/useColorScheme';
 // Import our consolidated AppProvider
 import { AppProvider } from '@/src/core/context/AppProvider';
 import { AppThemeProvider } from '@/src/theme/ThemeProvider';
+
+// Import Paywall components for subscription modal
+import { Paywall } from '@/src/core/components/ui/Paywall';
+import { RevenueCatPaywall } from '@/src/core/components/ui/RevenueCatPaywall';
+import { CustomerCenter } from '@/src/core/components/ui/CustomerCenter';
 
 // Import onboarding components for first-run experience
 import { OnboardingFlow, hasCompletedOnboarding } from '@/src/components/onboarding/OnboardingFlow';
@@ -153,14 +157,6 @@ const RootLayoutNav = () => {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [onboardingChecked, setOnboardingChecked] = useState(false);
 
-  // Navigation preference for classic vs redesign
-  const { style: navStyle, isLoaded: navLoaded, loadPreference } = useNavigationPreference();
-
-  // Load navigation preference on mount
-  useEffect(() => {
-    loadPreference();
-  }, [loadPreference]);
-
   // Check if onboarding has been completed on first launch
   useEffect(() => {
     async function checkOnboardingStatus() {
@@ -180,26 +176,23 @@ const RootLayoutNav = () => {
     checkOnboardingStatus();
   }, []);
 
-  // Check and request permissions on mount
+  // Check location permission status on mount (but don't request - defer to feature usage)
+  // Per P1 requirement: Location permission should only be requested when user enters
+  // a location-dependent flow (e.g., Wind Calculator) with proper rationale context
   useEffect(() => {
-    async function checkAndRequestPermissions() {
+    async function checkPermissionStatus() {
       try {
         const { status } = await Location.getForegroundPermissionsAsync();
-
-        if (status !== 'granted') {
-          // Request permission if not already granted
-          const { status: newStatus } = await Location.requestForegroundPermissionsAsync();
-          setPermissionGranted(newStatus === 'granted');
-        } else {
-          setPermissionGranted(true);
-        }
+        // Just check status - don't request permission here
+        // Permission will be requested in context when user needs location features
+        setPermissionGranted(status === 'granted');
       } catch (error) {
-        console.error('Error checking or requesting location permissions:', error);
+        console.error('Error checking location permissions:', error);
         setPermissionGranted(false);
       }
     }
 
-    checkAndRequestPermissions();
+    checkPermissionStatus();
   }, []);
 
   // Handle onboarding completion
@@ -207,18 +200,12 @@ const RootLayoutNav = () => {
     setShowOnboarding(false);
   };
 
-  // Wait for navigation preference to load before rendering
-  if (!navLoaded) {
-    return null;
-  }
-
   return (
     // Wrap with theme + app providers
     <AppThemeProvider>
       <AppProvider>
         <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
           <Stack>
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen name="(tabs-redesign)" options={{ headerShown: false }} />
             <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
             <Stack.Screen name="index" options={{ headerShown: false }} />
@@ -230,6 +217,12 @@ const RootLayoutNav = () => {
               onComplete={handleOnboardingComplete}
             />
           )}
+          {/* Paywall modal for premium subscriptions (custom UI) */}
+          <Paywall />
+          {/* RevenueCat Paywall (native UI from RevenueCat dashboard) */}
+          <RevenueCatPaywall />
+          {/* Customer Center for subscription management */}
+          <CustomerCenter />
         </ThemeProvider>
       </AppProvider>
     </AppThemeProvider>

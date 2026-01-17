@@ -7,7 +7,7 @@ type ErrorDetail = {
   context?: string;
   timestamp?: number;
   message?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 };
 
 type NativeErrorEvent = {

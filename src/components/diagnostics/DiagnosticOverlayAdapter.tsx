@@ -20,8 +20,8 @@ const logger = LogManager.getLogger('DiagnosticOverlayAdapter');
 // Interface for state transitions
 interface StateTransition {
   timestamp: string;
-  fromState: any;
-  toState: any;
+  fromState: unknown;
+  toState: unknown;
   action: string;
   cause?: string;
 }

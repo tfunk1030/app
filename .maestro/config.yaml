@@ -1,0 +1,16 @@
+# Maestro E2E Test Configuration
+# https://maestro.mobile.dev/
+
+# App configuration
+appId: com.tfunk1030.aicaddypro
+
+# Test settings
+flows:
+  - flows/
+
+# Default timeout for actions (ms)
+timeout: 10000
+
+# Environment variables for tests
+env:
+  TEST_MODE: "true"

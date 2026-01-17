@@ -8,6 +8,11 @@
         "https://mcp.vibeship.co"
       ],
       "description": "Spawner V2 - Project memory, validation, skills, sharp edges"
+    },
+    "codex": {
+      "command": "/mnt/c/Users/tfunk/AppData/Roaming/npm/codex",
+      "args": ["mcp-server"],
+      "description": "OpenAI Codex for GPT delegation"
     }
   }
 }

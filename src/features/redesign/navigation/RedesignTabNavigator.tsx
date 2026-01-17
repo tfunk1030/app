@@ -175,6 +175,7 @@ export const RedesignTabBar = memo(function RedesignTabBar({
           paddingBottom: Math.max(insets.bottom, 8),
         },
       ]}
+      accessibilityRole="tablist"
     >
       {TABS.map((tab) => (
         <TabItem

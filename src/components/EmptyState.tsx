@@ -88,8 +88,7 @@ export function EmptyState({
   style,
 }: EmptyStateProps) {
   const t = useTokens();
-  const { mode } = useThemeMode();
-  const isDark = mode === 'dark' || mode === 'system';
+  const { isDark } = useThemeMode();
   const reduceMotion = useReduceMotionValue();
 
   // Animation for subtle pulse effect

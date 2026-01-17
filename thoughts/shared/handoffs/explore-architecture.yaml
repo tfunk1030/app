@@ -1,0 +1,282 @@
+---
+type: exploration
+ts: 2026-01-11T00:00:00Z
+depth: architecture
+focus: entire-codebase
+commit: 5d7b19e
+---
+
+summary: React Native golf app with freemium model - 3-tab redesign with wind calculator as premium feature
+
+# ============================================================================
+# ENTRY POINTS
+# ============================================================================
+
+entry_points:
+  main:
+    file: app/_layout.tsx
+    role: Root layout with global error handling, providers, splash screen
+    initializes:
+      - ErrorBoundary (global crash prevention)
+      - AppThemeProvider
+      - AppProvider (consolidated context)
+      - OnboardingFlow
+      - Paywall modals
+
+  router:
+    file: app/index.tsx
+    role: Redirects to tabs-redesign navigation
+
+  tabs_layout:
+    file: app/(tabs-redesign)/_layout.tsx
+    role: 3-tab navigation structure (Shot, Wind, Setup)
+    providers_added:
+      - RedesignThemeProvider
+      - AppProvider (again - nested!)
+      - EnhancedEnvironmentalProvider
+
+# ============================================================================
+# ARCHITECTURAL LAYERS
+# ============================================================================
+
+layers:
+  # ENTRY LAYER: Screens and navigation
+  entry:
+    - app/_layout.tsx              # Root layout
+    - app/(tabs-redesign)/_layout.tsx  # Tab navigation
+    - app/(tabs-redesign)/index.tsx    # Shot screen (FREE)
+    - app/(tabs-redesign)/wind.tsx     # Wind calculator (PREMIUM)
+    - app/(tabs-redesign)/setup.tsx    # Settings/clubs
+
+  # MIDDLE LAYER: Context providers, hooks, business logic
+  middle:
+    providers:
+      - src/core/context/AppProvider.tsx      # Consolidated provider tree
+      - src/core/context/settings.tsx         # User settings
+      - src/core/context/shotcalc.tsx         # Shot calculation state
+      - src/core/context/theme.tsx            # Theme context
+      - src/providers/EnhancedEnvironmentalProvider.tsx  # Weather data
+      - src/features/settings/context/clubs.tsx   # Club bag management
+      - src/features/settings/context/premium.tsx # Premium/freemium state
+      - src/features/wind/context/compass-lock.tsx  # Compass lock state
+      - src/features/wind/context/sensor-data.tsx   # Device sensors
+
+    hooks:
+      - src/features/wind/hooks/useWindCalculator.ts  # Core calculation hook
+      - src/features/wind/hooks/useWindSettings.ts    # Wind preferences
+      - src/features/clubs/hooks/useClubData.ts       # Club data hook
+      - src/hooks/useAccessibility.ts                 # A11y animations
+      - src/hooks/useConnectivity.ts                  # Network status
+      - src/hooks/usePresets.ts                       # Preset management
+      - src/hooks/useReduceMotion.ts                  # Motion preferences
+
+  # LEAF LAYER: Services, utilities, pure calculations
+  leaf:
+    calculations:
+      - src/services/calculations/wind-calculator.ts      # Core wind math
+      - src/services/environmental-calculations.ts        # Env effects
+      - src/core/models/YardageModel.ts                   # Club/yardage model
+
+    weather:
+      - src/services/weather/openmeteo-adapter.ts    # Primary weather API
+      - src/services/weather/weatherkit-adapter.ts   # Apple WeatherKit
+      - src/services/weather/metar-adapter.ts        # Airport weather
+      - src/services/weather/nws-adapter.ts          # NWS weather
+      - src/services/weather/normalize.ts            # Normalize data
+      - src/services/weather/density.ts              # Air density calc
+      - src/services/weather/stations.ts             # Weather stations
+
+    utilities:
+      - src/utils/LogManager.ts              # Logging
+      - src/utils/FeatureFlags.ts            # Feature toggles
+      - src/utils/responsive.ts              # Responsive sizing
+      - src/utils/animations.ts              # Animation helpers
+      - src/utils/cacheManager.ts            # Cache utilities
+      - src/utils/club-mapping.ts            # Club name normalization
+      - src/services/telemetry/logger.ts     # Telemetry
+
+# ============================================================================
+# CALL GRAPH (Key Paths)
+# ============================================================================
+
+call_graph:
+  total_files_analyzed: 95
+
+  hot_paths:
+    wind_calculation:
+      flow:
+        - WindScreen (wind.tsx)
+        - useWindCalculator hook
+        - calculateWindEffectRecursive()
+        - YardageModelEnhanced.calculateAdjustedYardage()
+      notes: Recursive algorithm converges on club selection
+
+    environmental_data:
+      flow:
+        - EnhancedEnvironmentalProvider
+        - Weather adapters (openmeteo/weatherkit/metar)
+        - normalize.ts
+        - density.ts → calculateAirDensity()
+      notes: Multi-source weather with fallback chain
+
+    shot_calculation:
+      flow:
+        - ShotScreen (index.tsx)
+        - useEnhancedEnvironmental
+        - Local calculation (no service call)
+      notes: FREE tier - inline calculation, no wind
+
+# ============================================================================
+# PROVIDER HIERARCHY
+# ============================================================================
+
+provider_tree:
+  # As documented in AppProvider.tsx:31-46
+  - DiagnosticProvider
+  - WindDataAdapter
+  - SettingsProvider
+  - PremiumProvider
+  - ClubSettingsProvider
+  - SensorDataProvider
+  - ShotCalcProvider
+  - children
+
+  # ISSUE: AppProvider is instantiated TWICE
+  # Once in app/_layout.tsx:209 and again in app/(tabs-redesign)/_layout.tsx:119
+  # This causes duplicate context providers
+
+# ============================================================================
+# CIRCULAR DEPENDENCIES
+# ============================================================================
+
+circular_deps:
+  detected: []
+  notes: No circular imports detected in main source tree
+
+potential_issues:
+  - location: app/(tabs-redesign)/_layout.tsx:119
+    issue: "AppProvider nested inside itself (already in _layout.tsx:209)"
+    impact: Double instantiation of all contexts, wasted memory
+
+  - location: src/features/settings/utils/club-mapping.ts vs src/utils/club-mapping.ts
+    issue: "Duplicate club-mapping utility files"
+    impact: Confusion about which to import
+
+# ============================================================================
+# FEATURE FLAGS
+# ============================================================================
+
+feature_flags:
+  file: src/utils/FeatureFlags.ts
+  active:
+    - PHASE1_ACCESSIBILITY_ENHANCEMENTS  # Skeleton loaders, sensor fallback
+
+# ============================================================================
+# BUSINESS LOGIC BOUNDARIES
+# ============================================================================
+
+boundaries:
+  - name: "Freemium Gate"
+    location: app/(tabs-redesign)/wind.tsx:666-675
+    logic: "isPremium ? <WindCalculatorWithCompass /> : <PremiumUpgradePrompt />"
+
+  - name: "Weather Data Pipeline"
+    location: src/providers/EnhancedEnvironmentalProvider.tsx
+    logic: "Chain: OpenMeteo → WeatherKit → METAR → NWS fallback"
+
+  - name: "Club Recommendation"
+    location: src/features/settings/context/clubs.tsx
+    logic: "getRecommendedClub(yardage) returns closest club from bag"
+
+# ============================================================================
+# KEY PATTERNS
+# ============================================================================
+
+patterns:
+  state_management:
+    - pattern: React Context + useState
+    - files: src/core/context/*.tsx
+    - notes: No Redux/Zustand for most state, simple context
+
+  ref_stability:
+    - pattern: useRef + useCallback for stable dependencies
+    - example: src/features/wind/hooks/useWindCalculator.ts:110-130
+    - notes: Prevents unnecessary recalculations
+
+  recursive_convergence:
+    - pattern: Iterate until delta < threshold or max iterations
+    - example: calculateWindEffectRecursive() in wind-calculator.ts
+    - notes: Club selection converges in 1-3 iterations typically
+
+  adapter_chain:
+    - pattern: Multiple weather APIs with fallback
+    - files: src/services/weather/*-adapter.ts
+    - notes: OpenMeteo primary, others as fallback
+
+# ============================================================================
+# NEXT STEPS
+# ============================================================================
+
+next_steps:
+  - title: "Fix duplicate AppProvider"
+    priority: medium
+    location: app/(tabs-redesign)/_layout.tsx:119
+    action: "Remove nested AppProvider - already provided by _layout.tsx"
+
+  - title: "Consolidate club-mapping utilities"
+    priority: low
+    files:
+      - src/features/settings/utils/club-mapping.ts
+      - src/utils/club-mapping.ts
+    action: "Keep one, re-export from other"
+
+  - title: "Add error boundary per screen"
+    priority: medium
+    rationale: "Currently only root has ErrorBoundary"
+    action: "Wrap each tab screen in local ErrorBoundary"
+
+# ============================================================================
+# FILE REFERENCES
+# ============================================================================
+
+refs:
+  # Entry layer
+  - path: app/_layout.tsx
+    role: Root layout, global providers, error handling
+    lines: 365
+
+  - path: app/(tabs-redesign)/index.tsx
+    role: Shot calculator (FREE tier)
+    lines: 554
+
+  - path: app/(tabs-redesign)/wind.tsx
+    role: Wind calculator (PREMIUM tier)
+    lines: 1075
+
+  - path: app/(tabs-redesign)/setup.tsx
+    role: Settings and club management
+    lines: 1462
+
+  # Middle layer
+  - path: src/core/context/AppProvider.tsx
+    role: Consolidated context provider tree
+    lines: 66
+
+  - path: src/features/wind/hooks/useWindCalculator.ts
+    role: Wind calculation hook with recursive club selection
+    lines: 263
+
+  - path: src/providers/EnhancedEnvironmentalProvider.tsx
+    role: Weather data provider with multi-source fallback
+
+  # Leaf layer
+  - path: src/services/calculations/wind-calculator.ts
+    role: Core wind calculation algorithms
+    lines: 407
+
+  - path: src/services/environmental-calculations.ts
+    role: Environmental effect calculations (density, altitude)
+    lines: 123
+
+  - path: src/core/models/YardageModel.ts
+    role: Club data model and adjusted yardage calculations

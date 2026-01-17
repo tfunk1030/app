@@ -294,7 +294,7 @@ export class SegmentedCacheManager {
   /**
    * Enhanced logging for debugging cache issues
    */
-  private static logCacheError(error: any, operation: string, details?: any): void {
+  private static logCacheError(error: unknown, operation: string, details?: Record<string, unknown>): void {
     console.error(`Cache error during ${operation}:`, error);
 
     // Add additional diagnostic info for debugging

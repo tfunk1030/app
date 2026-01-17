@@ -16,30 +16,33 @@ import {
 export { WindErrorType as WindCalculationErrorType } from '@/src/features/wind/utils/wind-error-handler';
 export { WindError as WindCalculationError } from '@/src/features/wind/utils/wind-error-handler';
 
+/** Log data type - allows structured objects for type safety */
+type LogData = Record<string, unknown> | undefined;
+
 /**
  * Logger interface for wind calculator
  */
 export interface WindCalculatorLogger {
-  debug: (message: string, data?: any) => void;
-  info: (message: string, data?: any) => void;
-  warn: (message: string, data?: any) => void;
-  error: (message: string, error?: any) => void;
+  debug: (message: string, data?: LogData) => void;
+  info: (message: string, data?: LogData) => void;
+  warn: (message: string, data?: LogData) => void;
+  error: (message: string, error?: LogData) => void;
 }
 
 /**
  * Default logger implementation using console
  */
 export const defaultLogger: WindCalculatorLogger = {
-  debug: (message: string, data?: any) => {
+  debug: (message: string, data?: LogData) => {
     if (__DEV__) console.debug(`[WindCalculator] ${message}`, data || '');
   },
-  info: (message: string, data?: any) => {
+  info: (message: string, data?: LogData) => {
     if (__DEV__) console.info(`[WindCalculator] ${message}`, data || '');
   },
-  warn: (message: string, data?: any) => {
+  warn: (message: string, data?: LogData) => {
     console.warn(`[WindCalculator] ${message}`, data || '');
   },
-  error: (message: string, error?: any) => {
+  error: (message: string, error?: LogData) => {
     console.error(`[WindCalculator] ${message}`, error || '');
   }
 };
@@ -200,7 +203,8 @@ export function calculateWindEffect(params: WindCalculationParams): WindCalculat
       carryDistance: windResult.carryDistance,
     };
   } catch (error) {
-    logger.error('Error in wind effect calculation', error);
+    const errorInfo = error instanceof Error ? { message: error.message, name: error.name } : { error: String(error) };
+    logger.error('Error in wind effect calculation', errorInfo);
     return null;
   }
 }

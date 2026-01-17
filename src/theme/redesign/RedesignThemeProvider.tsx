@@ -66,7 +66,7 @@ interface RedesignThemeProviderProps {
 export function RedesignThemeProvider({
   children,
   initialMode,
-}: RedesignThemeProviderProps): JSX.Element {
+}: RedesignThemeProviderProps): React.ReactElement {
   const systemColorScheme = useColorScheme();
   const [mode, setModeState] = useState<ThemeMode>(initialMode ?? 'light');
   const [isLoaded, setIsLoaded] = useState(false);

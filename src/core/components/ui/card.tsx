@@ -44,8 +44,7 @@ interface CardTextProps {
  */
 export const Card = ({ children, style, gradient = true }: CardProps) => {
   const t = useTokens();
-  const { mode } = useThemeMode();
-  const isDark = mode === 'dark' || mode === 'system';
+  const { isDark } = useThemeMode();
 
   // Use same border radius as GlassCard for consistency
   const cardBorderRadius = t.borderRadius.xl; // 16
@@ -62,11 +61,8 @@ export const Card = ({ children, style, gradient = true }: CardProps) => {
           styles.cardOuter,
           {
             borderRadius: cardBorderRadius,
-            shadowColor: t.colors.shadow,
-            shadowOffset: t.shadow.card.shadowOffset,
-            shadowOpacity: t.shadow.card.shadowOpacity,
-            shadowRadius: t.shadow.card.shadowRadius,
-            elevation: t.shadow.card.elevation,
+            // CSS boxShadow (New Architecture)
+            boxShadow: `0 ${t.shadow.card.shadowOffset.height}px ${t.shadow.card.shadowRadius}px ${t.colors.shadowAlpha}`,
             marginVertical: getResponsiveSpacing(t.spacing.sm, 'vertical'),
           },
           style,
@@ -101,11 +97,8 @@ export const Card = ({ children, style, gradient = true }: CardProps) => {
           overflow: 'hidden',
           backgroundColor: isDark ? t.colors.surface : t.colors.surfaceAlt,
           borderColor: t.colors.border,
-          shadowColor: t.colors.shadow,
-          shadowOffset: t.shadow.card.shadowOffset,
-          shadowOpacity: t.shadow.card.shadowOpacity,
-          shadowRadius: t.shadow.card.shadowRadius,
-          elevation: t.shadow.card.elevation,
+          // CSS boxShadow (New Architecture)
+          boxShadow: `0 ${t.shadow.card.shadowOffset.height}px ${t.shadow.card.shadowRadius}px ${t.colors.shadowAlpha}`,
           marginVertical: getResponsiveSpacing(t.spacing.sm, 'vertical'),
         },
         style,

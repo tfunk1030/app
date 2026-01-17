@@ -85,6 +85,29 @@ export interface Tokens {
     par: string;
     bogey: string;
     doublePlus: string;
+
+    // On-semantic text colors
+    onDanger: string;
+    onBrand: string;
+
+    // Offline/connectivity state
+    offlineBackground: string;
+    offlineBorder: string;
+    offlineText: string;
+
+    // Interaction feedback
+    ripple: string;
+
+    // Alpha backgrounds
+    brandBackgroundAlpha: string;
+    dangerBackgroundAlpha: string;
+    successBackgroundAlpha: string;
+    successGlow: string;
+
+    // CSS boxShadow alpha values (New Architecture)
+    shadowAlpha: string;
+    glowPrimaryAlpha: string;
+    glowSecondaryAlpha: string;
   };
 
   gradients: {
@@ -103,6 +126,8 @@ export interface Tokens {
     card: ShadowConfig;
     elevated: ShadowConfig;
     glow: ShadowConfig;
+    glowSecondary: ShadowConfig;
+    dangerGlow: ShadowConfig;
   };
 
   animation: {
@@ -122,6 +147,7 @@ export interface Tokens {
   containerSize: typeof containerSize;
   borderWidth: typeof borderWidth;
   opacity: typeof opacity;
+  lineHeight: typeof lineHeight;
 }
 
 // =============================================================================
@@ -175,6 +201,13 @@ export const colors = {
   // Overlays
   overlay: 'rgba(0, 0, 0, 0.5)',
   overlayLight: 'rgba(0, 0, 0, 0.3)',
+
+  // Semantic aliases (for backwards compatibility)
+  brand: '#2E8B57', // alias for primary
+  surfaceAlt: '#F1F5F9',
+  textMuted: '#9CA3AF', // alias for textTertiary
+  danger: '#DC2626', // alias for error
+  shadow: 'rgba(0, 0, 0, 0.1)',
 } as const;
 
 // =============================================================================
@@ -268,6 +301,26 @@ export const containerSize = {
     thumb: 26,
     thumbDense: 22,
   },
+  /** Semantic button minimum widths - avoid arithmetic in styles */
+  buttonMinWidth: {
+    default: 160,
+    wide: 200,
+  },
+  /** Container max widths for centered content */
+  contentMaxWidth: {
+    error: 280,
+    modal: 320,
+  },
+} as const;
+
+/**
+ * Line height values for text elements
+ */
+export const lineHeight = {
+  tight: 18,
+  normal: 20,
+  relaxed: 22,
+  loose: 26,
 } as const;
 
 /**
@@ -399,6 +452,29 @@ export const darkTokens: Tokens = {
     par: '#60A5FA',
     bogey: '#FBBF24',
     doublePlus: '#F87171',
+
+    // On-semantic text colors
+    onDanger: '#FFFFFF',
+    onBrand: '#FFFFFF',
+
+    // Offline/connectivity state
+    offlineBackground: 'rgba(239, 68, 68, 0.15)',
+    offlineBorder: 'rgba(239, 68, 68, 0.3)',
+    offlineText: '#F87171',
+
+    // Interaction feedback
+    ripple: 'rgba(255, 255, 255, 0.12)',
+
+    // Alpha backgrounds
+    brandBackgroundAlpha: 'rgba(16, 185, 129, 0.15)',
+    dangerBackgroundAlpha: 'rgba(239, 68, 68, 0.15)',
+    successBackgroundAlpha: 'rgba(34, 197, 94, 0.15)',
+    successGlow: 'rgba(34, 197, 94, 0.5)',
+
+    // CSS boxShadow alpha values (New Architecture)
+    shadowAlpha: 'rgba(0, 0, 0, 0.25)',
+    glowPrimaryAlpha: 'rgba(45, 212, 191, 0.5)',
+    glowSecondaryAlpha: 'rgba(34, 211, 238, 0.6)',
   },
 
   gradients: {
@@ -441,6 +517,20 @@ export const darkTokens: Tokens = {
       shadowRadius: 16,
       elevation: 8,
     },
+    glowSecondary: {
+      shadowColor: boldColors.glowCyan,
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0.5,
+      shadowRadius: 16,
+      elevation: 8,
+    },
+    dangerGlow: {
+      shadowColor: 'rgba(239, 68, 68, 0.5)',
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0.5,
+      shadowRadius: 16,
+      elevation: 8,
+    },
   },
 
   animation: baseAnimation,
@@ -453,6 +543,7 @@ export const darkTokens: Tokens = {
   containerSize,
   borderWidth,
   opacity,
+  lineHeight,
 };
 
 // =============================================================================
@@ -508,6 +599,29 @@ export const lightTokens: Tokens = {
     par: '#3B82F6',
     bogey: '#D97706',
     doublePlus: '#DC2626',
+
+    // On-semantic text colors
+    onDanger: '#FFFFFF',
+    onBrand: '#FFFFFF',
+
+    // Offline/connectivity state
+    offlineBackground: 'rgba(220, 38, 38, 0.1)',
+    offlineBorder: 'rgba(220, 38, 38, 0.2)',
+    offlineText: '#DC2626',
+
+    // Interaction feedback
+    ripple: 'rgba(0, 0, 0, 0.08)',
+
+    // Alpha backgrounds
+    brandBackgroundAlpha: 'rgba(5, 150, 105, 0.1)',
+    dangerBackgroundAlpha: 'rgba(220, 38, 38, 0.1)',
+    successBackgroundAlpha: 'rgba(22, 163, 74, 0.1)',
+    successGlow: 'rgba(22, 163, 74, 0.3)',
+
+    // CSS boxShadow alpha values (New Architecture)
+    shadowAlpha: 'rgba(0, 0, 0, 0.1)',
+    glowPrimaryAlpha: 'rgba(13, 148, 136, 0.3)',
+    glowSecondaryAlpha: 'rgba(13, 148, 136, 0.3)',
   },
 
   gradients: {
@@ -550,6 +664,20 @@ export const lightTokens: Tokens = {
       shadowRadius: 12,
       elevation: 6,
     },
+    glowSecondary: {
+      shadowColor: 'rgba(13, 148, 136, 0.4)',
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0.4,
+      shadowRadius: 12,
+      elevation: 6,
+    },
+    dangerGlow: {
+      shadowColor: 'rgba(220, 38, 38, 0.3)',
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0.4,
+      shadowRadius: 12,
+      elevation: 6,
+    },
   },
 
   animation: baseAnimation,
@@ -562,6 +690,7 @@ export const lightTokens: Tokens = {
   containerSize,
   borderWidth,
   opacity,
+  lineHeight,
 };
 
 // =============================================================================
@@ -572,3 +701,20 @@ export type ColorKey = keyof typeof colors;
 export type SpacingKey = keyof typeof spacing;
 export type FontSizeKey = keyof typeof fontSize;
 export type BorderRadiusKey = keyof typeof borderRadius;
+
+// =============================================================================
+// CONVENIENCE EXPORT
+// =============================================================================
+
+/**
+ * Unified tokens export for easy importing.
+ * Usage: import { tokens } from '@/src/theme/tokens';
+ */
+export const tokens = {
+  colors,
+  spacing,
+  borderRadius,
+  fontSize,
+  fontWeight,
+  shadow,
+};

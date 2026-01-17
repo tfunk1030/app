@@ -8,6 +8,7 @@
 import React, { memo } from 'react';
 import { View, Text, StyleSheet, ViewStyle } from 'react-native';
 import { useRedesignTheme } from '@/src/theme/redesign';
+import { Pencil } from 'lucide-react-native';
 
 // =============================================================================
 // TYPES
@@ -29,6 +30,9 @@ interface MetricPillProps {
   /** Semantic status for coloring */
   status?: 'neutral' | 'good' | 'warning' | 'danger';
 
+  /** Whether value is manually overridden (shows orange tint + pencil icon) */
+  isOverridden?: boolean;
+
   /** Custom style */
   style?: ViewStyle;
 
@@ -46,6 +50,7 @@ export const MetricPill = memo(function MetricPill({
   icon,
   variant = 'default',
   status = 'neutral',
+  isOverridden = false,
   style,
   testID,
 }: MetricPillProps) {
@@ -64,6 +69,10 @@ export const MetricPill = memo(function MetricPill({
         return colors.textPrimary;
     }
   };
+
+  // Override styles (orange tint background + pencil icon)
+  const overrideBackgroundColor = isOverridden ? `${colors.warning}1A` : undefined; // 10% orange tint
+  const overrideBorderColor = isOverridden ? colors.warning : undefined;
 
   if (variant === 'stacked') {
     return (
@@ -119,26 +128,32 @@ export const MetricPill = memo(function MetricPill({
       style={[
         styles.pillContainer,
         {
-          backgroundColor: colors.surface,
-          borderColor: colors.border,
+          backgroundColor: overrideBackgroundColor || colors.surface,
+          borderColor: overrideBorderColor || colors.border,
         },
         style,
       ]}
       accessible
       accessibilityRole="text"
-      accessibilityLabel={`${label}: ${value}`}
+      accessibilityLabel={`${label}: ${value}${isOverridden ? ', manually overridden' : ''}`}
       testID={testID}
     >
       {icon && <View style={styles.iconContainer}>{icon}</View>}
-      <Text style={[styles.pillLabel, { color: colors.textMuted }]}>
+      <Text style={[styles.pillLabel, { color: isOverridden ? colors.warning : colors.textMuted }]}>
         {label}
       </Text>
       <Text
-        style={[styles.pillValue, { color: getStatusColor() }]}
+        style={[styles.pillValue, { color: isOverridden ? colors.warning : getStatusColor() }]}
         numberOfLines={1}
       >
         {value}
       </Text>
+      {/* Pencil icon for manual override indicator */}
+      {isOverridden && (
+        <View style={styles.overrideIcon}>
+          <Pencil size={12} color={colors.warning} />
+        </View>
+      )}
     </View>
   );
 });
@@ -174,6 +189,14 @@ const styles = StyleSheet.create({
   pillValue: {
     fontSize: 14,
     fontWeight: '600',
+  },
+
+  overrideIcon: {
+    marginLeft: 2,
+    width: 14,
+    height: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   // Inline
