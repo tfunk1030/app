@@ -59,7 +59,6 @@ import { useClubSettings } from '@/src/features/settings/context/clubs';
 import { usePremium } from '@/src/features/settings/context/premium';
 import { ClubData } from '@/src/core/models/YardageModel';
 import { useNavigationPreference } from '@/src/stores/navigationPreference';
-import * as Updates from 'expo-updates';
 
 // App URLs - replace with your hosted URLs
 const SUPPORT_URL = 'mailto:support@aicaddypro.com?subject=AICaddyPro%20Support';
@@ -278,94 +277,26 @@ const ThemeSelector = memo(function ThemeSelector({
 
 const NavigationStyleSection = memo(function NavigationStyleSection() {
   const { colors } = useRedesignTheme();
-  const { style: navStyle, setStyle } = useNavigationPreference();
   const { cardEntering } = useAccessibleAnimations();
+  const { setStyle } = useNavigationPreference();
 
-  const handleToggle = async (newStyle: 'classic' | 'redesign') => {
-    await setStyle(newStyle);
-    Alert.alert(
-      'Navigation Changed',
-      `Switched to ${newStyle === 'redesign' ? 'New 3-Tab' : 'Classic 5-Tab'} layout. The app will reload to apply changes.`,
-      [
-        {
-          text: 'Reload Now',
-          onPress: async () => {
-            try {
-              await Updates.reloadAsync();
-            } catch {
-              Alert.alert('Please restart the app to see the changes.');
-            }
-          },
-        },
-        { text: 'Later', style: 'cancel' },
-      ]
-    );
-  };
+  React.useEffect(() => {
+    setStyle('redesign');
+  }, [setStyle]);
 
   return (
     <Animated.View entering={cardEntering(3)}>
-      <SectionHeader title="NAVIGATION STYLE" />
-      <View style={[styles.section, { backgroundColor: colors.surface }]}>
-        <View style={styles.unitSelector}>
-          <Pressable
-            onPress={() => handleToggle('redesign')}
-            style={[
-              styles.unitOption,
-              {
-                backgroundColor: navStyle === 'redesign' ? colors.brandMuted : 'transparent',
-                borderColor: navStyle === 'redesign' ? colors.brand : colors.border,
-              },
-            ]}
-            accessibilityRole="button"
-            accessibilityLabel="New 3-tab layout: Play, Stats, Setup"
-            accessibilityState={{ selected: navStyle === 'redesign' }}
-          >
-            <LayoutGrid
-              size={20}
-              color={navStyle === 'redesign' ? colors.brand : colors.textMuted}
-            />
-            <Text
-              style={[
-                styles.unitOptionLabel,
-                { color: navStyle === 'redesign' ? colors.brand : colors.textMuted, marginTop: 8 },
-              ]}
-            >
-              New (3 tabs)
-            </Text>
-            <Text style={[styles.unitOptionDetail, { color: colors.textMuted }]}>
-              Play, Stats, Setup
-            </Text>
-          </Pressable>
-
-          <Pressable
-            onPress={() => handleToggle('classic')}
-            style={[
-              styles.unitOption,
-              {
-                backgroundColor: navStyle === 'classic' ? colors.brandMuted : 'transparent',
-                borderColor: navStyle === 'classic' ? colors.brand : colors.border,
-              },
-            ]}
-            accessibilityRole="button"
-            accessibilityLabel="Classic 5-tab layout: Weather, Shot, Wind"
-            accessibilityState={{ selected: navStyle === 'classic' }}
-          >
-            <LayoutGrid
-              size={20}
-              color={navStyle === 'classic' ? colors.brand : colors.textMuted}
-            />
-            <Text
-              style={[
-                styles.unitOptionLabel,
-                { color: navStyle === 'classic' ? colors.brand : colors.textMuted, marginTop: 8 },
-              ]}
-            >
-              Classic (5 tabs)
-            </Text>
-            <Text style={[styles.unitOptionDetail, { color: colors.textMuted }]}>
-              Weather, Shot, Wind...
-            </Text>
-          </Pressable>
+      <SectionHeader title="NAVIGATION" />
+      <View style={[styles.section, { backgroundColor: colors.surface }]}
+        accessibilityRole="summary"
+        accessibilityLabel="Navigation is set to the 3-tab layout"
+      >
+        <View style={styles.navigationNotice}>
+          <LayoutGrid size={20} color={colors.brand} accessibilityElementsHidden={true} />
+          <View style={styles.navigationNoticeText}>
+            <Text style={[styles.navigationNoticeTitle, { color: colors.textPrimary }]}>3-tab layout active</Text>
+            <Text style={[styles.navigationNoticeSubtitle, { color: colors.textMuted }]}>Shot, Wind, Setup</Text>
+          </View>
         </View>
       </View>
     </Animated.View>
@@ -1109,6 +1040,24 @@ const styles = StyleSheet.create({
   section: {
     borderRadius: 16,
     overflow: 'hidden',
+  },
+  navigationNotice: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    gap: 12,
+  },
+  navigationNoticeText: {
+    flex: 1,
+  },
+  navigationNoticeTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  navigationNoticeSubtitle: {
+    fontSize: 13,
+    marginTop: 4,
   },
 
   // Setting Row

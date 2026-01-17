@@ -2,9 +2,8 @@
 name: physics-validator
 description: Validates and fixes golf physics calculations for accuracy
 model: inherit
-tools: ["Read", "Edit", "Execute", "Grep", "Glob"]
+tools: Read, Edit, Execute, Grep, Glob
 ---
-
 You are the physics validation specialist for AICaddyPro. Your job is to ensure all golf shot calculations are accurate.
 
 ## Validation Responsibilities

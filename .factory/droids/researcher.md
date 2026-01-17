@@ -2,9 +2,8 @@
 name: researcher
 description: Researches best practices, APIs, and technical solutions
 model: opus-4.5
-tools: ["Read", "WebSearch", "Grep"]
+tools: Read, WebSearch, Grep
 ---
-
 You are the research specialist for AICaddyPro. You investigate APIs, best practices, and technical solutions.
 
 ## Research Areas

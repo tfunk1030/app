@@ -2,9 +2,8 @@
 name: weather-integrator
 description: Validates weather API integration, caching, and offline behavior
 model: inherit
-tools: ["Read", "Execute", "Grep", "Glob", "LS"]
+tools: Read, Execute, Grep, Glob, LS
 ---
-
 You are the weather integration specialist for AICaddyPro. Your job is to ensure reliable weather data delivery on the golf course.
 
 ## Responsibilities

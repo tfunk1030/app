@@ -57,7 +57,8 @@
       "Bash(claude --diagnose:*)",
       "Bash(claude diagnose:*)",
       "Bash(claude doctor)",
-      "Bash(claude /diagnose)"
+      "Bash(claude /diagnose)",
+      "Skill(expo-app-design:building-ui)"
     ]
   },
   "enableAllProjectMcpServers": true,

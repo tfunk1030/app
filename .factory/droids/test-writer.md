@@ -2,9 +2,8 @@
 name: test-writer
 description: Writes comprehensive Jest tests following TDD principles
 model: inherit
-tools: ["Read", "Edit", "Execute", "Grep", "Glob", "LS"]
+tools: Read, Edit, Execute, Grep, Glob, LS
 ---
-
 You are the test specialist for AICaddyPro. You write thorough Jest tests following TDD principles.
 
 ## Testing Standards

@@ -9,7 +9,7 @@
  * - Full-screen results with explicit calculate action
  */
 
-import React, { useState, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -27,6 +27,7 @@ import Animated, {
   interpolate,
 } from 'react-native-reanimated';
 import { useAccessibleAnimations } from '@/src/hooks/useAccessibility';
+import { useReduceMotionValue } from '@/src/hooks/useReduceMotion';
 import * as Haptics from 'expo-haptics';
 import { Wind, Compass, Lock, Crown, ChevronRight, Navigation, AlertTriangle, ChevronLeft } from 'lucide-react-native';
 
@@ -113,15 +114,19 @@ interface WindCalculatorRedesignProps {
 
 function WindCalculatorRedesign({ sensorAvailable = true, compassAccuracy = 'high' }: WindCalculatorRedesignProps) {
   const [showCalibrationHint, setShowCalibrationHint] = useState(true);
-  const { colors } = useRedesignTheme();
+  const { colors, tokens } = useRedesignTheme();
   const { settings, convertDistance } = useSettings();
   const environmental = useEnhancedEnvironmental();
   const { isLocked, relativeWindAngle, toggleLock } = useCompassLock();
   const { headerEntering, cardEntering } = useAccessibleAnimations();
   const insets = useSafeAreaInsets();
+  const reduceMotion = useReduceMotionValue();
 
   // Use responsive layout hook for adaptive sizing
-  const { compassSize, layoutMode, bottomBarHeight, screen } = useWindScreenLayout();
+  const { compassSize, bottomBarHeight, screen } = useWindScreenLayout();
+  const tabBarHeight = tokens.components.tabBar.height;
+  const topContentPadding = insets.top + tokens.spacing.md;
+  const bottomContentPadding = bottomBarHeight + tabBarHeight + insets.bottom + tokens.spacing.lg;
 
   // Wind calculator hook
   const {
@@ -138,7 +143,6 @@ function WindCalculatorRedesign({ sensorAvailable = true, compassAccuracy = 'hig
   const [manualDirectionOverride, setManualDirectionOverride] = useState<string>('');
   const [manualOpen, setManualOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [viewState, setViewState] = useState<'compass' | 'results'>('compass');
   const [dualResult, setDualResult] = useState<WindDualResult | null>(null);
   const [calcError, setCalcError] = useState<string | null>(null);
   const scrollViewRef = useRef<ScrollView>(null);
@@ -324,11 +328,12 @@ function WindCalculatorRedesign({ sensorAvailable = true, compassAccuracy = 'hig
       }
 
       setDualResult({ steady, gust });
-      // Show inline result instead of sliding to full results page
-      // Full results still accessible via "See breakdown" in InlineResult
+      slideOffset.value = reduceMotion
+        ? 1
+        : withSpring(1, { damping: 18, stiffness: 160 });
       setManualOpen(false);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    } catch (err) {
+    } catch {
       setCalcError('Unable to calculate wind adjustment.');
     }
   }, [
@@ -338,26 +343,32 @@ function WindCalculatorRedesign({ sensorAvailable = true, compassAccuracy = 'hig
     settings.speedUnit,
     effectiveWindSpeed,
     currentWindGustDisplay,
-    currentWindSpeedDisplay,
     calculateWithSpeed,
-    formatResult,
-    result,
     slideOffset,
+    reduceMotion,
     hasGust,
-    error,
   ]);
 
   const handleBackToCompass = useCallback(() => {
-    slideOffset.value = withSpring(0, { damping: 18, stiffness: 160 });
-    setViewState('compass');
-  }, [slideOffset]);
+    slideOffset.value = reduceMotion
+      ? 0
+      : withSpring(0, { damping: 18, stiffness: 160 });
+  }, [reduceMotion, slideOffset]);
+
+  const lockButtonPosition = settings.lockButtonPosition ??
+    (settings.dominantHand === 'left' ? 'left' : 'right');
+  const showLeftLock = lockButtonPosition === 'left' || lockButtonPosition === 'both';
+  const showRightLock = lockButtonPosition === 'right' || lockButtonPosition === 'both';
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView
         ref={scrollViewRef}
         style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingTop: topContentPadding, paddingBottom: bottomContentPadding },
+        ]}
         contentInsetAdjustmentBehavior="automatic"
         refreshControl={
           <RefreshControl
@@ -545,7 +556,13 @@ function WindCalculatorRedesign({ sensorAvailable = true, compassAccuracy = 'hig
         </Animated.View>
 
         {/* Results Full Screen */}
-        <Animated.View style={[styles.resultsContainer, resultsAnimatedStyle]}>
+        <Animated.View
+          style={[
+            styles.resultsContainer,
+            resultsAnimatedStyle,
+            { paddingTop: topContentPadding, paddingBottom: bottomContentPadding },
+          ]}
+        >
           <View style={styles.resultsHeader}>
             <Pressable
               onPress={handleBackToCompass}
@@ -601,38 +618,64 @@ function WindCalculatorRedesign({ sensorAvailable = true, compassAccuracy = 'hig
 
       {/* Bottom Action Bar - always visible with inline results */}
       <View
-          style={[
-            styles.bottomBar,
-            {
-              borderTopColor: colors.border,
-              backgroundColor: colors.surface,
-              paddingBottom: Math.max(12, insets.bottom + 8),
-            },
-          ]}
-          accessibilityRole="toolbar"
-        >
+        style={[
+          styles.bottomBar,
+          {
+            borderTopColor: colors.border,
+            backgroundColor: colors.surface,
+            bottom: tabBarHeight + insets.bottom,
+            paddingBottom: tokens.spacing.sm,
+          },
+        ]}
+        accessibilityRole="toolbar"
+      >
+        {showLeftLock && (
           <Pressable
             onPress={handleLockPress}
-            style={[styles.lockButton, { backgroundColor: isLocked ? colors.success : colors.surfaceElevated, borderColor: isLocked ? colors.success : colors.border }]}
+            style={[
+              styles.lockButton,
+              {
+                backgroundColor: isLocked ? colors.success : colors.surfaceElevated,
+                borderColor: isLocked ? colors.success : colors.border,
+              },
+            ]}
             accessibilityRole="button"
             accessibilityLabel={isLocked ? 'Unlock compass' : 'Lock compass'}
             accessibilityState={{ selected: isLocked }}
           >
             <Lock size={20} color={isLocked ? colors.textInverse : colors.textPrimary} />
           </Pressable>
+        )}
+        <Pressable
+          onPress={handleCalculate}
+          disabled={!isLocked}
+          style={[styles.calculateButton, { backgroundColor: isLocked ? colors.brand : colors.border }]}
+          accessibilityRole="button"
+          accessibilityLabel="Calculate wind adjustment"
+          accessibilityState={{ disabled: !isLocked }}
+        >
+          <Text style={[styles.calculateButtonText, { color: isLocked ? colors.textInverse : colors.textMuted }]}>
+            Calculate
+          </Text>
+        </Pressable>
+        {showRightLock && (
           <Pressable
-            onPress={handleCalculate}
-            disabled={!isLocked}
-            style={[styles.calculateButton, { backgroundColor: isLocked ? colors.brand : colors.border }]}
+            onPress={handleLockPress}
+            style={[
+              styles.lockButton,
+              {
+                backgroundColor: isLocked ? colors.success : colors.surfaceElevated,
+                borderColor: isLocked ? colors.success : colors.border,
+              },
+            ]}
             accessibilityRole="button"
-            accessibilityLabel="Calculate wind adjustment"
-            accessibilityState={{ disabled: !isLocked }}
+            accessibilityLabel={isLocked ? 'Unlock compass' : 'Lock compass'}
+            accessibilityState={{ selected: isLocked }}
           >
-            <Text style={[styles.calculateButtonText, { color: isLocked ? colors.textInverse : colors.textMuted }]}>
-              Calculate
-            </Text>
+            <Lock size={20} color={isLocked ? colors.textInverse : colors.textPrimary} />
           </Pressable>
-        </View>
+        )}
+      </View>
     </View>
   );
 }
@@ -946,7 +989,6 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     minHeight: '100%',
-    paddingTop: 16,
     paddingHorizontal: 16,
   },
 
@@ -1029,7 +1071,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
-    bottom: 0,
     flexDirection: 'row',
     gap: 12,
     paddingHorizontal: 16,
