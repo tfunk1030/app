@@ -13,11 +13,19 @@ import { degreeMarkStyles as styles } from './styles';
 const DegreeMarks: React.FC<DegreeMarksProps> = ({ size, heading, borderColor, textColor }) => {
   const marks = [];
 
-  // Simplified: Only show 8 major tick marks (every 45 degrees)
-  // This reduces visual clutter while maintaining orientation reference
-  for (let i = 0; i < 8; i++) {
-    const rotation = i * 45 - heading;
-    const tickStyles = getTickMarkStyles(size, 'major');
+  // Show tick marks every 10 degrees with major marks at cardinals (N/E/S/W)
+  // Per interview decision: "Full ticks every 10° with major at N/S/E/W"
+  for (let i = 0; i < 36; i++) {
+    const degree = i * 10;
+    const rotation = degree - heading;
+
+    // Major marks at cardinal directions (0°, 90°, 180°, 270°)
+    const isCardinal = degree % 90 === 0;
+    // Medium marks at intercardinals (45°, 135°, 225°, 315°)
+    const isIntercardinal = degree % 45 === 0 && !isCardinal;
+
+    const tickType = isCardinal ? 'major' : isIntercardinal ? 'minor' : 'minor';
+    const tickStyles = getTickMarkStyles(size, tickType);
 
     marks.push(
       <View
@@ -26,9 +34,9 @@ const DegreeMarks: React.FC<DegreeMarksProps> = ({ size, heading, borderColor, t
           styles.degreeMark,
           {
             transform: [{ rotate: `${rotation}deg` }, { translateY: -(size - 30) / 2 }],
-            height: tickStyles.height,
-            opacity: tickStyles.opacity,
-            width: tickStyles.width,
+            height: isCardinal ? tickStyles.height * 1.2 : tickStyles.height,
+            opacity: isCardinal ? 1 : isIntercardinal ? 0.7 : 0.4,
+            width: isCardinal ? tickStyles.width * 1.5 : tickStyles.width,
             backgroundColor: borderColor,
           },
         ]}

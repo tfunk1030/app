@@ -3,6 +3,8 @@
  *
  * Full-screen modal overlay that displays wind calculation results
  * with prominent, easy-to-read formatting for on-course use.
+ *
+ * Per interview decision GPT #10: Combined message format "Play 186 yards, aim 4 left"
  */
 import React from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
@@ -12,10 +14,59 @@ import * as Haptics from 'expo-haptics';
 import { useTokens } from '@/src/theme/useTokens';
 import type { WindCalculatorResult } from '../hooks/useWindCalculator';
 import { DualResultCard } from './results/DualResultCard';
-import { PrimaryRecommendation } from './results/PrimaryRecommendation';
-import { LateralAdjustment } from './results/LateralAdjustment';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { safeScaledFontSize } from '@/src/utils/responsive';
+
+/**
+ * HeroMessage - The "north star" combined play+aim message
+ * Per interview: "Play 186 yards, aim 4 left"
+ */
+function HeroMessage({
+  playDistance,
+  lateralEffect,
+  unit = 'yds',
+}: {
+  playDistance: number;
+  lateralEffect: number;
+  unit?: string;
+}) {
+  const t = useTokens();
+
+  // Format the aim part
+  const roundedLateral = Math.abs(Math.round(lateralEffect));
+  const aimDirection = lateralEffect > 0 ? 'right' : 'left';
+  const hasAim = lateralEffect !== 0;
+
+  // Accessibility label with full description
+  const accessibilityLabel = hasAim
+    ? `Play ${Math.round(playDistance)} ${unit}, aim ${roundedLateral} ${aimDirection}`
+    : `Play ${Math.round(playDistance)} ${unit}`;
+
+  return (
+    <View
+      style={[styles.heroMessage, { backgroundColor: t.colors.surfaceAlt }]}
+      accessibilityRole="text"
+      accessibilityLabel={accessibilityLabel}
+    >
+      <Text style={[styles.heroText, { color: t.colors.textPrimary }]}>
+        Play{' '}
+        <Text style={[styles.heroValue, { color: t.colors.brand }]}>
+          {Math.round(playDistance)}
+        </Text>
+        {' '}{unit}
+        {hasAim && (
+          <>
+            , aim{' '}
+            <Text style={[styles.heroValue, { color: t.colors.warning }]}>
+              {roundedLateral}
+            </Text>
+            {' '}{aimDirection}
+          </>
+        )}
+      </Text>
+    </View>
+  );
+}
 
 interface ResultTakeoverModalProps {
   visible: boolean;
@@ -48,19 +99,21 @@ export function ResultTakeoverModal({ visible, result, onDismiss }: ResultTakeov
           exiting={SlideOutDown.duration(200)}
           style={[styles.content, { backgroundColor: t.colors.surface }]}
         >
-          {/* Hero Result Display */}
-          {result.gustResult ? (
+          {/* North Star Message - "Play X yards, aim Y left/right" */}
+          <HeroMessage
+            playDistance={result.effectivePlayingDistance}
+            lateralEffect={result.lateralEffect}
+            unit="yds"
+          />
+
+          {/* Gust Result - Show if significantly different */}
+          {result.gustResult && result.gustResult.effectivePlayingDistance !== result.effectivePlayingDistance && (
             <DualResultCard
               sustainedDistance={result.effectivePlayingDistance}
               gustDistance={result.gustResult.effectivePlayingDistance}
               unit="yds"
             />
-          ) : (
-            <PrimaryRecommendation effectiveDistance={result.effectivePlayingDistance} />
           )}
-
-          {/* Aim Direction - Prominent */}
-          <LateralAdjustment lateralEffect={result.lateralEffect} />
 
           {/* Club Recommendation - Hero Style */}
           <View style={[styles.clubContainer, { backgroundColor: t.colors.surfaceAlt }]}>
@@ -104,6 +157,24 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     padding: 24,
     alignItems: 'center',
+  },
+  // North star hero message - "Play X, aim Y"
+  heroMessage: {
+    width: '100%',
+    paddingVertical: 20,
+    paddingHorizontal: 24,
+    borderRadius: 16,
+    marginBottom: 16,
+    alignItems: 'center',
+  },
+  heroText: {
+    fontSize: safeScaledFontSize(22),
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  heroValue: {
+    fontSize: safeScaledFontSize(28),
+    fontWeight: '700',
   },
   clubContainer: {
     flexDirection: 'row',

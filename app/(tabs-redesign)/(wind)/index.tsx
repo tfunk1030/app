@@ -380,11 +380,12 @@ function WindCalculatorRedesign({ sensorAvailable = true, compassAccuracy = 'hig
               contentContainerStyle={styles.conditionsContainer}
             >
               <MetricPill
-                icon={<Wind size={14} color={colors.textMuted} />}
+                icon={<Wind size={14} color={manualSpeedOverride ? colors.warning : colors.textMuted} />}
                 label="Wind"
-                value={`${currentWindSpeedDisplay} ${speedUnitLabel}`}
+                value={manualSpeedOverride ? `${manualSpeedOverride} ${speedUnitLabel}` : `${currentWindSpeedDisplay} ${speedUnitLabel}`}
+                isOverridden={Boolean(manualSpeedOverride)}
               />
-              {currentWindGustDisplay && currentWindGustDisplay > currentWindSpeedDisplay && (
+              {currentWindGustDisplay && currentWindGustDisplay > currentWindSpeedDisplay && !manualSpeedOverride && (
                 <MetricPill
                   icon={<Wind size={14} color={colors.warning} />}
                   label="Gust"
@@ -393,9 +394,12 @@ function WindCalculatorRedesign({ sensorAvailable = true, compassAccuracy = 'hig
                 />
               )}
               <MetricPill
-                icon={<Navigation size={14} color={colors.textMuted} />}
+                icon={<Navigation size={14} color={manualDirectionOverride ? colors.warning : colors.textMuted} />}
                 label="Direction"
-                value={`${degreesToDirection(currentWindDirection)} (${Math.round(currentWindDirection)}°)`}
+                value={manualDirectionOverride
+                  ? `${degreesToDirection(parseInt(manualDirectionOverride, 10))} (${manualDirectionOverride}°)`
+                  : `${degreesToDirection(currentWindDirection)} (${Math.round(currentWindDirection)}°)`}
+                isOverridden={Boolean(manualDirectionOverride)}
               />
             </ScrollView>
           </Animated.View>

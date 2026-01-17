@@ -1,7 +1,7 @@
 /**
  * DualResultCard Component
  *
- * Shows both sustained and gust wind calculation results side by side.
+ * Shows both sustained and gust wind calculation results stacked vertically.
  * Used when gusts are significantly higher than sustained wind.
  */
 import React from 'react';
@@ -35,7 +35,7 @@ export function DualResultCard({ sustainedDistance, gustDistance, unit }: DualRe
           : `Wind result: ${Math.round(sustainedDistance)} ${unit}`
       }
     >
-      {/* Sustained Result */}
+      {/* Sustained Result - Stacked Row */}
       <View style={styles.resultColumn}>
         <View style={styles.labelRow}>
           <MaterialCommunityIcons name="weather-windy" size={16} color={t.colors.brand} />
@@ -49,17 +49,22 @@ export function DualResultCard({ sustainedDistance, gustDistance, unit }: DualRe
         </Text>
       </View>
 
-      {/* Divider */}
+      {/* Horizontal Divider */}
       {hasGusts && (
         <View style={[styles.divider, { backgroundColor: t.colors.border }]} />
       )}
 
-      {/* Gust Result */}
+      {/* Gust Result - Stacked Row */}
       {hasGusts && gustDistance && (
         <View style={styles.resultColumn}>
           <View style={styles.labelRow}>
             <MaterialCommunityIcons name="weather-windy-variant" size={16} color={t.colors.warning} />
             <Text style={[styles.label, { color: t.colors.warning }]}>Gusts</Text>
+            {difference > 0 && (
+              <Text style={[styles.difference, { color: t.colors.textMuted }]}>
+                ({gustDistance > sustainedDistance ? '+' : '-'}{Math.round(difference)})
+              </Text>
+            )}
           </View>
           <Text
             style={[styles.value, { color: t.colors.warning }]}
@@ -67,11 +72,6 @@ export function DualResultCard({ sustainedDistance, gustDistance, unit }: DualRe
           >
             {Math.round(gustDistance)} <Text style={styles.unit}>{unit}</Text>
           </Text>
-          {difference > 0 && (
-            <Text style={[styles.difference, { color: t.colors.textMuted }]}>
-              ({gustDistance > sustainedDistance ? '+' : '-'}{Math.round(difference)} range)
-            </Text>
-          )}
         </View>
       )}
     </View>
@@ -80,24 +80,24 @@ export function DualResultCard({ sustainedDistance, gustDistance, unit }: DualRe
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'flex-start',
-    paddingVertical: 16,
-    paddingHorizontal: 12,
+    flexDirection: 'column',
+    alignItems: 'stretch',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    gap: 12,
   },
   resultColumn: {
-    flex: 1,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
   },
   labelRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    marginBottom: 4,
+    gap: 6,
   },
   label: {
-    fontSize: safeScaledFontSize(12),
+    fontSize: safeScaledFontSize(13),
     fontWeight: '600',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -112,12 +112,11 @@ const styles = StyleSheet.create({
   },
   difference: {
     fontSize: safeScaledFontSize(11),
-    marginTop: 2,
+    marginLeft: 8,
   },
   divider: {
-    width: 1,
-    height: '100%',
-    marginHorizontal: 16,
+    height: 1,
+    width: '100%',
   },
 });
 

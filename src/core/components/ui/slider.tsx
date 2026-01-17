@@ -154,6 +154,9 @@ export function Slider({
   const [inputValue, setInputValue] = useState(String(value));
   const [sliderValue, setSliderValue] = useState(value);
   const [isDragging, setIsDragging] = useState(false);
+  // Per interview decision: long-press opens keypad (hidden by default)
+  const [isKeypadOpen, setIsKeypadOpen] = useState(false);
+  const inputRef = useRef<TextInput>(null);
 
   // Track last stepped value for haptic feedback during dragging
   const lastSteppedValue = useRef(Math.round(value / step) * step);
@@ -161,6 +164,8 @@ export function Slider({
   // Long-press handling for +/- buttons
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const longPressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Long-press timer for keypad activation
+  const keypadLongPressRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Animation values
   const thumbScale = useSharedValue(1);
@@ -223,13 +228,34 @@ export function Slider({
   const handleInputBlur = () => {
     if (inputValue === '' || isNaN(parseInt(inputValue, 10))) {
       setInputValue(String(value));
+      setIsKeypadOpen(false);
       return;
     }
     const newValue = Math.min(Math.max(parseInt(inputValue, 10), min), max);
     setInputValue(String(newValue));
     setSliderValue(newValue);
     onValueChange(newValue);
+    setIsKeypadOpen(false);
   };
+
+  // Long-press to open keypad - per interview decision #21
+  const handleValueLongPressIn = useCallback(() => {
+    keypadLongPressRef.current = setTimeout(() => {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      setIsKeypadOpen(true);
+      // Focus the input after a brief delay to allow state update
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 50);
+    }, 400); // 400ms long-press threshold
+  }, []);
+
+  const handleValuePressOut = useCallback(() => {
+    if (keypadLongPressRef.current) {
+      clearTimeout(keypadLongPressRef.current);
+      keypadLongPressRef.current = null;
+    }
+  }, []);
 
   const handleIncrement = useCallback(() => {
     setSliderValue((prev) => {
@@ -463,12 +489,14 @@ export function Slider({
           </Text>
         </Pressable>
 
-        <View
+        <Pressable
+          onPressIn={handleValueLongPressIn}
+          onPressOut={handleValuePressOut}
           style={[
             styles.textInputContainer,
             {
-              backgroundColor: t.colors.surface,
-              borderColor: t.colors.border,
+              backgroundColor: isKeypadOpen ? t.colors.brandMuted : t.colors.surface,
+              borderColor: isKeypadOpen ? t.colors.brand : t.colors.border,
               minHeight: inputMinHeight,
               paddingHorizontal: getResponsiveSpacing(t.spacing.base, 'horizontal'), // 12px
               paddingVertical: getResponsiveSpacing(
@@ -477,26 +505,47 @@ export function Slider({
               ),
             },
           ]}
+          accessibilityRole="button"
+          accessibilityLabel={label ? `${label}: ${sliderValue} ${unit || ''}. Long press to edit` : `Value: ${sliderValue}. Long press to edit`}
+          accessibilityHint="Long press to open numeric keypad"
         >
-          <TextInput
-            style={[
-              styles.numericInput,
-              {
-                color: t.colors.textPrimary,
-                fontSize: safeScaledFontSize(
-                  dense ? t.fontSize.sm : t.fontSize.base, // 14px / 16px
-                  { maxScale: 1.2 }
-                ),
-              },
-            ]}
-            value={inputValue}
-            keyboardType="numeric"
-            onChangeText={handleInputChange}
-            onBlur={handleInputBlur}
-            selectTextOnFocus
-            placeholderTextColor={t.colors.textMuted}
-            accessibilityLabel={label ? `${label} value input` : 'Slider value input'}
-          />
+          {isKeypadOpen ? (
+            <TextInput
+              ref={inputRef}
+              style={[
+                styles.numericInput,
+                {
+                  color: t.colors.textPrimary,
+                  fontSize: safeScaledFontSize(
+                    dense ? t.fontSize.sm : t.fontSize.base, // 14px / 16px
+                    { maxScale: 1.2 }
+                  ),
+                },
+              ]}
+              value={inputValue}
+              keyboardType="numeric"
+              onChangeText={handleInputChange}
+              onBlur={handleInputBlur}
+              selectTextOnFocus
+              placeholderTextColor={t.colors.textMuted}
+              accessibilityLabel={label ? `${label} value input` : 'Slider value input'}
+            />
+          ) : (
+            <Text
+              style={[
+                styles.numericInput,
+                {
+                  color: t.colors.textPrimary,
+                  fontSize: safeScaledFontSize(
+                    dense ? t.fontSize.sm : t.fontSize.base,
+                    { maxScale: 1.2 }
+                  ),
+                },
+              ]}
+            >
+              {sliderValue}
+            </Text>
+          )}
           {unit && (
             <Text
               style={[
@@ -513,7 +562,7 @@ export function Slider({
               {unit}
             </Text>
           )}
-        </View>
+        </Pressable>
 
         <Pressable
           style={[
