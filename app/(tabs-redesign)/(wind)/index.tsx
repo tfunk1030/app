@@ -117,7 +117,7 @@ function WindCalculatorRedesign({ sensorAvailable = true, compassAccuracy = 'hig
   const { colors, tokens } = useRedesignTheme();
   const { settings, convertDistance } = useSettings();
   const environmental = useEnhancedEnvironmental();
-  const { isLocked, relativeWindAngle, toggleLock } = useCompassLock();
+  const { isLocked, relativeWindAngle } = useCompassLock();
   const { headerEntering, cardEntering } = useAccessibleAnimations();
   const insets = useSafeAreaInsets();
   const reduceMotion = useReduceMotionValue();
@@ -246,10 +246,6 @@ function WindCalculatorRedesign({ sensorAvailable = true, compassAccuracy = 'hig
     }
   }, [error]);
 
-  const handleLockPress = useCallback(async () => {
-    await toggleLock();
-  }, [toggleLock]);
-
   const compassAnimatedStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: interpolate(slideOffset.value, [0, 1], [0, -screen.height]) }],
     opacity: interpolate(slideOffset.value, [0, 0.4], [1, 0]),
@@ -355,11 +351,6 @@ function WindCalculatorRedesign({ sensorAvailable = true, compassAccuracy = 'hig
       : withSpring(0, { damping: 18, stiffness: 160 });
   }, [reduceMotion, slideOffset]);
 
-  const lockButtonPosition = settings.lockButtonPosition ??
-    (settings.dominantHand === 'left' ? 'left' : 'right');
-  const showLeftLock = lockButtonPosition === 'left' || lockButtonPosition === 'both';
-  const showRightLock = lockButtonPosition === 'right' || lockButtonPosition === 'both';
-
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView
@@ -448,7 +439,6 @@ function WindCalculatorRedesign({ sensorAvailable = true, compassAccuracy = 'hig
                 size={compassSize}
                 windSpeed={currentWindSpeedMph}
                 speedUnit={speedUnitLabel}
-                hideLockButton
               />
             </View>
 
@@ -510,37 +500,47 @@ function WindCalculatorRedesign({ sensorAvailable = true, compassAccuracy = 'hig
           )}
 
           {/* Manual Input */}
-          <View style={styles.manualSection}>
+          <View style={[styles.manualSection, { backgroundColor: colors.surfaceElevated, borderRadius: 12 }]}>
             <Pressable
               onPress={handleManualToggle}
-              style={styles.manualToggle}
+              style={[styles.manualToggle, { borderBottomWidth: manualOpen ? 1 : 0, borderBottomColor: colors.border }]}
               accessibilityRole="button"
               accessibilityLabel={manualOpen ? 'Collapse manual input' : 'Edit manually'}
               accessibilityState={{ expanded: manualOpen }}
             >
-              <Text style={[styles.manualToggleText, { color: colors.textMuted }]}>Edit manually</Text>
-              <ChevronRight size={18} color={colors.textMuted} style={manualOpen ? { transform: [{ rotate: '90deg' }] } : undefined} />
+              <Text style={[styles.manualToggleText, { color: colors.textPrimary }]}>Edit manually</Text>
+              <ChevronRight
+                size={18}
+                color={colors.textMuted}
+                style={{ transform: [{ rotate: manualOpen ? '90deg' : '0deg' }] }}
+              />
             </Pressable>
             {manualOpen && (
               <View style={styles.manualInputs}>
-                <TextInput
-                  value={manualSpeedOverride}
-                  onChangeText={handleManualSpeedChange}
-                  placeholder={`Wind Speed (${speedUnitLabel})`}
-                  placeholderTextColor={colors.textMuted}
-                  keyboardType="numeric"
-                  style={[styles.manualInput, { backgroundColor: colors.surfaceElevated, color: colors.textPrimary, borderColor: colors.border }]}
-                  accessibilityLabel="Manual wind speed"
-                />
-                <TextInput
-                  value={manualDirectionOverride}
-                  onChangeText={handleManualDirectionChange}
-                  placeholder="Wind Direction (degrees)"
-                  placeholderTextColor={colors.textMuted}
-                  keyboardType="numeric"
-                  style={[styles.manualInput, { backgroundColor: colors.surfaceElevated, color: colors.textPrimary, borderColor: colors.border }]}
-                  accessibilityLabel="Manual wind direction in degrees"
-                />
+                <View style={styles.manualInputWrapper}>
+                  <Text style={[styles.manualInputLabel, { color: colors.textMuted }]}>Wind Speed</Text>
+                  <TextInput
+                    value={manualSpeedOverride}
+                    onChangeText={handleManualSpeedChange}
+                    placeholder={`Enter ${speedUnitLabel}`}
+                    placeholderTextColor={colors.textMuted}
+                    keyboardType="numeric"
+                    style={[styles.manualInput, { backgroundColor: colors.surface, color: colors.textPrimary, borderColor: colors.border }]}
+                    accessibilityLabel="Manual wind speed override"
+                  />
+                </View>
+                <View style={styles.manualInputWrapper}>
+                  <Text style={[styles.manualInputLabel, { color: colors.textMuted }]}>Wind Direction</Text>
+                  <TextInput
+                    value={manualDirectionOverride}
+                    onChangeText={handleManualDirectionChange}
+                    placeholder="Enter degrees (0-360)"
+                    placeholderTextColor={colors.textMuted}
+                    keyboardType="numeric"
+                    style={[styles.manualInput, { backgroundColor: colors.surface, color: colors.textPrimary, borderColor: colors.border }]}
+                    accessibilityLabel="Manual wind direction in degrees"
+                  />
+                </View>
               </View>
             )}
           </View>
@@ -616,7 +616,7 @@ function WindCalculatorRedesign({ sensorAvailable = true, compassAccuracy = 'hig
         </Animated.View>
       </ScrollView>
 
-      {/* Bottom Action Bar - always visible with inline results */}
+      {/* Bottom Action Bar - simplified to just Calculate */}
       <View
         style={[
           styles.bottomBar,
@@ -629,52 +629,19 @@ function WindCalculatorRedesign({ sensorAvailable = true, compassAccuracy = 'hig
         ]}
         accessibilityRole="toolbar"
       >
-        {showLeftLock && (
-          <Pressable
-            onPress={handleLockPress}
-            style={[
-              styles.lockButton,
-              {
-                backgroundColor: isLocked ? colors.success : colors.surfaceElevated,
-                borderColor: isLocked ? colors.success : colors.border,
-              },
-            ]}
-            accessibilityRole="button"
-            accessibilityLabel={isLocked ? 'Unlock compass' : 'Lock compass'}
-            accessibilityState={{ selected: isLocked }}
-          >
-            <Lock size={20} color={isLocked ? colors.textInverse : colors.textPrimary} />
-          </Pressable>
-        )}
         <Pressable
           onPress={handleCalculate}
           disabled={!isLocked}
           style={[styles.calculateButton, { backgroundColor: isLocked ? colors.brand : colors.border }]}
           accessibilityRole="button"
-          accessibilityLabel="Calculate wind adjustment"
+          accessibilityLabel={isLocked ? "Calculate wind adjustment" : "Lock compass direction first, then calculate"}
+          accessibilityHint={!isLocked ? "Point phone at target and tap the lock button on the compass" : undefined}
           accessibilityState={{ disabled: !isLocked }}
         >
           <Text style={[styles.calculateButtonText, { color: isLocked ? colors.textInverse : colors.textMuted }]}>
-            Calculate
+            {isLocked ? 'Calculate' : 'Lock Direction First'}
           </Text>
         </Pressable>
-        {showRightLock && (
-          <Pressable
-            onPress={handleLockPress}
-            style={[
-              styles.lockButton,
-              {
-                backgroundColor: isLocked ? colors.success : colors.surfaceElevated,
-                borderColor: isLocked ? colors.success : colors.border,
-              },
-            ]}
-            accessibilityRole="button"
-            accessibilityLabel={isLocked ? 'Unlock compass' : 'Lock compass'}
-            accessibilityState={{ selected: isLocked }}
-          >
-            <Lock size={20} color={isLocked ? colors.textInverse : colors.textPrimary} />
-          </Pressable>
-        )}
       </View>
     </View>
   );
@@ -945,8 +912,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 8,
-    paddingVertical: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    minHeight: 48,
   },
 
   manualToggleText: {
@@ -955,16 +923,28 @@ const styles = StyleSheet.create({
   },
 
   manualInputs: {
-    gap: 12,
-    marginTop: 8,
+    gap: 16,
+    padding: 12,
+  },
+
+  manualInputWrapper: {
+    gap: 6,
+  },
+
+  manualInputLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
   },
 
   manualInput: {
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 15,
+    borderWidth: 1.5,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 16,
+    fontWeight: '500',
   },
 
   errorBanner: {

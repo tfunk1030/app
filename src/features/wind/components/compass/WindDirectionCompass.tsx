@@ -103,6 +103,8 @@ const WindDirectionCompass: React.FC<WindDirectionCompassProps> = ({
   windSpeed: propWindSpeed,
   speedUnit = 'mph',
   hideLockButton = false,
+  showStatusLabel = true,
+  showAccuracyIndicator = true,
 }) => {
   // Use responsive size calculation
   const size = propSize || getResponsiveCompassSize();
@@ -312,70 +314,74 @@ const WindDirectionCompass: React.FC<WindDirectionCompassProps> = ({
         />
 
         {/* Accuracy indicator in top-right corner - only shows for medium/low accuracy */}
-        <View style={localStyles.accuracyContainer}>
-          <AccuracyIndicator
-            accuracy={accuracy}
-            colors={{
-              success: tokens.colors.success,
-              warning: tokens.colors.warning,
-              error: tokens.colors.danger,
-              background: tokens.colors.surface,
-            }}
-            size={24}
-          />
-        </View>
+        {showAccuracyIndicator && (
+          <View style={localStyles.accuracyContainer}>
+            <AccuracyIndicator
+              accuracy={accuracy}
+              colors={{
+                success: tokens.colors.success,
+                warning: tokens.colors.warning,
+                error: tokens.colors.danger,
+                background: tokens.colors.surface,
+              }}
+              size={24}
+            />
+          </View>
+        )}
 
         {/* Top-centered Wind Label or Locked chip overlay inside compass - positioned below N cardinal */}
-        <View
-          pointerEvents="none"
-          style={[styles.windLabelContainer, { top: Math.max(size * 0.28, 58) }]}
-          accessibilityRole="text"
-          accessibilityLabel={
-            isLocked
-              ? `Locked at ${Math.round(referenceHeading)} degrees`
-              : `Point device at target to lock direction`
-          }
-        >
-          {isLocked ? (
-            <View
-              style={[
-                styles.lockedChip,
-                {
-                  backgroundColor: tokens.colors.surfaceAlt,
-                  borderColor: tokens.colors.border,
-                  shadowColor: tokens.colors.shadow,
-                  maxWidth: Math.round(size * 0.6),
-                },
-              ]}
-            >
-              <MaterialCommunityIcons name="lock" size={14} color={tokens.colors.success} />
-              <Text
-                style={[styles.lockedChipText, { color: tokens.colors.success, marginLeft: 4 }]}
-                numberOfLines={1}
-                ellipsizeMode="tail"
-              >
-                LOCKED
-              </Text>
-            </View>
-          ) : (
-            <View
-              style={[
-                styles.windLabel,
-                { backgroundColor: tokens.colors.surfaceAlt },
-              ]}
-            >
-              <MaterialCommunityIcons name="crosshairs-gps" size={14} color={tokens.colors.textMuted} style={{ marginRight: 4 }} />
-              <Text
+        {showStatusLabel && (
+          <View
+            pointerEvents="none"
+            style={[styles.windLabelContainer, { top: Math.max(size * 0.28, 58) }]}
+            accessibilityRole="text"
+            accessibilityLabel={
+              isLocked
+                ? `Locked at ${Math.round(referenceHeading)} degrees`
+                : `Point device at target to lock direction`
+            }
+          >
+            {isLocked ? (
+              <View
                 style={[
-                  styles.windLabelText,
-                  { color: tokens.colors.textMuted },
+                  styles.lockedChip,
+                  {
+                    backgroundColor: tokens.colors.surfaceAlt,
+                    borderColor: tokens.colors.border,
+                    shadowColor: tokens.colors.shadow,
+                    maxWidth: Math.round(size * 0.6),
+                  },
                 ]}
               >
-                POINT AT TARGET
-              </Text>
-            </View>
-          )}
-        </View>
+                <MaterialCommunityIcons name="lock" size={14} color={tokens.colors.success} />
+                <Text
+                  style={[styles.lockedChipText, { color: tokens.colors.success, marginLeft: 4 }]}
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
+                >
+                  LOCKED
+                </Text>
+              </View>
+            ) : (
+              <View
+                style={[
+                  styles.windLabel,
+                  { backgroundColor: tokens.colors.surfaceAlt },
+                ]}
+              >
+                <MaterialCommunityIcons name="crosshairs-gps" size={14} color={tokens.colors.textMuted} style={{ marginRight: 4 }} />
+                <Text
+                  style={[
+                    styles.windLabelText,
+                    { color: tokens.colors.textMuted },
+                  ]}
+                >
+                  POINT AT TARGET
+                </Text>
+              </View>
+            )}
+          </View>
+        )}
 
         {!hideLockButton && (
           <LockButton

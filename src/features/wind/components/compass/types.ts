@@ -15,6 +15,10 @@ export interface WindDirectionCompassProps {
   speedUnit?: string;
   /** Hide the internal lock button (when using ActionBar instead) */
   hideLockButton?: boolean;
+  /** Show the internal status label inside the compass */
+  showStatusLabel?: boolean;
+  /** Show the accuracy indicator overlay */
+  showAccuracyIndicator?: boolean;
 }
 
 export interface DegreeMarksProps {
