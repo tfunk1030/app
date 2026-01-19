@@ -5,7 +5,7 @@
  * Memoized with proportional scaling and North prominence.
  */
 import React from 'react';
-import { View, Text } from 'react-native';
+import { View, Text, TextStyle } from 'react-native';
 import {
   getCompassProgressiveFeatures,
   getCardinalDirectionStyles,
@@ -101,7 +101,7 @@ const CardinalDirections: React.FC<CardinalDirectionsProps> = ({
                         ? textColor // Changed from subTextColor for better contrast
                         : subTextColor,
                       fontSize: directionStyles.fontSize * nFontScale,
-                      fontWeight: directionStyles.fontWeight as any,
+                      fontWeight: directionStyles.fontWeight as TextStyle['fontWeight'],
                       // Higher opacity for better outdoor readability
                       opacity: isMainDirection ? 1 : directionStyles.opacity,
                     },
