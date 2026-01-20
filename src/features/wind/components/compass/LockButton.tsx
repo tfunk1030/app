@@ -3,9 +3,15 @@
  *
  * Button to lock/unlock the compass direction for wind calculations.
  * Includes haptic feedback, animations, and accessibility support.
+ * Uses react-native-reanimated for UI-thread animations.
  */
 import React from 'react';
-import { View, Pressable, Platform, Animated, StyleSheet, useWindowDimensions } from 'react-native';
+import { View, Pressable, Platform, StyleSheet } from 'react-native';
+import Animated, {
+  useAnimatedStyle,
+  interpolate,
+  SharedValue,
+} from 'react-native-reanimated';
 import { BlurView } from 'expo-blur';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { getLockButtonMetrics } from '@/src/utils/responsive';
@@ -23,11 +29,13 @@ interface LockButtonProps {
       surface: string;
       border: string;
       shadow: string;
+      shadowAlpha: string;
       textPrimary: string;
+      ripple: string;
     };
   };
   mode: string; // 'light' | 'dark' | 'system' - only 'dark' check is used
-  pulseAnim: Animated.Value;
+  pulseAnim: SharedValue<number>;
   /** Which side to position the button - based on dominant hand */
   side?: 'left' | 'right';
 }
@@ -43,9 +51,21 @@ const LockButton: React.FC<LockButtonProps> = ({
 }) => {
   const reduceMotion = useReduceMotionValue();
   const reduceTransparency = useReduceTransparencyValue();
-  const rippleColor = mode === 'dark' ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)';
+  const rippleColor = tokens.colors.ripple;
   const lockMetrics = getLockButtonMetrics(compassSize, side);
   const glowSize = lockMetrics.size + 8;
+
+  // Animated style for outer glow ring
+  const outerGlowAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(pulseAnim.value, [1, 1.08], [0.6, 0.2]),
+    transform: [{ scale: pulseAnim.value }],
+  }));
+
+  // Animated style for lock pulse overlay
+  const lockPulseAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(pulseAnim.value, [1, 1.08], [0.1, 0]),
+    transform: [{ scale: pulseAnim.value }],
+  }));
 
   return (
     <View
@@ -70,12 +90,8 @@ const LockButton: React.FC<LockButtonProps> = ({
               height: glowSize,
               borderRadius: glowSize / 2,
               borderColor: tokens.colors.success,
-              opacity: pulseAnim.interpolate({
-                inputRange: [1, 1.08],
-                outputRange: [0.6, 0.2],
-              }),
-              transform: [{ scale: pulseAnim }],
             },
+            outerGlowAnimatedStyle,
           ]}
         />
       )}
@@ -110,7 +126,7 @@ const LockButton: React.FC<LockButtonProps> = ({
               // CSS boxShadow (New Architecture)
               boxShadow: isLocked
                 ? `0 4px 12px ${tokens.colors.success}4D` // 30% opacity
-                : `0 2px 8px rgba(0, 0, 0, 0.1)`,
+                : `0 2px 8px ${tokens.colors.shadowAlpha}`,
             },
           ]}
         >
@@ -122,19 +138,15 @@ const LockButton: React.FC<LockButtonProps> = ({
               <BlurView intensity={15} style={StyleSheet.absoluteFill} />
             )
           )}
-          {isLocked && (
+          {isLocked && !reduceMotion && (
             <Animated.View
               style={[
                 StyleSheet.absoluteFill,
                 styles.lockPulse,
                 {
                   backgroundColor: tokens.colors.success,
-                  opacity: pulseAnim.interpolate({
-                    inputRange: [1, 1.08],
-                    outputRange: [0.1, 0],
-                  }),
-                  transform: [{ scale: pulseAnim }],
                 },
+                lockPulseAnimatedStyle,
               ]}
             />
           )}
