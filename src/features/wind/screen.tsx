@@ -495,11 +495,13 @@ function WindCalculatorComponent() {
           onPress={handleCalculate}
           variant="neon"
           size="lg"
-          glow
+          glow={!isLoading}
+          disabled={isLoading}
           style={styles.calculateButton}
+          accessibilityLabel={isLoading ? 'Calculating wind effect' : 'Calculate wind effect'}
           accessibilityHint="Calculates wind effect based on current settings"
         >
-          Calculate Wind Effect
+          {isLoading ? 'Calculating...' : 'Calculate Wind Effect'}
         </Button>
       </Animated.View>
 

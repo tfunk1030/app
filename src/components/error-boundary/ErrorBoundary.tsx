@@ -163,8 +163,10 @@ export function DefaultErrorFallback({ error, resetError }: ErrorFallbackProps) 
         <Pressable
           style={[styles.button, { backgroundColor: t.colors.brand }]}
           onPress={resetError}
+          accessibilityRole="button"
+          accessibilityLabel="Try again to recover from error"
         >
-          <Text style={[styles.buttonText, { color: t.colors.textPrimary }]}>Try Again</Text>
+          <Text style={[styles.buttonText, { color: t.colors.onBrand }]}>Try Again</Text>
         </Pressable>
       </View>
     </SafeAreaView>

@@ -28,7 +28,8 @@
         }
       ],
       "expo-font",
-      "expo-web-browser"
+      "expo-web-browser",
+      "@react-native-community/datetimepicker"
     ],
     "ios": {
       "supportsTablet": false,
@@ -39,7 +40,11 @@
         "aps-environment": "production",
         "NSCompassUsageDescription": "This app uses the compass to provide directional information",
         "NSMotionUsageDescription": "This app uses the compass to provide directional information",
-        "UIRequiredDeviceCapabilities": ["gyroscope", "magnetometer", "accelerometer"],
+        "UIRequiredDeviceCapabilities": [
+          "gyroscope",
+          "magnetometer",
+          "accelerometer"
+        ],
         "NSLocationWhenInUseUsageDescription": "AICaddyPro needs access to your location to provide accurate weather conditions and environmental data for your golf game.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "AICaddyPro needs access to your location to provide accurate weather conditions and environmental data for your golf game.",
         "NSLocationAlwaysUsageDescription": "AICaddyPro needs access to your location to provide accurate weather conditions and environmental data for your golf game."
@@ -59,8 +64,7 @@
       "favicon": "./assets/images/favicon.png"
     },
     "experiments": {
-      "typedRoutes": true,
-      "reactCompiler": true
+      "typedRoutes": true
     },
     "extra": {
       "router": {

@@ -2,7 +2,7 @@ Project rules for AI edits (Cursor)
 
 Overview
 
-- Stack: Expo (SDK 53), React Native 0.79.x, React 19, expo-router 5.
+- Stack: Expo (SDK 55 canary), React Native 0.83.1, React 19.2, expo-router 7.
 - Single app root: aicaddypro/ (do not write/edit files outside this folder unless explicitly asked).
 - Path alias: use `@/` for imports (configured in tsconfig). Do not use long relative paths.
 
@@ -50,11 +50,18 @@ State/Data
 - Throttle/queue sensor or periodic updates using `ThrottleManager`. Do not implement ad-hoc polling.
 - Avoid direct fetches in components. Add logic under `src/services/*` and call from hooks/providers.
 
+Styling System
+
+- Use custom design tokens from `src/theme/tokens.ts` - NOT NativeWind/Tailwind.
+- Access tokens via: `const t = useTokens();` from `@/src/theme/useTokens`.
+- Memoize styles: `useMemo(() => ({ ... }), [t])`.
+- Dark mode is automatic via the token system.
+
 Performance
 
 - Use `ProgressiveLoader` and `SkeletonLoader` for async UI states where applicable.
 - Memoize heavy/pure components (`memo`, `useMemo`, `useCallback`).
-- Avoid unnecessary animations; if needed, prefer Reanimated 3 patterns.
+- Avoid unnecessary animations; if needed, prefer Reanimated 4 patterns.
 
 Testing
 

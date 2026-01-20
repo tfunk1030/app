@@ -99,11 +99,16 @@ export function SettingsProvider({ children }: Readonly<{ children: React.ReactN
   // Use reducer instead of useState for more predictable state updates
   const [settings, dispatch] = React.useReducer(settingsReducer, defaultSettings);
 
+  // Track mount state to prevent async operations after unmount
+  const isMountedRef = React.useRef(true);
+
   React.useEffect(() => {
+    isMountedRef.current = true;
+
     const loadSettings = async () => {
       try {
         const saved = await AsyncStorage.getItem('userSettings');
-        if (saved) {
+        if (saved && isMountedRef.current) {
           const parsedSettings = JSON.parse(saved);
           // Initialize with saved settings
           dispatch({ type: 'INITIALIZE', settings: { ...defaultSettings, ...parsedSettings } });
@@ -113,6 +118,10 @@ export function SettingsProvider({ children }: Readonly<{ children: React.ReactN
       }
     };
     loadSettings();
+
+    return () => {
+      isMountedRef.current = false;
+    };
   }, []);
 
   const updateSettings = async (newSettings: Partial<Settings>) => {
@@ -126,11 +135,14 @@ export function SettingsProvider({ children }: Readonly<{ children: React.ReactN
         await AsyncStorage.setItem('userSettings', JSON.stringify(updated));
       } catch (error) {
         console.error('Failed to save settings to AsyncStorage:', error);
-        errorNotificationService.showToast({
-          message: 'Could not save settings. Changes may not persist.',
-          type: 'warning',
-          duration: 4000,
-        });
+        // Only show toast if still mounted
+        if (isMountedRef.current) {
+          errorNotificationService.showToast({
+            message: 'Could not save settings. Changes may not persist.',
+            type: 'warning',
+            duration: 4000,
+          });
+        }
       }
     } catch (error) {
       console.error('Failed to update settings:', error);

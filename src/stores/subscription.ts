@@ -182,8 +182,8 @@ function getErrorMessage(error: PurchasesError): string {
 /**
  * Subscription Zustand store
  */
-// TESTING: Set to true to bypass premium lock
-const FORCE_PREMIUM_BYPASS = true;
+// Only allow premium bypass in development when explicitly enabled via env var
+const FORCE_PREMIUM_BYPASS = __DEV__ && process.env.EXPO_PUBLIC_DEV_PREMIUM === 'true';
 
 export const useSubscription = create<SubscriptionState>((set, get) => ({
   status: 'unknown',

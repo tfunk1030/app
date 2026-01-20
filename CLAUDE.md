@@ -61,9 +61,35 @@ React Native golf application with weather-based shot calculations, GPS course m
 ## Architecture
 - Framework: React Native 0.83.1 with Expo SDK 55 (canary)
 - Routing: Expo Router 7.0.0 with native tabs (iOS)
-- Styling: NativeWind v4 (Tailwind for React Native)
+- Styling: Custom design tokens (src/theme/tokens.ts)
 - State: Zustand for global state
 - Payments: RevenueCat for subscriptions
+
+## Styling System
+- **NOT NativeWind/Tailwind** - Uses custom design tokens
+- Token file: `src/theme/tokens.ts` (724 lines)
+- Usage: `const t = useTokens();` from `@/src/theme/useTokens`
+- Tokens include: colors, spacing (8pt grid), shadows, typography, animation, borderRadius
+- Light/dark themes built-in via `lightTokens` and `darkTokens`
+
+### Token Usage Pattern
+```typescript
+import { useTokens } from '@/src/theme/useTokens';
+
+export default function MyComponent() {
+  const t = useTokens();
+
+  const styles = useMemo(() => ({
+    container: {
+      backgroundColor: t.colors.surface,
+      padding: t.spacing.md,
+      borderRadius: t.borderRadius.lg,
+    }
+  }), [t]);
+
+  return <View style={styles.container}>...</View>;
+}
+```
 
 ## Current Focus
 Wind screen polish per `docs/current/AICaddyPro-Action-Plan.md`
@@ -85,13 +111,14 @@ Wind screen polish per `docs/current/AICaddyPro-Action-Plan.md`
 | Wind Screen | `src/features/wind/screen.tsx` |
 | Compass | `src/features/wind/components/WindDirectionCompass.tsx` |
 | Theme | `src/theme/tokens.ts` |
+| Theme Hook | `src/theme/useTokens.ts` |
 | Master Doc | `docs/MASTER.md` |
 
 ## Code Style Requirements
 - TypeScript everywhere - no any types (use unknown if needed)
 - File naming: kebab-case (e.g., course-card.tsx)
 - Import paths: Use @/ alias
-- Components: Functional only, typed with React.FC<Props>
+- Components: Functional only, with typed props interfaces (NOT React.FC)
 - Lists: Use FlashList for >20 items
 
 ## Design System

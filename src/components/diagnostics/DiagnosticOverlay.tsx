@@ -382,11 +382,21 @@ export const DiagnosticOverlay: React.FC<DiagnosticOverlayProps> = ({ isVisible,
       style={[styles.container, isExpanded ? styles.expandedContainer : styles.collapsedContainer]}
     >
       <View style={styles.header}>
-        <Pressable onPress={toggleExpanded} style={styles.expandButton}>
+        <Pressable
+          onPress={toggleExpanded}
+          style={styles.expandButton}
+          accessibilityRole="button"
+          accessibilityLabel={isExpanded ? 'Collapse diagnostics panel' : 'Expand diagnostics panel'}
+        >
           <Text style={styles.expandButtonText}>{isExpanded ? '▼' : '▲'}</Text>
         </Pressable>
         <Text style={styles.title}>Diagnostic Mode</Text>
-        <Pressable onPress={onClose} style={styles.closeButton}>
+        <Pressable
+          onPress={onClose}
+          style={styles.closeButton}
+          accessibilityRole="button"
+          accessibilityLabel="Close diagnostics panel"
+        >
           <Text style={styles.closeButtonText}>✕</Text>
         </Pressable>
       </View>
@@ -517,14 +527,22 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   expandButton: {
-    padding: 5,
+    padding: 12,
+    minWidth: 48,
+    minHeight: 48,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   expandButtonText: {
     color: tokens.colors.textPrimary,
     fontSize: scaledFontSize(16),
   },
   closeButton: {
-    padding: 5,
+    padding: 12,
+    minWidth: 48,
+    minHeight: 48,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   closeButtonText: {
     color: tokens.colors.textPrimary,

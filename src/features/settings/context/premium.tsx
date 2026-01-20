@@ -42,8 +42,8 @@ interface PremiumContextType {
   isInitialized: boolean;
 }
 
-// TESTING: Matches FORCE_PREMIUM_BYPASS in subscription store
-const FORCE_PREMIUM_BYPASS = true;
+// Only allow premium bypass in development when explicitly enabled via env var
+const FORCE_PREMIUM_BYPASS = __DEV__ && process.env.EXPO_PUBLIC_DEV_PREMIUM === 'true';
 
 const PremiumContext = createContext<PremiumContextType>({
   isPremium: FORCE_PREMIUM_BYPASS || __DEV__, // Premium enabled in dev mode
