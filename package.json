@@ -73,7 +73,7 @@
     "@storybook/addon-ondevice-controls": "^10.1.11",
     "@storybook/react-native": "^10.1.11",
     "babel-loader": "^8.4.1",
-    "expo": "^55.0.0-canary-20260114-d8e19f5",
+    "expo": "55.0.0-canary-20260114-d8e19f5",
     "expo-blur": "16.0.0-canary-20260114-d8e19f5",
     "expo-constants": "18.1.0-canary-20260114-d8e19f5",
     "expo-dev-client": "6.1.0-canary-20260114-d8e19f5",
