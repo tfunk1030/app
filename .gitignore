@@ -54,3 +54,9 @@ nul
 expo-env.d.ts
 # @end expo-cli
 *:Zone.Identifier
+
+# Claude Task System - Task worktrees (each task folder is a git worktree)
+task-system/tasks/*/
+
+*storybook.log
+storybook-static
