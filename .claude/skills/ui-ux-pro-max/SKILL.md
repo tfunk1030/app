@@ -1,420 +1,351 @@
 ---
 name: ui-ux-pro-max
-description: "Decision Theory v5 Hybrid UI/UX skill with MDP formalization, modal logic constraints, and formal verification. React Native optimized for AICaddyPro."
-version: 5.1-hybrid
-stack: react-native
-triggers:
-  - "design UI"
-  - "build component"
-  - "create screen"
-  - "review design"
-  - "fix UI"
-  - "improve UX"
-  - "accessibility audit"
+description: "UI/UX design intelligence. 50 styles, 21 palettes, 50 font pairings, 20 charts, 9 stacks (React, Next.js, Vue, Svelte, SwiftUI, React Native, Flutter, Tailwind, shadcn/ui). Actions: plan, build, create, design, implement, review, fix, improve, optimize, enhance, refactor, check UI/UX code. Projects: website, landing page, dashboard, admin panel, e-commerce, SaaS, portfolio, blog, mobile app, .html, .tsx, .vue, .svelte. Elements: button, modal, navbar, sidebar, card, table, form, chart. Styles: glassmorphism, claymorphism, minimalism, brutalism, neumorphism, bento grid, dark mode, responsive, skeuomorphism, flat design. Topics: color palette, accessibility, animation, layout, typography, font pairing, spacing, hover, shadow, gradient. Integrations: shadcn/ui MCP for component search and examples."
 ---
 
-# UI/UX Pro Max v5.1 Hybrid
+# UI/UX Pro Max - Design Intelligence
 
-Decision Theory formalization of UI/UX design intelligence with formal verification.
+Comprehensive design guide for web and mobile applications. Contains 50+ styles, 97 color palettes, 57 font pairings, 99 UX guidelines, and 25 chart types across 9 technology stacks. Searchable database with priority-based recommendations.
 
-## Initiation (I)
+## When to Apply
 
-**Activate this skill when user request matches:**
+Reference these guidelines when:
+- Designing new UI components or pages
+- Choosing color palettes and typography
+- Reviewing code for UX issues
+- Building landing pages or dashboards
+- Implementing accessibility requirements
 
-| Pattern | Examples |
-|---------|----------|
-| Design/Build verbs | "design a dashboard", "build a landing page", "create a modal" |
-| Review/Audit verbs | "review this component", "audit accessibility", "check design" |
-| Fix/Improve verbs | "fix the spacing", "improve contrast", "make it responsive" |
-| UI/UX keywords | "button", "form", "navbar", "card", "table", "chart" |
-| Style keywords | "glassmorphism", "dark mode", "minimalist", "professional" |
+## Rule Categories by Priority
 
-**Prerequisites check:**
+| Priority | Category | Impact | Domain |
+|----------|----------|--------|--------|
+| 1 | Accessibility | CRITICAL | `ux` |
+| 2 | Touch & Interaction | CRITICAL | `ux` |
+| 3 | Performance | HIGH | `ux` |
+| 4 | Layout & Responsive | HIGH | `ux` |
+| 5 | Typography & Color | MEDIUM | `typography`, `color` |
+| 6 | Animation | MEDIUM | `ux` |
+| 7 | Style Selection | MEDIUM | `style`, `product` |
+| 8 | Charts & Data | LOW | `chart` |
+
+## Quick Reference
+
+### 1. Accessibility (CRITICAL)
+
+- `color-contrast` - Minimum 4.5:1 ratio for normal text
+- `focus-states` - Visible focus rings on interactive elements
+- `alt-text` - Descriptive alt text for meaningful images
+- `aria-labels` - aria-label for icon-only buttons
+- `keyboard-nav` - Tab order matches visual order
+- `form-labels` - Use label with for attribute
+
+### 2. Touch & Interaction (CRITICAL)
+
+- `touch-target-size` - Minimum 44x44px touch targets
+- `hover-vs-tap` - Use click/tap for primary interactions
+- `loading-buttons` - Disable button during async operations
+- `error-feedback` - Clear error messages near problem
+- `cursor-pointer` - Add cursor-pointer to clickable elements
+
+### 3. Performance (HIGH)
+
+- `image-optimization` - Use WebP, srcset, lazy loading
+- `reduced-motion` - Check prefers-reduced-motion
+- `content-jumping` - Reserve space for async content
+
+### 4. Layout & Responsive (HIGH)
+
+- `viewport-meta` - width=device-width initial-scale=1
+- `readable-font-size` - Minimum 16px body text on mobile
+- `horizontal-scroll` - Ensure content fits viewport width
+- `z-index-management` - Define z-index scale (10, 20, 30, 50)
+
+### 5. Typography & Color (MEDIUM)
+
+- `line-height` - Use 1.5-1.75 for body text
+- `line-length` - Limit to 65-75 characters per line
+- `font-pairing` - Match heading/body font personalities
+
+### 6. Animation (MEDIUM)
+
+- `duration-timing` - Use 150-300ms for micro-interactions
+- `transform-performance` - Use transform/opacity, not width/height
+- `loading-states` - Skeleton screens or spinners
+
+### 7. Style Selection (MEDIUM)
+
+- `style-match` - Match style to product type
+- `consistency` - Use same style across all pages
+- `no-emoji-icons` - Use SVG icons, not emojis
+
+### 8. Charts & Data (LOW)
+
+- `chart-type` - Match chart type to data type
+- `color-guidance` - Use accessible color palettes
+- `data-table` - Provide table alternative for accessibility
+
+## How to Use
+
+Search specific domains using the CLI tool below.
+
+---
+
+## Prerequisites
+
+Check if Python is installed:
+
 ```bash
-python3 --version || echo "Python required for search.py"
+python3 --version || python --version
 ```
 
----
+If Python is not installed, install it based on user's OS:
 
-## Observation Space (Y)
-
-**What the agent observes/tracks during episode:**
-
-### Phase State (Fully Observable)
-```
-Y_phase ∈ {S_init, S_analyze, S_search, S_synthesize, S_implement, S_verify, S_deliver}
-```
-
-### State Variables (Partially Observable)
-| Variable | Domain | Observability |
-|----------|--------|---------------|
-| `product_type` | {SaaS, e-commerce, portfolio, dashboard, landing, mobile} | Extracted from request |
-| `style_keywords[]` | {minimal, playful, professional, elegant, dark, bold} | Extracted from request |
-| `industry` | {healthcare, fintech, gaming, education, beauty, golf} | May be implicit |
-| `stack` | {react-native, react, nextjs, vue, svelte, flutter} | Default: react-native |
-| `search_results{}` | Domain knowledge accumulated | Observable after search |
-| `checklist_status{}` | Pass/fail per item | Observable after verify |
-| `confidence` | [0, 1] | Belief state estimate |
-
-### POMDP Hidden State
-- User's true aesthetic preferences (partially hidden)
-- Search completeness (no formal metric)
-- Final user satisfaction (revealed only at delivery)
-
----
-
-## Action Space (U)
-
-### Phase 1: Analysis Actions
-```python
-U_analyze = {
-    extract_product_type(request),
-    extract_style_keywords(request),
-    extract_industry(request),
-    detect_stack(request)  # Default: react-native for this project
-}
-```
-
-### Phase 2: Search Actions
-```python
-U_search = {
-    search(keyword, domain)  # domain ∈ {product, style, typography, color, landing, chart, ux, prompt}
-    search(keyword, stack)   # stack ∈ {react-native, react, nextjs, vue, svelte, swiftui, flutter}
-}
-```
-
-**Search command:**
+**macOS:**
 ```bash
-python3 .claude/skills/ui-ux-pro-max/scripts/search.py "<keyword>" --domain <domain> [--stack react-native]
+brew install python3
 ```
 
-### Phase 3: Synthesis Actions
-```python
-U_synthesize = {
-    combine_results(),
-    resolve_conflicts()
-}
+**Ubuntu/Debian:**
+```bash
+sudo apt update && sudo apt install python3
 ```
 
-### Phase 4: Implementation Actions
-```python
-U_implement = {
-    generate_code(design_system, stack="react-native"),
-    apply_common_rules()
-}
-```
-
-### Phase 5: Verification Actions
-```python
-U_verify = {
-    check_accessibility(),    # Q = 0.95 (highest priority)
-    check_contrast(),         # Q = 0.90
-    check_light_dark(),       # Q = 0.85
-    check_touch_targets(),    # Q = 0.80 (React Native specific)
-    check_layout(),           # Q = 0.65
-    check_visual_quality(),   # Q = 0.60
-    check_interaction()       # Q = 0.50
-}
+**Windows:**
+```powershell
+winget install Python.Python.3.12
 ```
 
 ---
 
-## Policy (π)
+## How to Use This Skill
 
-**State → Action mapping rules:**
+When user requests UI/UX work (design, build, create, implement, review, fix, improve), follow this workflow:
 
-### π(S_init)
-```
-IF user_request_received THEN
-    transition_to(S_analyze)
-```
+### Step 1: Analyze User Requirements
 
-### π(S_analyze)
-```
-EXTRACT product_type FROM request
-EXTRACT style_keywords FROM request
-EXTRACT industry FROM request (or INFER from product_type)
-SET stack = "react-native" (project default)
+Extract key information from user request:
+- **Product type**: SaaS, e-commerce, portfolio, dashboard, landing page, etc.
+- **Style keywords**: minimal, playful, professional, elegant, dark mode, etc.
+- **Industry**: healthcare, fintech, gaming, education, etc.
+- **Stack**: React, Vue, Next.js, or default to `html-tailwind`
 
-IF confidence(requirements) < 0.6 THEN
-    ASK clarifying_question
-ELSE
-    transition_to(S_search)
+### Step 2: Generate Design System (REQUIRED)
+
+**Always start with `--design-system`** to get comprehensive recommendations with reasoning:
+
+```bash
+python3 .claude/skills/ui-ux-pro-max/scripts/search.py "<product_type> <industry> <keywords>" --design-system [-p "Project Name"]
 ```
 
-### π(S_search)
-```
-# Recommended search order (by Q-value)
-1. search(industry, domain=ux, keyword="accessibility")  # Q=0.90
-2. search(industry, domain=color)                         # Q=0.75
-3. search(industry, domain=typography)                    # Q=0.75
-4. search(product_type, domain=product)                   # Q=0.60
-5. search(style_keywords, domain=style)                   # Q=0.60
-6. search("layout responsive", stack=react-native)        # Stack-specific
+This command:
+1. Searches 5 domains in parallel (product, style, color, landing, typography)
+2. Applies reasoning rules from `ui-reasoning.csv` to select best matches
+3. Returns complete design system: pattern, style, colors, typography, effects
+4. Includes anti-patterns to avoid
 
-# Termination criterion (explicit)
-search_complete = (∀d ∈ required_domains: results[d].count ≥ 1)
-
-IF search_complete THEN transition_to(S_synthesize)
-ELSE search_next_domain()
+**Example:**
+```bash
+python3 .claude/skills/ui-ux-pro-max/scripts/search.py "beauty spa wellness service" --design-system -p "Serenity Spa"
 ```
 
-### π(S_synthesize)
-```
-design_system = combine_results(search_results)
-IF conflicts_detected THEN resolve_conflicts(industry_priority)
-transition_to(S_implement)
+### Step 3: Supplement with Detailed Searches (as needed)
+
+After getting the design system, use domain searches to get additional details:
+
+```bash
+python3 .claude/skills/ui-ux-pro-max/scripts/search.py "<keyword>" --domain <domain> [-n <max_results>]
 ```
 
-### π(S_implement)
-```
-code = generate_code(design_system, stack="react-native")
-apply_common_rules(code)
-transition_to(S_verify)
+**When to use detailed searches:**
+
+| Need | Domain | Example |
+|------|--------|---------|
+| More style options | `style` | `--domain style "glassmorphism dark"` |
+| Chart recommendations | `chart` | `--domain chart "real-time dashboard"` |
+| UX best practices | `ux` | `--domain ux "animation accessibility"` |
+| Alternative fonts | `typography` | `--domain typography "elegant luxury"` |
+| Landing structure | `landing` | `--domain landing "hero social-proof"` |
+
+### Step 4: Stack Guidelines (Default: html-tailwind)
+
+Get implementation-specific best practices. If user doesn't specify a stack, **default to `html-tailwind`**.
+
+```bash
+python3 .claude/skills/ui-ux-pro-max/scripts/search.py "<keyword>" --stack html-tailwind
 ```
 
-### π(S_verify) - Fail-Fast Order by Q-Value
-```
-# Run checks in Q-value order (highest first)
-FOR check IN [accessibility, contrast, light_dark, touch_targets, layout, visual, interaction]:
-    result = run_check(check)
-    IF result == FAIL THEN
-        fix_violation(check)
-        loop_count += 1
-        IF loop_count > 5 THEN
-            TERMINAL(τ_loop_limit)
-        ELSE
-            transition_to(S_implement)  # Retry
+Available stacks: `html-tailwind`, `react`, `nextjs`, `vue`, `svelte`, `swiftui`, `react-native`, `flutter`, `shadcn`
 
-IF all_checks_pass THEN transition_to(S_deliver)
+---
+
+## Search Reference
+
+### Available Domains
+
+| Domain | Use For | Example Keywords |
+|--------|---------|------------------|
+| `product` | Product type recommendations | SaaS, e-commerce, portfolio, healthcare, beauty, service |
+| `style` | UI styles, colors, effects | glassmorphism, minimalism, dark mode, brutalism |
+| `typography` | Font pairings, Google Fonts | elegant, playful, professional, modern |
+| `color` | Color palettes by product type | saas, ecommerce, healthcare, beauty, fintech, service |
+| `landing` | Page structure, CTA strategies | hero, hero-centric, testimonial, pricing, social-proof |
+| `chart` | Chart types, library recommendations | trend, comparison, timeline, funnel, pie |
+| `ux` | Best practices, anti-patterns | animation, accessibility, z-index, loading |
+| `react` | React/Next.js performance | waterfall, bundle, suspense, memo, rerender, cache |
+| `web` | Web interface guidelines | aria, focus, keyboard, semantic, virtualize |
+| `prompt` | AI prompts, CSS keywords | (style name) |
+
+### Available Stacks
+
+| Stack | Focus |
+|-------|-------|
+| `html-tailwind` | Tailwind utilities, responsive, a11y (DEFAULT) |
+| `react` | State, hooks, performance, patterns |
+| `nextjs` | SSR, routing, images, API routes |
+| `vue` | Composition API, Pinia, Vue Router |
+| `svelte` | Runes, stores, SvelteKit |
+| `swiftui` | Views, State, Navigation, Animation |
+| `react-native` | Components, Navigation, Lists |
+| `flutter` | Widgets, State, Layout, Theming |
+| `shadcn` | shadcn/ui components, theming, forms, patterns |
+
+---
+
+## Example Workflow
+
+**User request:** "Làm landing page cho dịch vụ chăm sóc da chuyên nghiệp"
+
+### Step 1: Analyze Requirements
+- Product type: Beauty/Spa service
+- Style keywords: elegant, professional, soft
+- Industry: Beauty/Wellness
+- Stack: html-tailwind (default)
+
+### Step 2: Generate Design System (REQUIRED)
+
+```bash
+python3 .claude/skills/ui-ux-pro-max/scripts/search.py "beauty spa wellness service elegant" --design-system -p "Serenity Spa"
 ```
 
-### π(S_deliver)
+**Output:** Complete design system with pattern, style, colors, typography, effects, and anti-patterns.
+
+### Step 3: Supplement with Detailed Searches (as needed)
+
+```bash
+# Get UX guidelines for animation and accessibility
+python3 .claude/skills/ui-ux-pro-max/scripts/search.py "animation accessibility" --domain ux
+
+# Get alternative typography options if needed
+python3 .claude/skills/ui-ux-pro-max/scripts/search.py "elegant luxury serif" --domain typography
 ```
-OUTPUT code
-TERMINAL(τ_deliver)
+
+### Step 4: Stack Guidelines
+
+```bash
+python3 .claude/skills/ui-ux-pro-max/scripts/search.py "layout responsive form" --stack html-tailwind
+```
+
+**Then:** Synthesize design system + detailed searches and implement the design.
+
+---
+
+## Output Formats
+
+The `--design-system` flag supports two output formats:
+
+```bash
+# ASCII box (default) - best for terminal display
+python3 .claude/skills/ui-ux-pro-max/scripts/search.py "fintech crypto" --design-system
+
+# Markdown - best for documentation
+python3 .claude/skills/ui-ux-pro-max/scripts/search.py "fintech crypto" --design-system -f markdown
 ```
 
 ---
 
-## Termination (β)
+## Tips for Better Results
 
-**Episode ends when:**
-
-### Success Terminals (τ⁺)
-| Terminal | Condition | Reward |
-|----------|-----------|--------|
-| τ_deliver | All checklist items PASS | +100 |
-| τ_user_accept | User confirms satisfaction | +50 |
-| τ_review_pass | No P0 issues, ≤2 P1 issues | +25 |
-
-### Failure Terminals (τ⁻)
-| Terminal | Condition | Reward |
-|----------|-----------|--------|
-| τ_prereq_fail | Python unavailable, user declines install | -10 |
-| τ_loop_limit | S_verify → S_implement loop > 5 times | -50 |
-| τ_search_exhaust | 3+ consecutive searches return 0 results | -20 |
-| τ_conflict | User requirements contradict a11y standards | -20 |
-
-**Formal termination:**
-```
-β(s) = TRUE iff:
-    (s = S_deliver ∧ ∀c: checklist[c] = PASS)
-    ∨ (loop_count > MAX_RETRIES)
-    ∨ (prereq_available = FALSE)
-```
+1. **Be specific with keywords** - "healthcare SaaS dashboard" > "app"
+2. **Search multiple times** - Different keywords reveal different insights
+3. **Combine domains** - Style + Typography + Color = Complete design system
+4. **Always check UX** - Search "animation", "z-index", "accessibility" for common issues
+5. **Use stack flag** - Get implementation-specific best practices
+6. **Iterate** - If first search doesn't match, try different keywords
 
 ---
 
-## Q-Heuristics
+## Common Rules for Professional UI
 
-**Action-value guidance for decision-making:**
+These are frequently overlooked issues that make UI look unprofessional:
 
-### Verification Priority (Fail-Fast Order)
-| Check | Q(s,a) | Rationale |
-|-------|--------|-----------|
-| `check_accessibility()` | 0.95 | Legal compliance, highest penalty |
-| `check_contrast()` | 0.90 | Most common a11y failure |
-| `check_light_dark()` | 0.85 | 50% of users see opposite mode |
-| `check_touch_targets()` | 0.80 | Golf app: gloves, outdoor use |
-| `check_layout()` | 0.65 | Responsive, no horizontal scroll |
-| `check_visual_quality()` | 0.60 | Icons, logos, hover states |
-| `check_interaction()` | 0.50 | Cursor, transitions (easy fixes) |
+### Icons & Visual Elements
 
-### Search Priority
-| Domain | Q(s,a) | Rationale |
-|--------|--------|-----------|
-| ux (accessibility) | 0.90 | Prevents critical failures |
-| color | 0.75 | Palette cascades everywhere |
-| typography | 0.75 | Font defines identity |
-| style | 0.60 | Good aesthetic guidance |
-| product | 0.60 | Sets initial direction |
-| chart | 0.30 | Context-conditional |
+| Rule | Do | Don't |
+|------|----|----- |
+| **No emoji icons** | Use SVG icons (Heroicons, Lucide, Simple Icons) | Use emojis like 🎨 🚀 ⚙️ as UI icons |
+| **Stable hover states** | Use color/opacity transitions on hover | Use scale transforms that shift layout |
+| **Correct brand logos** | Research official SVG from Simple Icons | Guess or use incorrect logo paths |
+| **Consistent icon sizing** | Use fixed viewBox (24x24) with w-6 h-6 | Mix different icon sizes randomly |
 
-### Reward Shaping
-| Good Action | Reward | Bad Action | Penalty |
-|-------------|--------|------------|---------|
-| Design token used | +1 | Hardcoded hex | -3 |
-| SVG icon | +1 | Emoji icon | -5 |
-| cursor-pointer | +1 | Missing cursor | -2 |
-| Contrast ≥4.5:1 | +2 | Contrast <4.5:1 | -10 |
-| Touch target ≥48dp | +2 | Touch target <48dp | -8 |
-| FlashList for >20 items | +2 | FlatList for >20 items | -5 |
-| Both modes tested | +2 | Single mode only | -4 |
+### Interaction & Cursor
 
----
+| Rule | Do | Don't |
+|------|----|----- |
+| **Cursor pointer** | Add `cursor-pointer` to all clickable/hoverable cards | Leave default cursor on interactive elements |
+| **Hover feedback** | Provide visual feedback (color, shadow, border) | No indication element is interactive |
+| **Smooth transitions** | Use `transition-colors duration-200` | Instant state changes or too slow (>500ms) |
 
-## Constraints
+### Light/Dark Mode Contrast
 
-### Temporal (□→ ordering)
-| ID | Constraint | Notation |
-|----|------------|----------|
-| T1 | Analyze BEFORE search | analyze □→ search |
-| T2 | Search BEFORE implement | search □→ implement |
-| T3 | Verify BEFORE deliver | verify □→ deliver |
-| T4 | Accessibility check FIRST in verify | a11y □→ other_checks |
+| Rule | Do | Don't |
+|------|----|----- |
+| **Glass card light mode** | Use `bg-white/80` or higher opacity | Use `bg-white/10` (too transparent) |
+| **Text contrast light** | Use `#0F172A` (slate-900) for text | Use `#94A3B8` (slate-400) for body text |
+| **Muted text light** | Use `#475569` (slate-600) minimum | Use gray-400 or lighter |
+| **Border visibility** | Use `border-gray-200` in light mode | Use `border-white/10` (invisible) |
 
-### Epistemic (K knowledge)
-| ID | Constraint | Notation |
-|----|------------|----------|
-| E1 | Must know product type | K(productType) |
-| E2 | Must know style keywords | K(styleKeywords) |
-| E3 | Must know contrast ratios | K(contrastRatio) |
-| E4 | Must know touch target sizes | K(touchTargetSize) |
+### Layout & Spacing
 
-### Deontic (O/F obligations)
-| ID | Constraint | Notation |
-|----|------------|----------|
-| **OBLIGATORY** | | |
-| D1 | Use SVG icons | O(SVGicons) |
-| D2 | Provide cursor-pointer | O(cursorPointer) |
-| D3 | Verify contrast | O(verifyContrast) |
-| D4 | Have accessibilityLabel | O(accessibilityLabel) |
-| D5 | Test both light/dark | O(testBothModes) |
-| D6 | Touch targets ≥48dp | O(touchTarget48dp) |
-| D7 | Use FlashList for >20 items | O(FlashList) |
-| **FORBIDDEN** | | |
-| D8 | Emoji as icons | F(emojiIcons) |
-| D9 | Scale hover transforms | F(scaleHover) |
-| D10 | Hardcoded colors | F(hardcodedColors) |
-| D11 | Horizontal scroll mobile | F(horizontalScroll) |
-| D12 | Guess brand logos | F(guessBrandLogo) |
-| D13 | FlatList for >20 items | F(FlatListLarge) |
-
----
-
-## Verification
-
-### Safety Properties (□¬bad)
-```
-□¬(emoji-as-icon)           # Never use emoji as UI icon
-□¬(contrast-below-4.5)      # Never ship low contrast
-□¬(touch-target-below-48dp) # Never ship small touch targets
-□¬(hardcoded-colors)        # Never hardcode hex values
-□¬(horizontal-scroll)       # Never have horizontal scroll on mobile
-□¬(missing-a11y-props)      # Never omit accessibilityLabel/Role
-□¬(FlatList-over-20)        # Never use FlatList for large lists
-□¬(content-behind-navbar)   # Never hide content behind fixed elements
-□¬(layout-shift-hover)      # Never cause layout shift on hover
-□¬(incorrect-logo)          # Never guess brand logos
-```
-
-### Liveness Properties (◇good)
-```
-◇(test-light-mode)          # Eventually test light mode
-◇(test-dark-mode)           # Eventually test dark mode
-◇(verify-breakpoints)       # Eventually verify responsive
-◇(a11y-audit-complete)      # Eventually complete accessibility audit
-◇(all-checklist-pass)       # Eventually pass all checklist items
-◇(severity-assigned)        # Eventually assign severity to issues
-◇(verdict-rendered)         # Eventually render PASS/FAIL verdict
-```
-
-### Consistency
-- Stack default: `react-native` (matches AICaddyPro project)
-- Contrast: 4.5:1 minimum (matches WCAG AA)
-- Touch targets: 48dp minimum, 56dp primary (matches CLAUDE.md)
-- Transition timing: 150-300ms (matches both skills)
-
-### Completeness
-- ✓ Touch target requirements (project-specific)
-- ✓ FlashList for large lists (project requirement)
-- ✓ Outdoor/sunlight readability consideration
-- ✓ One-handed thumb-zone operation
-- ✓ Glove-use larger targets (golf app specific)
+| Rule | Do | Don't |
+|------|----|----- |
+| **Floating navbar** | Add `top-4 left-4 right-4` spacing | Stick navbar to `top-0 left-0 right-0` |
+| **Content padding** | Account for fixed navbar height | Let content hide behind fixed elements |
+| **Consistent max-width** | Use same `max-w-6xl` or `max-w-7xl` | Mix different container widths |
 
 ---
 
 ## Pre-Delivery Checklist
 
-### Accessibility (P0 - Ship Blockers)
-- [ ] All interactive elements have `accessibilityLabel`
-- [ ] All interactive elements have `accessibilityRole`
-- [ ] Touch targets ≥48dp (56dp for primary actions)
-- [ ] Contrast ratio ≥4.5:1 for all text
-- [ ] `prefers-reduced-motion` / `useReducedMotion()` respected
-- [ ] Dynamic content announces via `AccessibilityInfo.announceForAccessibility`
+Before delivering UI code, verify these items:
 
-### Visual Quality (P1)
-- [ ] No emojis used as icons (use SVG: Heroicons, Lucide)
-- [ ] All icons from consistent set with fixed viewBox
-- [ ] Brand logos verified from Simple Icons
-- [ ] Hover states use color/opacity, not scale transforms
-- [ ] Theme colors used directly (not var() wrapper)
+### Visual Quality
+- [ ] No emojis used as icons (use SVG instead)
+- [ ] All icons from consistent icon set (Heroicons/Lucide)
+- [ ] Brand logos are correct (verified from Simple Icons)
+- [ ] Hover states don't cause layout shift
+- [ ] Use theme colors directly (bg-primary) not var() wrapper
 
-### Interaction (P1)
+### Interaction
 - [ ] All clickable elements have `cursor-pointer`
-- [ ] Transitions are 150-300ms or spring physics
+- [ ] Hover states provide clear visual feedback
+- [ ] Transitions are smooth (150-300ms)
 - [ ] Focus states visible for keyboard navigation
-- [ ] `hitSlop` used for undersized touch targets
 
-### Light/Dark Mode (P1)
-- [ ] Both modes tested before delivery
+### Light/Dark Mode
+- [ ] Light mode text has sufficient contrast (4.5:1 minimum)
 - [ ] Glass/transparent elements visible in light mode
 - [ ] Borders visible in both modes
-- [ ] Text contrast sufficient in both modes
+- [ ] Test both modes before delivery
 
-### Layout (P1)
-- [ ] Responsive at 320px, 768px, 1024px, 1440px
+### Layout
+- [ ] Floating elements have proper spacing from edges
+- [ ] No content hidden behind fixed navbars
+- [ ] Responsive at 375px, 768px, 1024px, 1440px
 - [ ] No horizontal scroll on mobile
-- [ ] Fixed elements don't hide content
-- [ ] One-handed thumb-zone operation verified
 
-### React Native Specific (P1)
-- [ ] FlashList used for lists >20 items
-- [ ] `accessibilityState` for dynamic states
-- [ ] Outdoor/sunlight readability considered
-- [ ] Glove-friendly touch target sizing
-
----
-
-## Review Output Format
-
-When running design review, output as table:
-
-| Issue | Severity | Location | Constraint | Fix |
-|-------|----------|----------|------------|-----|
-| (description) | P0/P1/P2 | file:line | D1-D13 | (action) |
-
-**Pass Criteria:**
-- ✓ PASS: No P0 issues AND ≤2 P1 issues
-- ✗ FAIL: Any P0 issue OR >2 P1 issues
-
----
-
-## Usage
-
-```bash
-# Search for design guidance
-python3 .claude/skills/ui-ux-pro-max/scripts/search.py "golf dashboard" --domain product
-python3 .claude/skills/ui-ux-pro-max/scripts/search.py "outdoor readability" --domain ux
-python3 .claude/skills/ui-ux-pro-max/scripts/search.py "accessibility" --stack react-native
-
-# Design review
-# (Use design-review skill or run checklist manually)
-```
-
----
-
-*Upgraded to v5.1 Hybrid on 2026-01-15 using Decision Theory + Modal Logic framework.*
-*Source analysis: LaValle (MDP), Sutton & Barto (RL), Blackburn (Modal), Huth & Ryan (Verification)*
+### Accessibility
+- [ ] All images have alt text
+- [ ] Form inputs have labels
+- [ ] Color is not the only indicator
+- [ ] `prefers-reduced-motion` respected

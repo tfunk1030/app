@@ -1,0 +1,295 @@
+# Ralphy Task Plan
+# Run with: ralphy run
+# These tasks define parallel analysis tracks for codebase review
+
+version: 1
+name: "AICaddyPro Codebase Analysis"
+created: 2026-01-18
+
+# Task definitions - can run in parallel
+tasks:
+
+  # ============================================================================
+  # TRACK 1: Architecture & Dependencies
+  # ============================================================================
+  - id: arch-analysis
+    name: "Architecture Analysis"
+    priority: high
+    parallel_group: 1
+    description: "Analyze codebase structure and dependency health"
+
+    steps:
+      - action: analyze
+        target: "app/_layout.tsx"
+        check: "Map provider hierarchy depth"
+
+      - action: analyze
+        target: "src/core/context/AppProvider.tsx"
+        check: "Verify provider order matches comments"
+
+      - action: search
+        pattern: "import.*from.*src/features"
+        scope: "src/features/"
+        check: "Find cross-feature imports (boundary violations)"
+
+      - action: search
+        pattern: "circular"
+        scope: "src/"
+        check: "Identify circular dependencies"
+
+    output:
+      file: ".ralphy/reports/arch-analysis.md"
+      format: markdown
+
+  # ============================================================================
+  # TRACK 2: Accessibility Audit
+  # ============================================================================
+  - id: a11y-audit
+    name: "Accessibility Audit"
+    priority: critical
+    parallel_group: 1
+    description: "WCAG 2.1 and React Native accessibility compliance"
+
+    steps:
+      - action: search
+        pattern: "<Pressable|<TouchableOpacity"
+        scope: "src/"
+        check: "Find all interactive elements"
+
+      - action: verify
+        pattern: "accessibilityRole"
+        scope: "src/features/wind/"
+        expect: "All Pressable/TouchableOpacity have accessibilityRole"
+
+      - action: verify
+        pattern: "accessibilityLabel"
+        scope: "src/features/wind/"
+        expect: "All interactive elements have accessibilityLabel"
+
+      - action: search
+        pattern: "minHeight.*[0-3][0-9]|height.*[0-3][0-9]"
+        scope: "src/"
+        check: "Find touch targets < 48dp"
+
+      - action: verify
+        pattern: "useReducedMotion|useReduceMotion"
+        scope: "src/features/wind/components/compass/"
+        expect: "Animated components respect reduce motion"
+
+      - action: search
+        pattern: "announceForAccessibility"
+        scope: "src/"
+        check: "Find dynamic announcements"
+
+    output:
+      file: ".ralphy/reports/a11y-audit.md"
+      format: markdown
+
+  # ============================================================================
+  # TRACK 3: Animation Compliance
+  # ============================================================================
+  - id: animation-review
+    name: "Animation Review"
+    priority: high
+    parallel_group: 1
+    description: "Verify reanimated usage and animation durations"
+
+    steps:
+      - action: search
+        pattern: "import.*Animated.*from 'react-native'"
+        scope: "src/"
+        check: "Find old Animated API usage (should be 0)"
+        expect_count: 0
+
+      - action: verify
+        pattern: "react-native-reanimated"
+        scope: "src/features/wind/components/compass/"
+        expect: "All compass animations use reanimated"
+
+      - action: search
+        pattern: "duration.*[4-9][0-9][0-9]|duration.*[0-9]{4}"
+        scope: "src/"
+        check: "Find animations > 300ms"
+
+      - action: verify
+        pattern: "withSpring|withTiming"
+        scope: "src/features/wind/components/compass/"
+        expect: "Using proper animation helpers"
+
+    output:
+      file: ".ralphy/reports/animation-review.md"
+      format: markdown
+
+  # ============================================================================
+  # TRACK 4: Design System Compliance
+  # ============================================================================
+  - id: design-system
+    name: "Design System Audit"
+    priority: medium
+    parallel_group: 1
+    description: "Check token usage and theming consistency"
+
+    steps:
+      - action: search
+        pattern: "#[0-9A-Fa-f]{6}|#[0-9A-Fa-f]{3}"
+        scope: "src/features/"
+        exclude: "*.test.*|*.stories.*"
+        check: "Find hardcoded hex colors"
+
+      - action: search
+        pattern: "padding.*[0-9]+|margin.*[0-9]+"
+        scope: "src/features/"
+        exclude: "tokens.ts"
+        check: "Find hardcoded spacing values"
+
+      - action: verify
+        pattern: "t\\.colors\\.|tokens\\.colors"
+        scope: "src/features/wind/screen.tsx"
+        expect: "Using token-based colors"
+
+      - action: verify
+        pattern: "t\\.spacing\\.|tokens\\.spacing"
+        scope: "src/features/wind/screen.tsx"
+        expect: "Using token-based spacing"
+
+    output:
+      file: ".ralphy/reports/design-system.md"
+      format: markdown
+
+  # ============================================================================
+  # TRACK 5: TypeScript Quality
+  # ============================================================================
+  - id: typescript-quality
+    name: "TypeScript Quality Check"
+    priority: high
+    parallel_group: 1
+    description: "Type safety and code quality"
+
+    steps:
+      - action: command
+        run: "npx tsc --noEmit"
+        check: "TypeScript compilation"
+        expect_exit: 0
+
+      - action: search
+        pattern: ":\\s*any\\b"
+        scope: "src/"
+        check: "Find 'any' type usage"
+        expect_count: 0
+
+      - action: search
+        pattern: "console\\.(log|warn|error)"
+        scope: "src/"
+        exclude: "LogManager.ts|logger.ts"
+        check: "Find console.log (should use LogManager)"
+
+      - action: search
+        pattern: "interface.*Props"
+        scope: "src/features/wind/"
+        check: "Verify component props have interfaces"
+
+    output:
+      file: ".ralphy/reports/typescript-quality.md"
+      format: markdown
+
+  # ============================================================================
+  # TRACK 6: Test Coverage
+  # ============================================================================
+  - id: test-coverage
+    name: "Test Coverage Analysis"
+    priority: high
+    parallel_group: 1
+    description: "Test health and coverage gaps"
+
+    steps:
+      - action: command
+        run: "npm test wind-colors"
+        check: "Run wind color tests"
+        expect_exit: 0
+
+      - action: search
+        pattern: "\\.test\\.tsx?$"
+        scope: "src/"
+        type: files
+        check: "List all test files"
+
+      - action: search
+        pattern: "\\.stories\\.tsx$"
+        scope: "src/"
+        type: files
+        check: "List all Storybook stories"
+
+      - action: verify
+        files:
+          - "src/features/wind/components/compass/WindArrow.stories.tsx"
+          - "src/features/wind/components/compass/LockButton.stories.tsx"
+        expect: "Key compass components have stories"
+
+    output:
+      file: ".ralphy/reports/test-coverage.md"
+      format: markdown
+
+# ============================================================================
+# Synthesis task - runs after parallel tasks complete
+# ============================================================================
+  - id: synthesis
+    name: "Synthesis Report"
+    priority: critical
+    depends_on:
+      - arch-analysis
+      - a11y-audit
+      - animation-review
+      - design-system
+      - typescript-quality
+      - test-coverage
+    description: "Aggregate findings and prioritize issues"
+
+    steps:
+      - action: aggregate
+        sources:
+          - ".ralphy/reports/arch-analysis.md"
+          - ".ralphy/reports/a11y-audit.md"
+          - ".ralphy/reports/animation-review.md"
+          - ".ralphy/reports/design-system.md"
+          - ".ralphy/reports/typescript-quality.md"
+          - ".ralphy/reports/test-coverage.md"
+
+      - action: prioritize
+        severity_levels:
+          P0: "Accessibility blockers, type errors, test failures"
+          P1: "Animation violations, design system drift"
+          P2: "Code quality, coverage gaps"
+
+    output:
+      file: ".ralphy/reports/synthesis.md"
+      format: markdown
+
+# ============================================================================
+# Success criteria
+# ============================================================================
+success_criteria:
+  arch-analysis:
+    - "No circular dependencies"
+    - "< 5 boundary violations"
+
+  a11y-audit:
+    - "All interactive elements have accessibilityRole"
+    - "All interactive elements have accessibilityLabel"
+    - "No touch targets < 48dp"
+
+  animation-review:
+    - "0 uses of old Animated API"
+    - "All durations ≤ 300ms"
+    - "All animations respect reduceMotion"
+
+  design-system:
+    - "< 10 hardcoded colors"
+    - "< 10 hardcoded spacing values"
+
+  typescript-quality:
+    - "0 TypeScript errors"
+    - "0 uses of 'any' type"
+
+  test-coverage:
+    - "All 41 wind-colors tests pass"
+    - "Key components have Storybook stories"
