@@ -182,9 +182,12 @@ function getErrorMessage(error: PurchasesError): string {
 /**
  * Subscription Zustand store
  */
+// TESTING: Set to true to bypass premium lock
+const FORCE_PREMIUM_BYPASS = true;
+
 export const useSubscription = create<SubscriptionState>((set, get) => ({
   status: 'unknown',
-  isPremium: __DEV__, // Default to premium in dev mode for testing
+  isPremium: FORCE_PREMIUM_BYPASS || __DEV__, // Default to premium in dev mode for testing
   isInitialized: false,
   isLoading: false,
   offerings: null,
@@ -209,7 +212,7 @@ export const useSubscription = create<SubscriptionState>((set, get) => ({
       // If no API key configured, skip initialization (dev mode)
       if (!apiKey) {
         logger.warn('RevenueCat API key not configured, skipping initialization');
-        set({ isInitialized: true, isPremium: __DEV__ });
+        set({ isInitialized: true, isPremium: FORCE_PREMIUM_BYPASS || __DEV__ });
         return;
       }
 
@@ -248,7 +251,7 @@ export const useSubscription = create<SubscriptionState>((set, get) => ({
       set({
         isInitialized: true,
         error: 'Failed to initialize purchases',
-        isPremium: __DEV__, // Fallback to dev mode behavior
+        isPremium: FORCE_PREMIUM_BYPASS || __DEV__, // Fallback with bypass support
       });
     }
   },

@@ -2,8 +2,8 @@
  * Redesign Theme Provider
  *
  * Provides theme context for the redesigned app with support for:
- * - Light mode (default)
- * - Dark mode (OLED optimized)
+ * - Dark mode (default, OLED optimized)
+ * - Light mode
  * - Outdoor mode (maximum contrast for sunlight)
  */
 
@@ -68,7 +68,7 @@ export function RedesignThemeProvider({
   initialMode,
 }: RedesignThemeProviderProps): React.ReactElement {
   const systemColorScheme = useColorScheme();
-  const [mode, setModeState] = useState<ThemeMode>(initialMode ?? 'light');
+  const [mode, setModeState] = useState<ThemeMode>(initialMode ?? 'dark');
   const [isLoaded, setIsLoaded] = useState(false);
 
   // Load saved theme preference

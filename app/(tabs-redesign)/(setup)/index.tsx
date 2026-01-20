@@ -41,7 +41,6 @@ import {
   HelpCircle,
   MessageSquare,
   Shield,
-  LayoutGrid,
   X,
   Activity,
   Database,
@@ -58,7 +57,6 @@ import { useSettings } from '@/src/core/context/settings';
 import { useClubSettings } from '@/src/features/settings/context/clubs';
 import { usePremium } from '@/src/features/settings/context/premium';
 import { ClubData } from '@/src/core/models/YardageModel';
-import { useNavigationPreference } from '@/src/stores/navigationPreference';
 
 // App URLs - replace with your hosted URLs
 const SUPPORT_URL = 'mailto:support@aicaddypro.com?subject=AICaddyPro%20Support';
@@ -109,9 +107,9 @@ const SectionHeader = memo(function SectionHeader({
       <View style={styles.sectionHeaderLeft}>
         {collapsible && (
           expanded ? (
-            <ChevronUp size={16} color={colors.textMuted} style={{ marginRight: 4 }} />
+            <ChevronUp size={16} color={colors.textMuted} style={styles.chevronIcon} />
           ) : (
-            <ChevronDown size={16} color={colors.textMuted} style={{ marginRight: 4 }} />
+            <ChevronDown size={16} color={colors.textMuted} style={styles.chevronIcon} />
           )
         )}
         <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>
@@ -134,7 +132,13 @@ const SectionHeader = memo(function SectionHeader({
 
   if (collapsible && onToggle) {
     return (
-      <Pressable onPress={onToggle} accessibilityRole="button" accessibilityState={{ expanded }}>
+      <Pressable
+        onPress={onToggle}
+        accessibilityRole="button"
+        accessibilityLabel={`${title} section, tap to ${expanded ? 'collapse' : 'expand'}`}
+        accessibilityState={{ expanded }}
+        style={styles.collapsibleHeader}
+      >
         {headerContent}
       </Pressable>
     );
@@ -272,34 +276,6 @@ const ThemeSelector = memo(function ThemeSelector({
         </Text>
       </Pressable>
     </View>
-  );
-});
-
-const NavigationStyleSection = memo(function NavigationStyleSection() {
-  const { colors } = useRedesignTheme();
-  const { cardEntering } = useAccessibleAnimations();
-  const { setStyle } = useNavigationPreference();
-
-  React.useEffect(() => {
-    setStyle('redesign');
-  }, [setStyle]);
-
-  return (
-    <Animated.View entering={cardEntering(3)}>
-      <SectionHeader title="NAVIGATION" />
-      <View style={[styles.section, { backgroundColor: colors.surface }]}
-        accessibilityRole="summary"
-        accessibilityLabel="Navigation is set to the 3-tab layout"
-      >
-        <View style={styles.navigationNotice}>
-          <LayoutGrid size={20} color={colors.brand} accessibilityElementsHidden={true} />
-          <View style={styles.navigationNoticeText}>
-            <Text style={[styles.navigationNoticeTitle, { color: colors.textPrimary }]}>3-tab layout active</Text>
-            <Text style={[styles.navigationNoticeSubtitle, { color: colors.textMuted }]}>Shot, Wind, Setup</Text>
-          </View>
-        </View>
-      </View>
-    </Animated.View>
   );
 });
 
@@ -499,67 +475,72 @@ export default function SetupScreen() {
             title="MY BAG"
             action="Add Club"
             onAction={handleOpenAddSheet}
+            collapsible
+            expanded={expandedSections.clubs}
+            onToggle={() => toggleSection('clubs')}
           />
 
-          <View style={[styles.section, { backgroundColor: colors.surface }]}>
-            {clubs.length === 0 ? (
-              <View style={styles.emptyBag}>
-                <Text style={[styles.emptyText, { color: colors.textMuted }]}>
-                  No clubs added yet
-                </Text>
-                <QuickAction
-                  label="Add Your First Club"
-                  icon={<Plus size={18} color={colors.textInverse} />}
-                  variant="primary"
-                  onPress={handleOpenAddSheet}
-                  style={{ marginTop: 12 }}
-                />
-              </View>
-            ) : (
-              clubs.map((club, index) => {
-                const clubId = club.id || `fallback-${club.name}-${index}`;
-                const distance = Math.round(
-                  isMetric
-                    ? convertDistance(club.normalYardage, 'meters')
-                    : club.normalYardage
-                );
+          {expandedSections.clubs && (
+            <View style={[styles.section, { backgroundColor: colors.surface }]}>
+              {clubs.length === 0 ? (
+                <View style={styles.emptyBag}>
+                  <Text style={[styles.emptyText, { color: colors.textMuted }]}>
+                    No clubs added yet
+                  </Text>
+                  <QuickAction
+                    label="Add Your First Club"
+                    icon={<Plus size={18} color={colors.textInverse} />}
+                    variant="primary"
+                    onPress={handleOpenAddSheet}
+                    style={{ marginTop: 12 }}
+                  />
+                </View>
+              ) : (
+                clubs.map((club, index) => {
+                  const clubId = club.id || `fallback-${club.name}-${index}`;
+                  const distance = Math.round(
+                    isMetric
+                      ? convertDistance(club.normalYardage, 'meters')
+                      : club.normalYardage
+                  );
 
-                return (
-                  <View
-                    key={clubId}
-                    style={[styles.clubRow, { borderBottomColor: colors.divider }]}
-                  >
-                    <View style={styles.clubInfo}>
-                      <Text style={[styles.clubName, { color: colors.textPrimary }]}>
-                        {club.name}
-                      </Text>
-                      <Text style={[styles.clubDistance, { color: colors.textMuted }]}>
-                        {distance} {unit}
-                      </Text>
+                  return (
+                    <View
+                      key={clubId}
+                      style={[styles.clubRow, { borderBottomColor: colors.divider }]}
+                    >
+                      <View style={styles.clubInfo}>
+                        <Text style={[styles.clubName, { color: colors.textPrimary }]}>
+                          {club.name}
+                        </Text>
+                        <Text style={[styles.clubDistance, { color: colors.textMuted }]}>
+                          {distance} {unit}
+                        </Text>
+                      </View>
+                      <View style={styles.clubActions}>
+                        <Pressable
+                          onPress={() => handleOpenEditSheet(clubId)}
+                          style={[styles.clubAction, { backgroundColor: colors.backgroundAlt }]}
+                          accessibilityLabel={`Edit ${club.name}`}
+                          accessibilityRole="button"
+                        >
+                          <Edit3 size={16} color={colors.textMuted} />
+                        </Pressable>
+                        <Pressable
+                          onPress={() => handleDeleteClub(clubId, club.name)}
+                          style={[styles.clubAction, { backgroundColor: colors.backgroundAlt }]}
+                          accessibilityLabel={`Delete ${club.name}`}
+                          accessibilityRole="button"
+                        >
+                          <Trash2 size={16} color={colors.error} />
+                        </Pressable>
+                      </View>
                     </View>
-                    <View style={styles.clubActions}>
-                      <Pressable
-                        onPress={() => handleOpenEditSheet(clubId)}
-                        style={[styles.clubAction, { backgroundColor: colors.backgroundAlt }]}
-                        accessibilityLabel={`Edit ${club.name}`}
-                        accessibilityRole="button"
-                      >
-                        <Edit3 size={16} color={colors.textMuted} />
-                      </Pressable>
-                      <Pressable
-                        onPress={() => handleDeleteClub(clubId, club.name)}
-                        style={[styles.clubAction, { backgroundColor: colors.backgroundAlt }]}
-                        accessibilityLabel={`Delete ${club.name}`}
-                        accessibilityRole="button"
-                      >
-                        <Trash2 size={16} color={colors.error} />
-                      </Pressable>
-                    </View>
-                  </View>
-                );
-              })
-            )}
-          </View>
+                  );
+                })
+              )}
+            </View>
+          )}
         </Animated.View>
 
         {/* Appearance */}
@@ -836,9 +817,6 @@ export default function SetupScreen() {
           </View>
         </Animated.View>
 
-        {/* Navigation Style */}
-        <NavigationStyleSection />
-
         {/* Premium */}
         <Animated.View entering={cardEntering(4)}>
           <SectionHeader title="PREMIUM" />
@@ -1012,6 +990,14 @@ const styles = StyleSheet.create({
   },
 
   // Sections
+  collapsibleHeader: {
+    minHeight: 48, // 48dp minimum touch target
+  },
+
+  chevronIcon: {
+    marginRight: 4,
+  },
+
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1040,24 +1026,6 @@ const styles = StyleSheet.create({
   section: {
     borderRadius: 16,
     overflow: 'hidden',
-  },
-  navigationNotice: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    gap: 12,
-  },
-  navigationNoticeText: {
-    flex: 1,
-  },
-  navigationNoticeTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  navigationNoticeSubtitle: {
-    fontSize: 13,
-    marginTop: 4,
   },
 
   // Setting Row

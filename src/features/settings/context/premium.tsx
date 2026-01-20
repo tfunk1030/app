@@ -42,8 +42,11 @@ interface PremiumContextType {
   isInitialized: boolean;
 }
 
+// TESTING: Matches FORCE_PREMIUM_BYPASS in subscription store
+const FORCE_PREMIUM_BYPASS = true;
+
 const PremiumContext = createContext<PremiumContextType>({
-  isPremium: __DEV__, // Premium enabled in dev mode
+  isPremium: FORCE_PREMIUM_BYPASS || __DEV__, // Premium enabled in dev mode
   isTrialActive: false,
   isLifetime: false,
   planType: null,
