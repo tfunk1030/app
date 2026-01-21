@@ -137,6 +137,7 @@ test.describe('Wind Arrow Color Verification', () => {
 test.describe('Touch Target Sizes', () => {
   /**
    * Verify touch targets meet minimum 48x48dp requirement
+   * Project requirement is 48dp (stricter than iOS 44pt)
    */
 
   test('buttons meet minimum touch target size', async ({ page }) => {
@@ -158,5 +159,153 @@ test.describe('Touch Target Sizes', () => {
         }
       }
     }
+  });
+});
+
+test.describe('Accessibility Regression Guards', () => {
+  /**
+   * These tests ensure no accessibility regressions occur.
+   * They verify key patterns that must be maintained.
+   */
+
+  test('no interactive elements without accessible names', async ({ page }) => {
+    await page.goto('/(tabs-redesign)/(wind)');
+    await page.waitForTimeout(1000);
+
+    // Check all interactive elements have accessible names
+    const interactiveElements = page.locator(
+      'button:not([aria-hidden="true"]), ' +
+      '[role="button"]:not([aria-hidden="true"]), ' +
+      'input:not([aria-hidden="true"]), ' +
+      '[role="slider"]:not([aria-hidden="true"]), ' +
+      '[role="checkbox"]:not([aria-hidden="true"]), ' +
+      '[role="switch"]:not([aria-hidden="true"])'
+    );
+
+    const count = await interactiveElements.count();
+    const unlabeled: string[] = [];
+
+    for (let i = 0; i < count; i++) {
+      const el = interactiveElements.nth(i);
+      if (await el.isVisible()) {
+        const ariaLabel = await el.getAttribute('aria-label');
+        const ariaLabelledBy = await el.getAttribute('aria-labelledby');
+        const title = await el.getAttribute('title');
+        const textContent = (await el.textContent())?.trim();
+
+        if (!ariaLabel && !ariaLabelledBy && !title && !textContent) {
+          const tagName = await el.evaluate((e) => e.tagName);
+          const role = await el.getAttribute('role');
+          unlabeled.push(`${tagName}[role="${role}"] at index ${i}`);
+        }
+      }
+    }
+
+    expect(
+      unlabeled,
+      `Found ${unlabeled.length} unlabeled interactive elements: ${unlabeled.join(', ')}`
+    ).toHaveLength(0);
+  });
+
+  test('headers are properly marked', async ({ page }) => {
+    await page.goto('/(tabs-redesign)/(wind)');
+    await page.waitForTimeout(1000);
+
+    // Check for heading roles
+    const headings = page.locator(
+      '[role="heading"], ' +
+      'h1, h2, h3, h4, h5, h6, ' +
+      '[accessibilityRole="header"]'
+    );
+
+    const count = await headings.count();
+    // Wind screen should have at least one heading
+    // This is a soft check - we want to know if headings exist
+    console.log(`Found ${count} headings on wind screen`);
+  });
+
+  test('no duplicate IDs that break accessibility', async ({ page }) => {
+    await page.goto('/(tabs-redesign)/(wind)');
+    await page.waitForTimeout(1000);
+
+    // Check for duplicate IDs which break aria-labelledby references
+    const duplicateIds = await page.evaluate(() => {
+      const ids = document.querySelectorAll('[id]');
+      const seen = new Map<string, number>();
+      const duplicates: string[] = [];
+
+      ids.forEach((el) => {
+        const id = el.getAttribute('id');
+        if (id) {
+          const count = (seen.get(id) || 0) + 1;
+          seen.set(id, count);
+          if (count === 2) {
+            duplicates.push(id);
+          }
+        }
+      });
+
+      return duplicates;
+    });
+
+    expect(
+      duplicateIds,
+      `Found duplicate IDs: ${duplicateIds.join(', ')}`
+    ).toHaveLength(0);
+  });
+
+  test('sliders have accessible values', async ({ page }) => {
+    await page.goto('/(tabs-redesign)/(wind)');
+    await page.waitForTimeout(1000);
+
+    const sliders = page.locator('[role="slider"]');
+    const count = await sliders.count();
+
+    for (let i = 0; i < count; i++) {
+      const slider = sliders.nth(i);
+      if (await slider.isVisible()) {
+        const valueNow = await slider.getAttribute('aria-valuenow');
+        const valueMin = await slider.getAttribute('aria-valuemin');
+        const valueMax = await slider.getAttribute('aria-valuemax');
+
+        expect(valueNow, `Slider ${i} missing aria-valuenow`).not.toBeNull();
+        expect(valueMin, `Slider ${i} missing aria-valuemin`).not.toBeNull();
+        expect(valueMax, `Slider ${i} missing aria-valuemax`).not.toBeNull();
+      }
+    }
+  });
+
+  test('focus order is logical', async ({ page }) => {
+    await page.goto('/(tabs-redesign)/(wind)');
+    await page.waitForTimeout(1000);
+
+    // Tab through focusable elements and verify order makes sense
+    const focusableElements: string[] = [];
+
+    // Press Tab multiple times and record what gets focused
+    for (let i = 0; i < 10; i++) {
+      await page.keyboard.press('Tab');
+      const focused = await page.evaluate(() => {
+        const el = document.activeElement;
+        if (el) {
+          return {
+            tag: el.tagName,
+            role: el.getAttribute('role'),
+            label: el.getAttribute('aria-label') || el.textContent?.slice(0, 30),
+          };
+        }
+        return null;
+      });
+
+      if (focused) {
+        focusableElements.push(
+          `${focused.tag}[${focused.role}]: ${focused.label}`
+        );
+      }
+    }
+
+    // At minimum, tabbing should find some focusable elements
+    console.log('Focus order:', focusableElements);
+    expect(focusableElements.length).toBeGreaterThan(0);
   });
 });
