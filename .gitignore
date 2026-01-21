@@ -71,3 +71,13 @@ task-system/tasks/*/
 
 *storybook.log
 storybook-static
+
+# Old/archived project folders
+bolt-old/
+archive/
+
+# Screenshot comparison images (local analysis only)
+IMG_*.PNG
+IMG_*.png
+oldbutgood*.PNG
+oldbutgood*.png

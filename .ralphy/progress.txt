@@ -1,5 +1,45 @@
 # Ralphy Progress Log
 
+## 2026-01-21: UI/UX Restoration PRD Created
+
+### New Task Plan
+Created PRD and tasks for UI/UX restoration based on 10-screenshot analysis.
+
+**PRD**: `.ralphy/prd-ui-restoration.md`
+**Tasks**: `.ralphy/tasks.yaml` (updated)
+
+### Problem Summary
+NEW version regressed from OLD version:
+- **Score dropped**: 8.7/10 → 4.5/10
+- **P0 Bugs**: Title overlap, missing tab icons
+- **P1 Issues**: Compass too small (200px vs 280px), polish lost
+- **P2 Issues**: Flat design, truncated text
+
+### Task Phases
+1. **P0 Critical** - Fix title overlap, restore tab icons
+2. **P1 High** - Restore compass size and polish
+3. **P2 Medium** - Restore gradient, fix truncation
+4. **Preserve** - Keep NEW features (inline editing, +1/-1 buttons)
+5. **Verify** - Run tests, visual comparison
+
+### Run Tasks
+```bash
+ralphy run                    # Run all tasks
+ralphy run fix-title-overlap  # Run specific task
+ralphy status                 # Check task status
+```
+
+### Target Scorecard
+| Category | Before | After |
+|----------|--------|-------|
+| Visual Polish | 4 | 9 |
+| Layout | 3 | 9 |
+| Navigation | 2 | 9 |
+| Compass | 5 | 9 |
+| **Overall** | **4.5** | **9.0** |
+
+---
+
 ## 2026-01-18: Parallel Analysis Plan Created
 
 ### New Task Plan
