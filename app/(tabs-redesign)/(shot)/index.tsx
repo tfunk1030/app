@@ -13,6 +13,7 @@ import {
   ScrollView,
   RefreshControl,
 } from 'react-native';
+import { GradientBackground } from '@/src/components/GradientBackground';
 import Animated from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { Thermometer, Droplets, Mountain, Gauge } from 'lucide-react-native';
@@ -216,31 +217,34 @@ export default function ShotScreen() {
   // Show skeleton during initial load
   if (isInitialLoading) {
     return (
-      <View
-        style={[styles.container, { backgroundColor: colors.background }]}
-        accessible={true}
-        accessibilityRole="progressbar"
-        accessibilityLabel="Loading shot calculator"
-      >
-        <SkeletonScreen showHero={false} cardCount={1} />
-      </View>
+      <GradientBackground>
+        <View
+          style={styles.container}
+          accessible={true}
+          accessibilityRole="progressbar"
+          accessibilityLabel="Loading shot calculator"
+        >
+          <SkeletonScreen showHero={false} cardCount={1} />
+        </View>
+      </GradientBackground>
     );
   }
 
   return (
-    <ScrollView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      contentContainerStyle={styles.scrollContent}
-      contentInsetAdjustmentBehavior="automatic"
-      refreshControl={
-        <RefreshControl
-          refreshing={isRefreshing}
-          onRefresh={handleRefresh}
-          tintColor={colors.brand}
-        />
-      }
-      showsVerticalScrollIndicator={false}
-    >
+    <GradientBackground>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.scrollContent}
+        contentInsetAdjustmentBehavior="automatic"
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={handleRefresh}
+            tintColor={colors.brand}
+          />
+        }
+        showsVerticalScrollIndicator={false}
+      >
       {/* Conditions Bar - NO WIND (that's premium) */}
         <Animated.View entering={headerEntering}>
           <ScrollView
@@ -426,7 +430,8 @@ export default function ShotScreen() {
             Use the Wind tab for wind-adjusted calculations with compass heading.
           </Text>
         </Animated.View>
-    </ScrollView>
+      </ScrollView>
+    </GradientBackground>
   );
 }
 

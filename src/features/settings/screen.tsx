@@ -31,6 +31,7 @@ import {
 } from 'lucide-react-native';
 import * as React from 'react';
 import { Platform, Pressable, ScrollView, Text, TextInput, View, ViewStyle, TextStyle } from 'react-native';
+import { GradientBackground } from '@/src/components/GradientBackground';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -317,7 +318,7 @@ ClubItem.displayName = 'ClubItem';
 const createStyles = (t: Tokens) => ({
   container: {
     flex: 1,
-    backgroundColor: t.colors.background,
+    // Background handled by GradientBackground wrapper
   } as ViewStyle,
   contentContainer: {
     paddingBottom: t.spacing['5xl'],
@@ -547,14 +548,15 @@ export default function SettingsScreen() {
     settings.altitudeUnit === 'feet';
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={[
-        styles.contentContainer,
-        { paddingTop: insets.top + tokens.spacing.md, paddingHorizontal: padding },
-      ]}
-      showsVerticalScrollIndicator={false}
-    >
+    <GradientBackground>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={[
+          styles.contentContainer,
+          { paddingTop: insets.top + tokens.spacing.md, paddingHorizontal: padding },
+        ]}
+        showsVerticalScrollIndicator={false}
+      >
       {/* Header */}
       <Animated.View entering={headerEntering}>
         <Text style={[styles.title, { color: tokens.colors.textPrimary }]} accessibilityRole="header">
@@ -908,7 +910,8 @@ export default function SettingsScreen() {
           AICaddy Pro v1.0.0
         </Text>
       </Animated.View>
-    </ScrollView>
+      </ScrollView>
+    </GradientBackground>
   );
 }
 

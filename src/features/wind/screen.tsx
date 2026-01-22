@@ -22,6 +22,7 @@ import { useAccessibleAnimations } from '@/src/hooks/useAccessibility';
 import { Crown, Wind } from 'lucide-react-native';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Platform, Pressable, ScrollView, Text, View, ViewStyle, TextStyle, Alert, TextInput } from 'react-native';
+import { GradientBackground } from '@/src/components/GradientBackground';
 import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -361,7 +362,7 @@ function WindCalculatorComponent() {
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: t.colors.background }}>
+    <GradientBackground>
       <ScrollView
         testID="wind-scroll-view"
         style={styles.container}
@@ -541,7 +542,7 @@ function WindCalculatorComponent() {
         result={result}
         onDismiss={handleDismissModal}
       />
-    </View>
+    </GradientBackground>
   );
 }
 
