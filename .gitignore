@@ -73,7 +73,6 @@ task-system/tasks/*/
 storybook-static
 
 # Old/archived project folders
-bolt-old/
 archive/
 
 # Screenshot comparison images (local analysis only)
