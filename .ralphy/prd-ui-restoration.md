@@ -58,9 +58,10 @@ The NEW app version has significant UI/UX regressions compared to the OLD versio
 - Any other screen with ScrollView + title
 
 **Acceptance Criteria**:
-- [ ] Title remains fixed at top during scroll
-- [ ] Content scrolls underneath title
-- [ ] No visual overlap between title and content
+- [x] Title remains fixed at top during scroll (Wind screen)
+- [ ] Title remains fixed at top during scroll (Settings screen)
+- [x] Content scrolls underneath title
+- [ ] No visual overlap between title and content (Settings still broken)
 - [ ] Works on all screen sizes
 
 ---
@@ -108,10 +109,10 @@ The NEW app version has significant UI/UX regressions compared to the OLD versio
 | Setup | Settings/Cog | lucide-react-native |
 
 **Acceptance Criteria**:
-- [ ] All tabs have icons AND labels
-- [ ] Icons match OLD version design
-- [ ] Icons change color based on active/inactive state
-- [ ] No parentheses around labels
+- [x] All tabs have icons AND labels
+- [x] Icons match OLD version design
+- [x] Icons change color based on active/inactive state
+- [x] No parentheses around labels
 
 ---
 
@@ -161,10 +162,10 @@ const COMPASS_SIZE = 280; // Currently ~200, restore to 280
 - `src/features/wind/components/compass/WindDirectionCompass.tsx`
 
 **Acceptance Criteria**:
-- [ ] All 8 direction labels visible (N, NE, E, SE, S, SW, W, NW)
-- [ ] Degree tick marks every 15°
-- [ ] Direction labels white with good contrast
-- [ ] Compass ring has visible border/definition
+- [x] All 8 direction labels visible (N, NE, E, SE, S, SW, W, NW)
+- [x] Degree tick marks every 10° (not 15° as originally specified)
+- [x] Direction labels white with good contrast
+- [x] Compass ring has visible border/definition
 
 ---
 

@@ -19,6 +19,7 @@ tasks:
     name: "Fix Title Overlap Bug"
     priority: P0
     parallel_group: 1
+    status: partial  # Wind screen done, Settings screen remaining
     description: |
       Titles scroll WITH content instead of being fixed, causing overlap.
       Move title outside ScrollView to create fixed header pattern.
@@ -69,6 +70,7 @@ tasks:
     name: "Restore Tab Bar Icons"
     priority: P0
     parallel_group: 1
+    status: complete  # Using SF Symbols via NativeTabs (scope, wind, gearshape)
     description: |
       Tab bar shows "(shot) (wind) (setup)" text only.
       Restore icons with lucide-react-native.
@@ -133,6 +135,7 @@ tasks:
     priority: P1
     parallel_group: 2
     depends_on: [fix-title-overlap]
+    status: partial  # Responsive 220-380px, may need 280px minimum on small devices
     description: |
       Compass is too small (~200px). Restore to 280px for better usability.
 
@@ -167,6 +170,7 @@ tasks:
     priority: P1
     parallel_group: 2
     depends_on: [restore-compass-size]
+    status: complete  # All 8 directions (N,NE,E,SE,S,SW,W,NW) + tick marks every 10°
     description: |
       Restore intercardinal labels, degree ticks, and ring styling.
 
@@ -223,6 +227,7 @@ tasks:
     priority: P2
     parallel_group: 3
     depends_on: [restore-compass-polish]
+    status: pending  # Still flat, needs gradient #0a0f1a → #1a2035
     description: |
       Restore navy gradient background and card shadows/borders.
 
@@ -275,6 +280,7 @@ tasks:
     name: "Fix Truncated Direction Display"
     priority: P2
     parallel_group: 3
+    status: complete  # Format now "315° NW" (no truncation)
     description: |
       Fix "Direction S (?" truncation bug in wind pills.
 

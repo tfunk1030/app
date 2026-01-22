@@ -32,7 +32,7 @@ rules:
   - "Include TypeScript interfaces for all component props"
 
   # React Native
-  - "Use functional components only, typed with React.FC<Props>"
+  - "Use functional components with typed props interfaces (NOT React.FC)"
   - "Use FlashList instead of FlatList for lists with >20 items"
   - "Wrap list item components in React.memo"
 
