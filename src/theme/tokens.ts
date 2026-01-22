@@ -412,12 +412,13 @@ export const darkTokens: Tokens = {
     brandAlt: boldColors.cyan,
     brandDark: boldColors.emeraldDark,
 
-    // Surfaces - Deep slate backgrounds
-    background: boldColors.slate900,
-    surface: boldColors.slate800,
-    surfaceAlt: boldColors.slate700,
-    surfaceElevated: boldColors.slate700,
-    surfaceGlass: 'rgba(30, 41, 59, 0.8)',
+    // Surfaces - Deep slate backgrounds (OLD version premium colors)
+    // PRD: background #0a0f1a → #1a2035, card #0d1220
+    background: '#0a0f1a',
+    surface: '#0d1220',
+    surfaceAlt: '#1a2035',
+    surfaceElevated: '#1a2035',
+    surfaceGlass: 'rgba(13, 18, 32, 0.85)',
 
     // Text - High contrast
     textPrimary: '#F8FAFC',
@@ -425,8 +426,8 @@ export const darkTokens: Tokens = {
     textMuted: '#94A3B8',
     textInverse: '#0F172A',
 
-    // Borders and shadows
-    border: 'rgba(71, 85, 105, 0.6)',
+    // Borders and shadows - PRD: card border #2a3545
+    border: '#2a3545',
     borderFocus: boldColors.emerald,
     shadow: 'rgba(0, 0, 0, 0.4)',
 
@@ -493,22 +494,23 @@ export const darkTokens: Tokens = {
   shadow: {
     subtle: {
       shadowColor: '#000',
-      shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: 0.2,
-      shadowRadius: 2,
-      elevation: 1,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.25,
+      shadowRadius: 4,
+      elevation: 2,
     },
     card: {
+      // PRD: shadowOpacity 0.3, shadowRadius 8, offset height 4
       shadowColor: '#000',
       shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.25,
+      shadowOpacity: 0.3,
       shadowRadius: 8,
-      elevation: 4,
+      elevation: 5,
     },
     elevated: {
       shadowColor: '#000',
       shadowOffset: { width: 0, height: 8 },
-      shadowOpacity: 0.3,
+      shadowOpacity: 0.35,
       shadowRadius: 16,
       elevation: 8,
     },

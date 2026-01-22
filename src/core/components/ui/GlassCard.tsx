@@ -81,13 +81,20 @@ export const GlassCard: React.FC<GlassCardProps> = ({
     });
   }, [scale, t.animation.spring]);
 
-  // Determine shadow style based on glow prop (CSS boxShadow - New Architecture)
+  // Determine shadow style based on glow prop
+  // Use both CSS boxShadow (New Architecture) and React Native shadow props for cross-platform
   const shadowStyle = glow
     ? {
+        // CSS boxShadow for web/New Architecture
         boxShadow: `0 ${t.shadow.glow.shadowOffset.height}px ${t.shadow.glow.shadowRadius}px ${t.colors.glowPrimaryAlpha}`,
+        // React Native shadow props for iOS
+        ...t.shadow.glow,
       }
     : {
+        // CSS boxShadow for web/New Architecture
         boxShadow: `0 ${t.shadow.card.shadowOffset.height}px ${t.shadow.card.shadowRadius}px ${t.colors.shadowAlpha}`,
+        // React Native shadow props for iOS - PRD: visible card shadows
+        ...t.shadow.card,
       };
 
   // Memoized dynamic styles for consistent token-based styling

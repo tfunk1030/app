@@ -1,5 +1,82 @@
 # Ralphy Progress Log
 
+## 2026-01-21: Card Borders and Shadows Visible (PRD Task)
+
+### Task
+Restore premium card styling with visible borders and shadows per PRD Section 3.1.
+
+### Problem
+NEW version had flat design regression:
+- Background: Flat black (was dark navy gradient)
+- Cards: Minimal/no borders (was visible borders)
+- Depth: None (was subtle shadows)
+
+### Changes Made
+
+#### 1. Updated Dark Mode Token Colors (`src/theme/tokens.ts`)
+**Before (flat):**
+- `background: boldColors.slate900` (#0F172A)
+- `surface: boldColors.slate800` (#1E293B)
+- `border: 'rgba(71, 85, 105, 0.6)'` (semi-transparent)
+
+**After (premium OLD version):**
+- `background: '#0a0f1a'` (PRD spec)
+- `surface: '#0d1220'` (PRD card background)
+- `surfaceAlt: '#1a2035'` (gradient end)
+- `border: '#2a3545'` (PRD solid visible border)
+- `surfaceGlass: 'rgba(13, 18, 32, 0.85)'`
+
+#### 2. Enhanced Shadow Presets (`src/theme/tokens.ts`)
+**Card shadow per PRD:**
+```tsx
+card: {
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 4 },
+  shadowOpacity: 0.3,  // increased from 0.25
+  shadowRadius: 8,
+  elevation: 5,        // increased from 4
+}
+```
+
+#### 3. Updated Surface Gradients (`src/theme/gradients.ts`)
+- `surface.dark`: Now uses #0d1220 to #0a0f1a (OLD version card colors)
+- `surface.elevated`: Matching premium glass effect
+
+#### 4. GlassCard Shadow Props (`src/core/components/ui/GlassCard.tsx`)
+Added React Native shadow props alongside CSS boxShadow for iOS compatibility:
+```tsx
+const shadowStyle = glow
+  ? { boxShadow: '...', ...t.shadow.glow }
+  : { boxShadow: '...', ...t.shadow.card };
+```
+
+#### 5. Card Component Shadow Props (`src/core/components/ui/card.tsx`)
+Same pattern - added spread of `t.shadow.card` for visible iOS shadows.
+
+### Files Modified
+- `src/theme/tokens.ts` (dark mode colors, shadow presets)
+- `src/theme/gradients.ts` (surface gradients)
+- `src/core/components/ui/GlassCard.tsx` (shadow props)
+- `src/core/components/ui/card.tsx` (shadow props)
+
+### PRD Reference
+Section 3.1 "Flat Design Regression" - Acceptance Criteria:
+- [x] Background has subtle gradient (not flat black)
+- [x] Cards have visible borders (#2a3545)
+- [x] Cards have subtle shadow for depth (opacity 0.3, radius 8)
+- [x] Premium feel restored
+
+### Color Reference Applied
+```tsx
+// OLD Version Colors (from PRD)
+background: '#0a0f1a'     // Start
+backgroundEnd: '#1a2035'  // End (gradient)
+cardBackground: '#0d1220'
+cardBorder: '#2a3545'
+```
+
+---
+
 ## 2026-01-21: Background Gradient Implementation
 
 ### Task
