@@ -117,14 +117,14 @@ export const gradients = {
   // ---------------------------------------------------------------------------
 
   surface: {
-    /** Dark mode surface gradient */
-    dark: ['rgba(30, 41, 59, 0.95)', 'rgba(15, 23, 42, 0.98)'] as GradientColors,
+    /** Dark mode surface gradient - PRD: card #0d1220 to darker */
+    dark: ['rgba(13, 18, 32, 0.98)', 'rgba(10, 15, 26, 0.99)'] as GradientColors,
 
     /** Light mode surface gradient */
     light: ['rgba(255, 255, 255, 0.95)', 'rgba(248, 250, 252, 0.98)'] as GradientColors,
 
-    /** Glassmorphism replacement - subtle gradient */
-    elevated: ['rgba(51, 65, 85, 0.9)', 'rgba(30, 41, 59, 0.95)'] as GradientColors,
+    /** Glassmorphism replacement - subtle gradient (OLD version card) */
+    elevated: ['rgba(13, 18, 32, 0.95)', 'rgba(10, 15, 26, 0.98)'] as GradientColors,
 
     /** Card highlight gradient */
     highlight: ['rgba(16, 185, 129, 0.15)', 'rgba(6, 182, 212, 0.1)'] as GradientColors,

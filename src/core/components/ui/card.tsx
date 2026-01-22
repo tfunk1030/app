@@ -63,6 +63,8 @@ export const Card = ({ children, style, gradient = true }: CardProps) => {
             borderRadius: cardBorderRadius,
             // CSS boxShadow (New Architecture)
             boxShadow: `0 ${t.shadow.card.shadowOffset.height}px ${t.shadow.card.shadowRadius}px ${t.colors.shadowAlpha}`,
+            // React Native shadow props for iOS - PRD: visible card shadows
+            ...t.shadow.card,
             marginVertical: getResponsiveSpacing(t.spacing.sm, 'vertical'),
           },
           style,
@@ -99,6 +101,8 @@ export const Card = ({ children, style, gradient = true }: CardProps) => {
           borderColor: t.colors.border,
           // CSS boxShadow (New Architecture)
           boxShadow: `0 ${t.shadow.card.shadowOffset.height}px ${t.shadow.card.shadowRadius}px ${t.colors.shadowAlpha}`,
+          // React Native shadow props for iOS - PRD: visible card shadows
+          ...t.shadow.card,
           marginVertical: getResponsiveSpacing(t.spacing.sm, 'vertical'),
         },
         style,
