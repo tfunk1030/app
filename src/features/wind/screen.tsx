@@ -19,7 +19,7 @@ import { useTokens } from '@/src/theme/useTokens';
 import { LogManager } from '@/src/utils/LogManager';
 import { safeScaledFontSize, getScrollPadding } from '@/src/utils/responsive';
 import { useAccessibleAnimations } from '@/src/hooks/useAccessibility';
-import { Crown, Wind } from 'lucide-react-native';
+import { ArrowLeft, Crown, Wind } from 'lucide-react-native';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Platform, Pressable, ScrollView, Text, View, ViewStyle, TextStyle, Alert, TextInput, Animated as RNAnimated, Easing } from 'react-native';
 import Animated from 'react-native-reanimated';
@@ -63,10 +63,8 @@ const YardagePresetButton = React.memo<YardagePresetButtonProps>(({
     fontSize: safeScaledFontSize(t.fontSize.sm),
     fontWeight: t.fontWeight.semibold as TextStyle['fontWeight'],
     color: isSelected ? t.colors.brand : t.colors.textMuted,
-    ...Platform.select({
-      ios: { fontFamily: 'Menlo' },
-      android: { fontFamily: 'monospace' },
-    }),
+    // Use tabular figures for consistent number widths without jarring monospace
+    fontVariant: ['tabular-nums'],
   }), [t, isSelected]);
 
   return (
@@ -118,8 +116,8 @@ const InlineEditablePill = React.memo<InlineEditablePillProps>(({
       paddingHorizontal: t.spacing.sm,
       borderRadius: t.borderRadius.full,
       borderWidth: t.borderWidth.thin,
-      borderColor: isOverridden ? t.colors.warning : t.colors.border,
-      backgroundColor: t.colors.surface,
+      borderColor: isEditing ? t.colors.brand : isOverridden ? t.colors.warning : t.colors.border,
+      backgroundColor: isEditing ? t.colors.brandBackgroundAlpha : t.colors.surface,
       minHeight: t.touchTarget.minimum,
     },
     label: {
@@ -129,12 +127,21 @@ const InlineEditablePill = React.memo<InlineEditablePillProps>(({
       textTransform: 'uppercase' as const,
       letterSpacing: t.letterSpacing.wider,
     },
+    valueContainer: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: t.spacing.xs / 2,
+      borderBottomWidth: isEditing ? 0 : t.borderWidth.thin,
+      borderBottomColor: t.colors.textMuted,
+      borderStyle: 'dashed' as const,
+    },
     value: {
       fontSize: safeScaledFontSize(t.fontSize.sm),
       fontWeight: t.fontWeight.semibold as TextStyle['fontWeight'],
       color: t.colors.textPrimary,
-      minWidth: 40,
+      minWidth: 32,
       textAlign: 'center' as const,
+      fontVariant: ['tabular-nums'] as const,
     },
     unit: {
       fontSize: safeScaledFontSize(t.fontSize.xs),
@@ -144,17 +151,24 @@ const InlineEditablePill = React.memo<InlineEditablePillProps>(({
       fontSize: safeScaledFontSize(t.fontSize.sm),
       fontWeight: t.fontWeight.semibold as TextStyle['fontWeight'],
       color: t.colors.textPrimary,
-      minWidth: 40,
+      minWidth: 32,
       textAlign: 'center' as TextStyle['textAlign'],
       paddingVertical: 0,
+      fontVariant: ['tabular-nums'] as const,
     },
-    overrideDot: {
-      width: t.spacing.xs,
-      height: t.spacing.xs,
-      borderRadius: t.borderRadius.full,
-      backgroundColor: t.colors.warning,
+    overrideBadge: {
+      paddingHorizontal: t.spacing.xs,
+      paddingVertical: 2,
+      borderRadius: t.borderRadius.sm,
+      backgroundColor: t.colors.warningBackgroundAlpha,
     },
-  }), [t, isOverridden]);
+    overrideBadgeText: {
+      fontSize: safeScaledFontSize(t.fontSize.xs - 2),
+      fontWeight: t.fontWeight.bold as TextStyle['fontWeight'],
+      color: t.colors.warning,
+      textTransform: 'uppercase' as const,
+    },
+  }), [t, isOverridden, isEditing]);
 
   return (
     <Pressable
@@ -162,9 +176,8 @@ const InlineEditablePill = React.memo<InlineEditablePillProps>(({
       style={pillStyles.container}
       accessibilityRole="button"
       accessibilityLabel={`${label}: ${value}${unit ? ` ${unit}` : ''}${isOverridden ? ', overridden' : ''}`}
-      accessibilityHint="Double tap to edit"
+      accessibilityHint="Tap to edit value"
     >
-      {isOverridden && <View style={pillStyles.overrideDot} accessibilityElementsHidden={true} />}
       <Text style={pillStyles.label}>{label}</Text>
       {isEditing ? (
         <TextInput
@@ -176,11 +189,20 @@ const InlineEditablePill = React.memo<InlineEditablePillProps>(({
           style={pillStyles.input}
           accessibilityLabel={`${label} override value`}
           returnKeyType="done"
+          autoFocus
+          selectTextOnFocus
         />
       ) : (
-        <Text style={pillStyles.value}>{value}</Text>
+        <View style={pillStyles.valueContainer}>
+          <Text style={pillStyles.value}>{value}</Text>
+        </View>
       )}
       {unit ? <Text style={pillStyles.unit}>{unit}</Text> : null}
+      {isOverridden && (
+        <View style={pillStyles.overrideBadge} accessibilityElementsHidden={true}>
+          <Text style={pillStyles.overrideBadgeText}>Edit</Text>
+        </View>
+      )}
     </Pressable>
   );
 });
@@ -238,25 +260,25 @@ function WindCalculatorComponent() {
     RNAnimated.parallel([
       RNAnimated.timing(inputOpacity, {
         toValue: 0,
-        duration: 220,
+        duration: t.animation.fast,
         easing: Easing.out(Easing.quad),
         useNativeDriver: true,
       }),
       RNAnimated.timing(inputTranslateY, {
         toValue: -12,
-        duration: 220,
+        duration: t.animation.fast,
         easing: Easing.out(Easing.quad),
         useNativeDriver: true,
       }),
       RNAnimated.timing(resultsOpacity, {
         toValue: 1,
-        duration: 260,
+        duration: t.animation.normal,
         easing: Easing.out(Easing.quad),
         useNativeDriver: true,
       }),
       RNAnimated.timing(resultsTranslateY, {
         toValue: 0,
-        duration: 260,
+        duration: t.animation.normal,
         easing: Easing.out(Easing.quad),
         useNativeDriver: true,
       }),
@@ -266,12 +288,12 @@ function WindCalculatorComponent() {
     if (resultsMeasuredHeight.current) {
       RNAnimated.timing(containerHeight, {
         toValue: resultsMeasuredHeight.current,
-        duration: 260,
+        duration: t.animation.normal,
         easing: Easing.out(Easing.quad),
         useNativeDriver: false,
       }).start();
     }
-  }, [windSpeed, targetYardage, relativeWindAngle, calculate, inputOpacity, inputTranslateY, resultsOpacity, resultsTranslateY, containerHeight]);
+  }, [windSpeed, targetYardage, relativeWindAngle, calculate, inputOpacity, inputTranslateY, resultsOpacity, resultsTranslateY, containerHeight, t.animation]);
 
   // Handle back button - returns to inputs view with animation
   const handleBackToInputs = useCallback(async () => {
@@ -280,13 +302,13 @@ function WindCalculatorComponent() {
     RNAnimated.parallel([
       RNAnimated.timing(resultsOpacity, {
         toValue: 0,
-        duration: 200,
+        duration: t.animation.fast,
         easing: Easing.out(Easing.quad),
         useNativeDriver: true,
       }),
       RNAnimated.timing(resultsTranslateY, {
         toValue: 20,
-        duration: 200,
+        duration: t.animation.fast,
         easing: Easing.out(Easing.quad),
         useNativeDriver: true,
       }),
@@ -296,25 +318,25 @@ function WindCalculatorComponent() {
       RNAnimated.parallel([
         RNAnimated.timing(inputOpacity, {
           toValue: 1,
-          duration: 240,
+          duration: t.animation.normal,
           easing: Easing.out(Easing.quad),
           useNativeDriver: true,
         }),
         RNAnimated.timing(inputTranslateY, {
           toValue: 0,
-          duration: 240,
+          duration: t.animation.normal,
           easing: Easing.out(Easing.quad),
           useNativeDriver: true,
         }),
         RNAnimated.timing(containerHeight, {
           toValue: targetH,
-          duration: 240,
+          duration: t.animation.normal,
           easing: Easing.out(Easing.quad),
           useNativeDriver: false,
         }),
       ]).start();
     });
-  }, [resultsOpacity, resultsTranslateY, inputOpacity, inputTranslateY, containerHeight]);
+  }, [resultsOpacity, resultsTranslateY, inputOpacity, inputTranslateY, containerHeight, t.animation]);
 
   const lockButtonPosition = settings.lockButtonPosition ?? 'both';
 
@@ -393,7 +415,7 @@ function WindCalculatorComponent() {
     );
   }
 
-  // Loading state
+  // Loading state with animated shimmer
   if (isLoading) {
     return (
       <View
@@ -401,8 +423,19 @@ function WindCalculatorComponent() {
         accessibilityRole="progressbar"
         accessibilityLabel="Loading wind calculator"
       >
-        <View style={[styles.loadingPulse, { backgroundColor: t.colors.surfaceAlt }]} />
-        <View style={[styles.loadingPulse, { backgroundColor: t.colors.surfaceAlt, width: '60%' }]} />
+        <Animated.View
+          entering={headerEntering}
+          style={styles.loadingContainer}
+        >
+          <Wind
+            size={t.containerSize.icon.lg}
+            color={t.colors.brand}
+            accessibilityElementsHidden={true}
+          />
+          <Text style={[styles.loadingText, { color: t.colors.textMuted }]}>
+            Loading wind data...
+          </Text>
+        </Animated.View>
       </View>
     );
   }
@@ -497,7 +530,8 @@ function WindCalculatorComponent() {
               onBlur={() => handlePillCommit('direction')}
               tokens={t}
             />
-            {baseWindGust > baseWindSpeed && (
+            {/* Gust pill - always rendered to prevent layout shift, hidden when no gusts */}
+            <View style={{ opacity: baseWindGust > baseWindSpeed ? 1 : 0, pointerEvents: baseWindGust > baseWindSpeed ? 'auto' : 'none' }}>
               <InlineEditablePill
                 label="Gusts"
                 value={String(effectiveGust)}
@@ -510,7 +544,7 @@ function WindCalculatorComponent() {
                 onBlur={() => handlePillCommit('gust')}
                 tokens={t}
               />
-            )}
+            </View>
           </View>
         </Animated.View>
 
@@ -541,10 +575,15 @@ function WindCalculatorComponent() {
           >
             {/* Compass Card */}
             <Animated.View entering={cardEntering(1)}>
-              <GlassCard gradient glow style={styles.compassCard}>
-                <Text style={[styles.compassHint, { color: t.colors.textMuted }]}>
-                  Point phone in shot direction and tap lock
+              <View style={styles.sectionHeader}>
+                <Text style={[styles.sectionTitle, { color: t.colors.textPrimary }]}>
+                  Shot Direction
                 </Text>
+                <Text style={[styles.sectionSubtitle, { color: t.colors.textMuted }]}>
+                  Point phone at target, then lock
+                </Text>
+              </View>
+              <GlassCard gradient glow style={styles.compassCard}>
                 <View style={styles.compassWrapper}>
                   <WindDirectionCompass windDirection={effectiveDirection} windSpeed={effectiveWindSpeed} speedUnit={speedUnitLabel} />
                 </View>
@@ -636,7 +675,7 @@ function WindCalculatorComponent() {
                 if (showResults) {
                   RNAnimated.timing(containerHeight, {
                     toValue: h,
-                    duration: 240,
+                    duration: t.animation.normal,
                     easing: Easing.out(Easing.quad),
                     useNativeDriver: false,
                   }).start();
@@ -653,7 +692,10 @@ function WindCalculatorComponent() {
               accessibilityLabel="Back to compass and inputs"
               accessibilityHint="Returns to the input view to adjust settings"
             >
-              ← Back to Compass & Inputs
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: t.spacing.xs }}>
+                <ArrowLeft size={18} color={t.colors.textPrimary} />
+                <Text style={{ color: t.colors.textPrimary, fontWeight: t.fontWeight.semibold as TextStyle['fontWeight'] }}>Back</Text>
+              </View>
             </Button>
 
             {/* Wind Calculation Results */}
@@ -842,16 +884,22 @@ const createStyles = (t: Tokens) => ({
     fontSize: safeScaledFontSize(t.fontSize.xl),
     fontWeight: t.fontWeight.bold,
   } as TextStyle,
+  sectionHeader: {
+    marginBottom: t.spacing.sm,
+  } as ViewStyle,
+  sectionTitle: {
+    fontSize: safeScaledFontSize(t.fontSize.lg),
+    fontWeight: t.fontWeight.semibold,
+    marginBottom: t.spacing.xs / 2,
+  } as TextStyle,
+  sectionSubtitle: {
+    fontSize: safeScaledFontSize(t.fontSize.sm),
+    fontWeight: t.fontWeight.normal,
+  } as TextStyle,
   compassCard: {
     marginBottom: t.spacing.lg, // 24dp - section gap
     alignItems: 'center',
   } as ViewStyle,
-  compassHint: {
-    fontSize: safeScaledFontSize(t.fontSize.xs),
-    fontWeight: t.fontWeight.medium,
-    textAlign: 'center',
-    marginBottom: t.spacing.md,
-  } as TextStyle,
   compassWrapper: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -885,12 +933,15 @@ const createStyles = (t: Tokens) => ({
     marginBottom: t.spacing.lg, // 24dp - section gap before results
     backgroundColor: 'transparent',
   } as ViewStyle,
-  loadingPulse: {
-    borderRadius: t.borderRadius.lg,
-    marginBottom: t.spacing.md,
-    height: t.containerSize.icon.sm,
-    width: '80%',
+  loadingContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: t.spacing.md,
   } as ViewStyle,
+  loadingText: {
+    fontSize: safeScaledFontSize(t.fontSize.base),
+    fontWeight: t.fontWeight.medium,
+  } as TextStyle,
   errorContainer: {
     alignItems: 'center',
     padding: t.spacing.xl,

@@ -80,3 +80,8 @@ IMG_*.PNG
 IMG_*.png
 oldbutgood*.PNG
 oldbutgood*.png
+
+# Temp files
+$null
+Untitled
+tmpclaude-*

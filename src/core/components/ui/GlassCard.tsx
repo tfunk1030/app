@@ -81,14 +81,31 @@ export const GlassCard: React.FC<GlassCardProps> = ({
     });
   }, [scale, t.animation.spring]);
 
-  // Determine shadow style based on glow prop (CSS boxShadow - New Architecture)
-  const shadowStyle = glow
-    ? {
-        boxShadow: `0 ${t.shadow.glow.shadowOffset.height}px ${t.shadow.glow.shadowRadius}px ${t.colors.glowPrimaryAlpha}`,
-      }
-    : {
-        boxShadow: `0 ${t.shadow.card.shadowOffset.height}px ${t.shadow.card.shadowRadius}px ${t.colors.shadowAlpha}`,
-      };
+  // Determine shadow style based on glow prop
+  // Uses CSS boxShadow for New Architecture with native shadow fallbacks
+  const shadowStyle = useMemo(() => {
+    const glowShadow = glow ? t.shadow.glow : t.shadow.card;
+
+    return Platform.select({
+      // iOS: Use native shadow properties (works on both old and new arch)
+      ios: {
+        shadowColor: glow ? t.colors.glowPrimary : glowShadow.shadowColor,
+        shadowOffset: glowShadow.shadowOffset,
+        shadowOpacity: glowShadow.shadowOpacity,
+        shadowRadius: glowShadow.shadowRadius,
+      },
+      // Android: Use elevation (works on both old and new arch)
+      android: {
+        elevation: glowShadow.elevation,
+      },
+      // Web/default: Use CSS boxShadow (New Architecture)
+      default: {
+        boxShadow: glow
+          ? `0 ${t.shadow.glow.shadowOffset.height}px ${t.shadow.glow.shadowRadius}px ${t.colors.glowPrimaryAlpha}`
+          : `0 ${t.shadow.card.shadowOffset.height}px ${t.shadow.card.shadowRadius}px ${t.colors.shadowAlpha}`,
+      },
+    });
+  }, [glow, t.shadow, t.colors]);
 
   // Memoized dynamic styles for consistent token-based styling
   const dynamicStyles = useMemo(() => ({
