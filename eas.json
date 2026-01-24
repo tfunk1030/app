@@ -13,6 +13,12 @@
       "distribution": "internal",
       "channel": "preview"
     },
+    "preview-dev": {
+      "extends": "preview",
+      "env": {
+        "EXPO_PUBLIC_DEV_PREMIUM": "true"
+      }
+    },
     "production": {
       "autoIncrement": true,
       "channel": "production",
