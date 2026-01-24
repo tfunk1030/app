@@ -150,7 +150,7 @@ export function DefaultErrorFallback({ error, resetError }: ErrorFallbackProps) 
       <View style={styles.content}>
         <Text style={[styles.title, { color: t.colors.textPrimary }]}>Something went wrong</Text>
         <Text style={[styles.message, { color: t.colors.textMuted }]}>
-          The app encountered an unexpected error. We've logged the issue and are working to fix it.
+          {"The app encountered an unexpected error. We've logged the issue and are working to fix it."}
         </Text>
         <Text
           style={[
@@ -163,8 +163,10 @@ export function DefaultErrorFallback({ error, resetError }: ErrorFallbackProps) 
         <Pressable
           style={[styles.button, { backgroundColor: t.colors.brand }]}
           onPress={resetError}
+          accessibilityRole="button"
+          accessibilityLabel="Try again to recover from error"
         >
-          <Text style={[styles.buttonText, { color: t.colors.textPrimary }]}>Try Again</Text>
+          <Text style={[styles.buttonText, { color: t.colors.onBrand }]}>Try Again</Text>
         </Pressable>
       </View>
     </SafeAreaView>

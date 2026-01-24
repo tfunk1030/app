@@ -143,8 +143,7 @@ export function Slider({
   glow = true,
 }: SliderProps) {
   const t = useTokens();
-  const { mode } = useThemeMode();
-  const isDark = mode === 'dark' || mode === 'system';
+  const { isDark } = useThemeMode();
 
   // Memoize styles based on token set
   const styles = useMemo(() => createStyles(t), [t]);
@@ -155,9 +154,24 @@ export function Slider({
   const [inputValue, setInputValue] = useState(String(value));
   const [sliderValue, setSliderValue] = useState(value);
   const [isDragging, setIsDragging] = useState(false);
+  // Per interview decision: long-press opens keypad (hidden by default)
+  const [isKeypadOpen, setIsKeypadOpen] = useState(false);
+  const inputRef = useRef<TextInput>(null);
 
   // Track last stepped value for haptic feedback during dragging
   const lastSteppedValue = useRef(Math.round(value / step) * step);
+
+  // Stable ref for onValueChange to prevent callback recreation during drag
+  const onValueChangeRef = useRef(onValueChange);
+  useEffect(() => {
+    onValueChangeRef.current = onValueChange;
+  }, [onValueChange]);
+
+  // Long-press handling for +/- buttons
+  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const longPressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Long-press timer for keypad activation
+  const keypadLongPressRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Animation values
   const thumbScale = useSharedValue(1);
@@ -220,46 +234,119 @@ export function Slider({
   const handleInputBlur = () => {
     if (inputValue === '' || isNaN(parseInt(inputValue, 10))) {
       setInputValue(String(value));
+      setIsKeypadOpen(false);
       return;
     }
     const newValue = Math.min(Math.max(parseInt(inputValue, 10), min), max);
     setInputValue(String(newValue));
     setSliderValue(newValue);
     onValueChange(newValue);
+    setIsKeypadOpen(false);
   };
 
-  const handleIncrement = () => {
-    const newValue = Math.min(sliderValue + step, max);
-    setSliderValue(newValue);
-    setInputValue(String(newValue));
-    onValueChange(newValue);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-  };
+  // Long-press to open keypad - per interview decision #21
+  const handleValueLongPressIn = useCallback(() => {
+    keypadLongPressRef.current = setTimeout(() => {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      setIsKeypadOpen(true);
+      // Focus the input after a brief delay to allow state update
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 50);
+    }, 400); // 400ms long-press threshold
+  }, []);
 
-  const handleDecrement = () => {
-    const newValue = Math.max(sliderValue - step, min);
-    setSliderValue(newValue);
-    setInputValue(String(newValue));
-    onValueChange(newValue);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-  };
+  const handleValuePressOut = useCallback(() => {
+    if (keypadLongPressRef.current) {
+      clearTimeout(keypadLongPressRef.current);
+      keypadLongPressRef.current = null;
+    }
+  }, []);
+
+  const handleIncrement = useCallback(() => {
+    setSliderValue((prev) => {
+      const newValue = Math.min(prev + step, max);
+      setInputValue(String(newValue));
+      onValueChange(newValue);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      return newValue;
+    });
+  }, [step, max, onValueChange]);
+
+  const handleDecrement = useCallback(() => {
+    setSliderValue((prev) => {
+      const newValue = Math.max(prev - step, min);
+      setInputValue(String(newValue));
+      onValueChange(newValue);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      return newValue;
+    });
+  }, [step, min, onValueChange]);
+
+  // Long-press handler for fast increment/decrement
+  const handlePressIn = useCallback(
+    (direction: 'increment' | 'decrement') => {
+      // Immediate action
+      if (direction === 'increment') {
+        handleIncrement();
+      } else {
+        handleDecrement();
+      }
+
+      // Start long-press acceleration after 300ms
+      longPressTimerRef.current = setTimeout(() => {
+        // Fast increment every 80ms
+        longPressIntervalRef.current = setInterval(() => {
+          if (direction === 'increment') {
+            handleIncrement();
+          } else {
+            handleDecrement();
+          }
+        }, 80);
+      }, 300);
+    },
+    [handleIncrement, handleDecrement]
+  );
+
+  const handlePressOut = useCallback(() => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+    if (longPressIntervalRef.current) {
+      clearInterval(longPressIntervalRef.current);
+      longPressIntervalRef.current = null;
+    }
+  }, []);
 
   const handleSliderChange = useCallback(
     (values: number[]) => {
       const newValue = values[0];
       const currentSteppedValue = Math.round(newValue / step) * step;
 
-      // Trigger selection haptic when crossing step boundaries
+      // Trigger haptic when crossing step boundaries
       if (currentSteppedValue !== lastSteppedValue.current) {
+        // Check if crossing a 10-unit boundary for stronger haptic
+        const currentTenValue = Math.floor(currentSteppedValue / 10) * 10;
+        const lastTenValue = Math.floor(lastSteppedValue.current / 10) * 10;
+
+        if (currentTenValue !== lastTenValue) {
+          // Stronger haptic every 10 units
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        } else {
+          // Lighter selection haptic for regular steps
+          Haptics.selectionAsync();
+        }
+
         lastSteppedValue.current = currentSteppedValue;
-        Haptics.selectionAsync();
       }
 
       setSliderValue(newValue);
       setInputValue(String(Math.round(newValue)));
-      onValueChange(newValue);
+      // Use ref to avoid recreating callback on every render
+      onValueChangeRef.current(newValue);
     },
-    [onValueChange, step]
+    [step] // Removed onValueChange - now using stable ref
   );
 
   const handleSlidingStart = useCallback(() => {
@@ -386,10 +473,12 @@ export function Slider({
               borderColor: t.colors.border,
             },
           ]}
-          onPress={handleDecrement}
+          onPressIn={() => handlePressIn('decrement')}
+          onPressOut={handlePressOut}
           android_ripple={{ color: rippleColor }}
           accessibilityRole="button"
-          accessibilityLabel="Decrease"
+          accessibilityLabel="Decrease value"
+          accessibilityHint="Press and hold for fast decrease"
         >
           <Text
             style={[
@@ -407,12 +496,14 @@ export function Slider({
           </Text>
         </Pressable>
 
-        <View
+        <Pressable
+          onPressIn={handleValueLongPressIn}
+          onPressOut={handleValuePressOut}
           style={[
             styles.textInputContainer,
             {
-              backgroundColor: t.colors.surface,
-              borderColor: t.colors.border,
+              backgroundColor: isKeypadOpen ? t.colors.surfaceAlt : t.colors.surface,
+              borderColor: isKeypadOpen ? t.colors.brand : t.colors.border,
               minHeight: inputMinHeight,
               paddingHorizontal: getResponsiveSpacing(t.spacing.base, 'horizontal'), // 12px
               paddingVertical: getResponsiveSpacing(
@@ -421,25 +512,47 @@ export function Slider({
               ),
             },
           ]}
+          accessibilityRole="button"
+          accessibilityLabel={label ? `${label}: ${sliderValue} ${unit || ''}. Long press to edit` : `Value: ${sliderValue}. Long press to edit`}
+          accessibilityHint="Long press to open numeric keypad"
         >
-          <TextInput
-            style={[
-              styles.numericInput,
-              {
-                color: t.colors.textPrimary,
-                fontSize: safeScaledFontSize(
-                  dense ? t.fontSize.sm : t.fontSize.base, // 14px / 16px
-                  { maxScale: 1.2 }
-                ),
-              },
-            ]}
-            value={inputValue}
-            keyboardType="numeric"
-            onChangeText={handleInputChange}
-            onBlur={handleInputBlur}
-            selectTextOnFocus
-            placeholderTextColor={t.colors.textMuted}
-          />
+          {isKeypadOpen ? (
+            <TextInput
+              ref={inputRef}
+              style={[
+                styles.numericInput,
+                {
+                  color: t.colors.textPrimary,
+                  fontSize: safeScaledFontSize(
+                    dense ? t.fontSize.sm : t.fontSize.base, // 14px / 16px
+                    { maxScale: 1.2 }
+                  ),
+                },
+              ]}
+              value={inputValue}
+              keyboardType="numeric"
+              onChangeText={handleInputChange}
+              onBlur={handleInputBlur}
+              selectTextOnFocus
+              placeholderTextColor={t.colors.textMuted}
+              accessibilityLabel={label ? `${label} value input` : 'Slider value input'}
+            />
+          ) : (
+            <Text
+              style={[
+                styles.numericInput,
+                {
+                  color: t.colors.textPrimary,
+                  fontSize: safeScaledFontSize(
+                    dense ? t.fontSize.sm : t.fontSize.base,
+                    { maxScale: 1.2 }
+                  ),
+                },
+              ]}
+            >
+              {sliderValue}
+            </Text>
+          )}
           {unit && (
             <Text
               style={[
@@ -456,7 +569,7 @@ export function Slider({
               {unit}
             </Text>
           )}
-        </View>
+        </Pressable>
 
         <Pressable
           style={[
@@ -469,10 +582,12 @@ export function Slider({
               borderColor: t.colors.border,
             },
           ]}
-          onPress={handleIncrement}
+          onPressIn={() => handlePressIn('increment')}
+          onPressOut={handlePressOut}
           android_ripple={{ color: rippleColor }}
           accessibilityRole="button"
-          accessibilityLabel="Increase"
+          accessibilityLabel="Increase value"
+          accessibilityHint="Press and hold for fast increase"
         >
           <Text
             style={[
@@ -577,6 +692,8 @@ export function Slider({
               minimumTrackTintColor={glow && isDark ? 'transparent' : t.colors.brand}
               maximumTrackTintColor={t.colors.border}
               renderThumbComponent={renderThumb}
+              thumbTouchSize={{ width: 48, height: 48 }} // 48dp minimum touch target per a11y guidelines
+              trackClickable={false} // Prevent accidental activation during scroll - must drag thumb
               trackStyle={StyleSheet.flatten([
                 styles.track,
                 {

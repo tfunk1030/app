@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json.schemastore.org/jscpd.json",
+  "threshold": 5,
+  "minLines": 10,
+  "minTokens": 50,
+  "reporters": ["console", "json"],
+  "output": "./reports/jscpd",
+  "ignore": [
+    "node_modules/**",
+    ".expo/**",
+    "dist/**",
+    "build/**",
+    "android/**",
+    "ios/**",
+    ".worktrees/**",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/__tests__/**",
+    "**/types.ts",
+    "**/*.d.ts"
+  ],
+  "format": ["typescript", "tsx"],
+  "absolute": true
+}

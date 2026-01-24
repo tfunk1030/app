@@ -82,7 +82,7 @@ export const api = {
   },
 
   // Club Selection
-  async getClubRecommendation(distance: number, conditions: any): Promise<{
+  async getClubRecommendation(distance: number, conditions: WeatherData | null): Promise<{
     club: string
     confidence: number
   }> {

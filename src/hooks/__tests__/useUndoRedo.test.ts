@@ -1244,7 +1244,7 @@ describe('useUndoRedo', () => {
         );
       });
 
-      rerender();
+      rerender(undefined);
 
       expect(result.current.history).toHaveLength(1);
       expect(result.current.canUndo).toBe(true);

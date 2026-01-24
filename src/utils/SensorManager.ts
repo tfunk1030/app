@@ -163,8 +163,8 @@ export class SensorManager {
   private currentMode: SensorMode = SensorMode.ACTIVE;
   private sensorConfigs: Record<SensorType, SensorConfig>;
   private sensorSubscriptions: Map<SensorType, SensorSubscription[]> = new Map();
-  private dataHandlers: Map<SensorType, Set<SensorDataHandler<any>>> = new Map();
-  private throttlers: Map<SensorType, ThrottleManager<any>> = new Map();
+  private dataHandlers: Map<SensorType, Set<SensorDataHandler<unknown>>> = new Map();
+  private throttlers: Map<SensorType, ThrottleManager<unknown>> = new Map();
   private appStateSubscription: { remove: () => void } | null = null;
   private isInitialized: boolean = false;
 
@@ -199,7 +199,7 @@ export class SensorManager {
       const interval = config.updateIntervals[this.currentMode];
 
       this.throttlers.set(sensorType, new ThrottleManager(
-        (data: any) => this.processSensorData(sensorType, data),
+        (data: unknown) => this.processSensorData(sensorType, data),
         {
           interval,
           backgroundMode: true,
@@ -235,7 +235,7 @@ export class SensorManager {
 
       // Create a new throttler with updated interval
       this.throttlers.set(sensorType, new ThrottleManager(
-        (data: any) => this.processSensorData(sensorType, data),
+        (data: unknown) => this.processSensorData(sensorType, data),
         {
           interval,
           backgroundMode: true,
@@ -273,7 +273,8 @@ export class SensorManager {
       return () => {};
     }
 
-    handlers.add(handler);
+    // Cast is safe: handlers are called with sensor-specific data at runtime
+    handlers.add(handler as SensorDataHandler<unknown>);
 
     // Enable the sensor if it's the first subscriber
     if (handlers.size === 1) {
@@ -284,7 +285,7 @@ export class SensorManager {
 
     // Return unsubscribe function
     return () => {
-      handlers.delete(handler);
+      handlers.delete(handler as SensorDataHandler<unknown>);
       logger.debug(`Unsubscribed from ${sensorType} sensor, remaining subscribers: ${handlers.size}`);
 
       // Disable the sensor if there are no more subscribers
@@ -309,7 +310,7 @@ export class SensorManager {
       const interval = this.sensorConfigs[sensorType].updateIntervals[this.currentMode];
 
       this.throttlers.set(sensorType, new ThrottleManager(
-        (data: any) => this.processSensorData(sensorType, data),
+        (data: unknown) => this.processSensorData(sensorType, data),
         {
           interval,
           backgroundMode: true,
@@ -368,7 +369,7 @@ export class SensorManager {
   /**
    * Process sensor data through the appropriate throttler
    */
-  private processSensorData(sensorType: SensorType, data: any): void {
+  private processSensorData(sensorType: SensorType, data: unknown): void {
     const handlers = this.dataHandlers.get(sensorType);
     if (!handlers || handlers.size === 0) {
       return;
@@ -379,7 +380,8 @@ export class SensorManager {
       try {
         handler(data);
       } catch (error) {
-        logger.error(`Error in ${sensorType} sensor data handler`, error as Error);
+        const errorInfo = error instanceof Error ? { message: error.message, name: error.name } : { error: String(error) };
+        logger.error(`Error in ${sensorType} sensor data handler`, errorInfo);
       }
     });
   }

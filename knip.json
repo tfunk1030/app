@@ -1,0 +1,24 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "entry": ["app/**/*.{ts,tsx}", "src/**/*.{ts,tsx}", "index.js"],
+  "project": ["app/**/*.{ts,tsx}", "src/**/*.{ts,tsx}"],
+  "ignore": [
+    "**/*.test.{ts,tsx}",
+    "**/__tests__/**",
+    ".expo/**",
+    "dist/**",
+    "build/**",
+    "node_modules/**",
+    ".worktrees/**"
+  ],
+  "ignoreDependencies": [
+    "expo-*",
+    "@expo/*",
+    "react-native-*",
+    "@react-native/*",
+    "nativewind",
+    "tailwindcss",
+    "patch-package"
+  ],
+  "ignoreExportsUsedInFile": true
+}

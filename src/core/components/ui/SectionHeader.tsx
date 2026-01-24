@@ -37,8 +37,7 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({
   variant = 'default'
 }) => {
   const t = useTokens();
-  const { mode } = useThemeMode();
-  const isDark = mode === 'dark' || mode === 'system';
+  const { isDark } = useThemeMode();
 
   // Get gradient colors based on variant
   const getGradientColors = (): readonly [string, string, ...string[]] => {

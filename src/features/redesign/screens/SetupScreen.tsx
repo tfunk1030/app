@@ -24,6 +24,7 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
+import * as Linking from 'expo-linking';
 import {
   ChevronRight,
   Plus,
@@ -43,7 +44,12 @@ import {
   HelpCircle,
   MessageSquare,
   Shield,
+  FileText,
 } from 'lucide-react-native';
+
+// Legal URLs
+const PRIVACY_POLICY_URL = 'https://tfunk1030.github.io/aicaddypro-legal/privacy';
+const TERMS_OF_SERVICE_URL = 'https://tfunk1030.github.io/aicaddypro-legal/terms';
 
 import { useRedesignTheme, ThemeMode } from '@/src/theme/redesign';
 import { QuickAction } from '@/src/components/redesign/QuickAction';
@@ -96,7 +102,11 @@ const SectionHeader = memo(function SectionHeader({
         {title}
       </Text>
       {action && onAction && (
-        <Pressable onPress={onAction} accessibilityRole="button">
+        <Pressable
+          onPress={onAction}
+          accessibilityRole="button"
+          accessibilityLabel={action}
+        >
           <Text style={[styles.sectionAction, { color: colors.brand }]}>
             {action}
           </Text>
@@ -203,15 +213,19 @@ const ClubRow = memo(function ClubRow({
           onPress={onEdit}
           style={[styles.clubAction, { backgroundColor: colors.surface }]}
           accessibilityLabel={`Edit ${club.name}`}
+          accessibilityRole="button"
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <Edit3 size={16} color={colors.textMuted} />
+          <Edit3 size={18} color={colors.textMuted} />
         </Pressable>
         <Pressable
           onPress={onDelete}
           style={[styles.clubAction, { backgroundColor: colors.surface }]}
           accessibilityLabel={`Delete ${club.name}`}
+          accessibilityRole="button"
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <Trash2 size={16} color={colors.error} />
+          <Trash2 size={18} color={colors.error} />
         </Pressable>
       </View>
     </View>
@@ -237,7 +251,11 @@ const ThemeSelector = memo(function ThemeSelector({
   ];
 
   return (
-    <View style={styles.themeSelector}>
+    <View
+      style={styles.themeSelector}
+      accessibilityRole="radiogroup"
+      accessibilityLabel="Theme selection"
+    >
       {options.map((option) => (
         <Pressable
           key={option.mode}
@@ -254,6 +272,7 @@ const ThemeSelector = memo(function ThemeSelector({
           ]}
           accessibilityRole="radio"
           accessibilityState={{ selected: value === option.mode }}
+          accessibilityLabel={`${option.label} theme`}
         >
           {option.icon}
           <Text
@@ -281,7 +300,7 @@ export function SetupScreen() {
   const insets = useSafeAreaInsets();
 
   // Handlers
-  const handleDeleteClub = useCallback((index: number, clubName: string) => {
+  const handleDeleteClub = useCallback((clubId: string, clubName: string) => {
     Alert.alert(
       'Delete Club',
       `Are you sure you want to remove ${clubName} from your bag?`,
@@ -292,7 +311,7 @@ export function SetupScreen() {
           style: 'destructive',
           onPress: () => {
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-            removeClub(index);
+            removeClub(clubId);
           },
         },
       ]
@@ -335,7 +354,10 @@ export function SetupScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <Text style={[styles.title, { color: colors.textPrimary }]}>
+          <Text
+            style={[styles.title, { color: colors.textPrimary }]}
+            accessibilityRole="header"
+          >
             Setup
           </Text>
           <Text style={[styles.subtitle, { color: colors.textMuted }]}>
@@ -381,7 +403,7 @@ export function SetupScreen() {
                     distance={displayDistance}
                     unit={unit}
                     onEdit={() => Alert.alert('Edit Club', 'Club editor coming soon!')}
-                    onDelete={() => handleDeleteClub(index, club.name)}
+                    onDelete={() => handleDeleteClub(club.id ?? '', club.name)}
                   />
                 );
               })
@@ -410,7 +432,11 @@ export function SetupScreen() {
           <SectionHeader title="UNITS" />
 
           <View style={[styles.section, { backgroundColor: colors.surface }]}>
-            <View style={styles.unitSelector}>
+            <View
+              style={styles.unitSelector}
+              accessibilityRole="radiogroup"
+              accessibilityLabel="Unit system selection"
+            >
               <Pressable
                 onPress={() => handleUnitChange('imperial')}
                 style={[
@@ -422,6 +448,7 @@ export function SetupScreen() {
                 ]}
                 accessibilityRole="radio"
                 accessibilityState={{ selected: !isMetric }}
+                accessibilityLabel="Imperial units: Yards, Fahrenheit, miles per hour"
               >
                 <Text
                   style={[
@@ -447,6 +474,7 @@ export function SetupScreen() {
                 ]}
                 accessibilityRole="radio"
                 accessibilityState={{ selected: isMetric }}
+                accessibilityLabel="Metric units: Meters, Celsius, kilometers per hour"
               >
                 <Text
                   style={[
@@ -481,6 +509,7 @@ export function SetupScreen() {
                   }}
                   trackColor={{ false: colors.border, true: colors.brand }}
                   thumbColor={colors.surface}
+                  accessibilityLabel="Enable location access"
                 />
               }
             />
@@ -496,6 +525,7 @@ export function SetupScreen() {
                   }}
                   trackColor={{ false: colors.border, true: colors.brand }}
                   thumbColor={colors.surface}
+                  accessibilityLabel="Enable compass"
                 />
               }
             />
@@ -511,6 +541,7 @@ export function SetupScreen() {
                   }}
                   trackColor={{ false: colors.border, true: colors.brand }}
                   thumbColor={colors.surface}
+                  accessibilityLabel="Enable notifications"
                 />
               }
             />
@@ -531,6 +562,7 @@ export function SetupScreen() {
             ]}
             accessibilityRole="button"
             accessibilityLabel="Upgrade to Premium"
+            onPress={() => Alert.alert('Premium', 'Premium features coming soon!')}
           >
             <View style={styles.premiumCardLeft}>
               <Crown size={24} color={colors.brand} />
@@ -565,7 +597,12 @@ export function SetupScreen() {
             <SettingRow
               icon={<Shield size={18} color={colors.brand} />}
               label="Privacy Policy"
-              onPress={() => Alert.alert('Privacy', 'Privacy policy coming soon!')}
+              onPress={() => Linking.openURL(PRIVACY_POLICY_URL)}
+            />
+            <SettingRow
+              icon={<FileText size={18} color={colors.brand} />}
+              label="Terms of Service"
+              onPress={() => Linking.openURL(TERMS_OF_SERVICE_URL)}
             />
           </View>
         </Animated.View>
@@ -703,9 +740,9 @@ const styles = StyleSheet.create({
   },
 
   clubAction: {
-    width: 36,
-    height: 36,
-    borderRadius: 8,
+    width: 44,
+    height: 44,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -726,7 +763,7 @@ const styles = StyleSheet.create({
 
   themeSelector: {
     flexDirection: 'row',
-    gap: 10,
+    gap: 8,
   },
 
   themeOption: {
@@ -749,7 +786,7 @@ const styles = StyleSheet.create({
   unitSelector: {
     flexDirection: 'row',
     padding: 12,
-    gap: 10,
+    gap: 8,
   },
 
   unitOption: {

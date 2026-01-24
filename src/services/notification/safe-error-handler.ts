@@ -30,13 +30,13 @@ export const safeHandleError = (error: Error, options?: Partial<NotificationOpti
 /**
  * Create a wrapped version of a function that catches and safely handles errors
  */
-export const withErrorHandling = <T extends (...args: any[]) => any>(
+export const withErrorHandling = <T extends (...args: unknown[]) => unknown>(
   fn: T,
   errorMessage?: string
 ): ((...args: Parameters<T>) => Promise<ReturnType<T> | undefined>) => {
   return async (...args: Parameters<T>): Promise<ReturnType<T> | undefined> => {
     try {
-      return await fn(...args);
+      return (await fn(...args)) as ReturnType<T>;
     } catch (error) {
       await safeHandleError(error as Error, { message: errorMessage });
       return undefined;

@@ -22,6 +22,7 @@ import { useThemeMode } from '@/src/theme/ThemeProvider';
 import { useTokens } from '@/src/theme/useTokens';
 import { gradients, boldColors, GradientColors } from '@/src/theme/gradients';
 import { animationPresets, durations } from '@/src/theme/animations';
+import { useReduceMotionValue } from '@/src/hooks/useReduceMotion';
 import { scaledFontSize, moderateScale } from '@/src/utils/responsive';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
@@ -209,8 +210,8 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
   skipPersistence = false,
 }) => {
   const t = useTokens();
-  const { mode } = useThemeMode();
-  const isDark = mode === 'dark' || mode === 'system';
+  const { isDark } = useThemeMode();
+  const reduceMotion = useReduceMotionValue();
   const insets = useSafeAreaInsets();
 
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -220,9 +221,14 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
   const backgroundOpacity = useSharedValue(0);
   const contentOpacity = useSharedValue(0);
 
-  // Animate in when visible
+  // Animate in when visible (skip animations if reduce motion is enabled)
   useEffect(() => {
-    if (visible) {
+    if (reduceMotion) {
+      // Skip animations for reduce motion
+      backgroundOpacity.value = visible ? 1 : 0;
+      contentOpacity.value = visible ? 1 : 0;
+      if (visible) setCurrentIndex(0);
+    } else if (visible) {
       backgroundOpacity.value = withTiming(1, { duration: durations.overlay });
       contentOpacity.value = withTiming(1, {
         duration: durations.normal,
@@ -232,7 +238,7 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
       backgroundOpacity.value = withTiming(0, { duration: durations.fast });
       contentOpacity.value = withTiming(0, { duration: durations.fast });
     }
-  }, [visible, backgroundOpacity, contentOpacity]);
+  }, [visible, reduceMotion, backgroundOpacity, contentOpacity]);
 
   // Handle scroll to update current index
   const handleScroll = useCallback(

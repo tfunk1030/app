@@ -5,6 +5,8 @@ import { useSettings } from '@/src/core/context/settings';
 import { ClubData } from '@/src/core/models/YardageModel';
 import { useClubSettings } from '@/src/features/settings/context/clubs';
 import { usePremium } from '@/src/features/settings/context/premium';
+import { useSubscription } from '@/src/stores/subscription';
+import { useCustomerCenter } from '@/src/core/components/ui/CustomerCenter';
 import { useAccessibleAnimations } from '@/src/hooks/useAccessibility';
 import { useThemeMode } from '@/src/theme/ThemeProvider';
 import { Tokens } from '@/src/theme/tokens';
@@ -13,16 +15,23 @@ import { safeScaledFontSize, getScrollPadding } from '@/src/utils/responsive';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   ChevronRight,
+  Crown,
+  Hand,
   Moon,
   Palette,
   Pencil,
   Plus,
+  RefreshCw,
   Ruler,
+  Settings,
   Sun,
   Trash2,
+  List,
+  MousePointerClick,
 } from 'lucide-react-native';
 import * as React from 'react';
 import { Platform, Pressable, ScrollView, Text, TextInput, View, ViewStyle, TextStyle } from 'react-native';
+import { GradientBackground } from '@/src/components/GradientBackground';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -77,7 +86,7 @@ const SegmentedControl = React.memo<SegmentedControlProps>(({
   }), [t]);
 
   return (
-    <View style={segmentStyles.container}>
+    <View style={segmentStyles.container} accessibilityRole="radiogroup">
       {options.map((option) => {
         const isSelected = option.value === value;
         return (
@@ -88,8 +97,15 @@ const SegmentedControl = React.memo<SegmentedControlProps>(({
               segmentStyles.option,
               isSelected && segmentStyles.optionSelected,
             ]}
+            accessibilityRole="radio"
+            accessibilityLabel={option.label}
+            accessibilityState={{ selected: isSelected }}
           >
-            {option.icon}
+            {option.icon && (
+              <View accessibilityElementsHidden={true}>
+                {option.icon}
+              </View>
+            )}
             <Text
               style={[
                 segmentStyles.text,
@@ -104,6 +120,8 @@ const SegmentedControl = React.memo<SegmentedControlProps>(({
     </View>
   );
 });
+
+SegmentedControl.displayName = 'SegmentedControl';
 
 // Settings Row Component
 interface SettingsRowProps {
@@ -166,9 +184,11 @@ const SettingsRow: React.FC<SettingsRowProps> = ({
         rowStyles.container,
         { backgroundColor: pressed ? t.colors.surfaceAlt : 'transparent' },
       ]}
+      accessibilityRole="button"
+      accessibilityLabel={`${label}${value ? `, ${value}` : ''}`}
     >
       <View style={rowStyles.left}>
-        <View style={rowStyles.iconContainer}>
+        <View style={rowStyles.iconContainer} accessibilityElementsHidden={true}>
           {icon}
         </View>
         <Text style={[rowStyles.label, { color: t.colors.textPrimary }]}>{label}</Text>
@@ -177,7 +197,7 @@ const SettingsRow: React.FC<SettingsRowProps> = ({
         {value && (
           <Text style={[rowStyles.value, { color: t.colors.textMuted }]}>{value}</Text>
         )}
-        {showChevron && <ChevronRight size={18} color={t.colors.textMuted} />}
+        {showChevron && <ChevronRight size={18} color={t.colors.textMuted} accessibilityElementsHidden={true} />}
       </View>
     </Pressable>
   );
@@ -247,8 +267,8 @@ const ClubItem = React.memo<ClubItemProps>(({
       gap: t.spacing.sm,
     },
     actionButton: {
-      width: t.containerSize.icon.md, // 44px
-      height: t.containerSize.icon.md,
+      width: t.containerSize.icon.lg, // 48dp minimum touch target
+      height: t.containerSize.icon.lg,
       borderRadius: t.borderRadius.lg,
       alignItems: 'center' as const,
       justifyContent: 'center' as const,
@@ -260,6 +280,9 @@ const ClubItem = React.memo<ClubItemProps>(({
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
       style={[clubStyles.item, animatedStyle]}
+      accessibilityRole="button"
+      accessibilityLabel={`${club.name}, ${Math.round(displayYardage)} ${unit}`}
+      accessibilityHint="Double tap to edit or delete"
     >
       <View style={clubStyles.info}>
         <Text style={[clubStyles.name, { color: t.colors.textPrimary }]}>{club.name}</Text>
@@ -271,25 +294,31 @@ const ClubItem = React.memo<ClubItemProps>(({
         <Pressable
           onPress={onEdit}
           style={[clubStyles.actionButton, { backgroundColor: t.colors.brandBackgroundAlpha }]}
+          accessibilityRole="button"
+          accessibilityLabel={`Edit ${club.name}`}
         >
-          <Pencil size={16} color={t.colors.brand} />
+          <Pencil size={16} color={t.colors.brand} accessibilityElementsHidden={true} />
         </Pressable>
         <Pressable
           onPress={onDelete}
           style={[clubStyles.actionButton, { backgroundColor: t.colors.dangerBackgroundAlpha }]}
+          accessibilityRole="button"
+          accessibilityLabel={`Delete ${club.name}`}
         >
-          <Trash2 size={16} color={t.colors.danger} />
+          <Trash2 size={16} color={t.colors.danger} accessibilityElementsHidden={true} />
         </Pressable>
       </View>
     </AnimatedPressable>
   );
 });
 
+ClubItem.displayName = 'ClubItem';
+
 // Create memoized styles function
 const createStyles = (t: Tokens) => ({
   container: {
     flex: 1,
-    backgroundColor: t.colors.background,
+    // Background handled by GradientBackground wrapper
   } as ViewStyle,
   contentContainer: {
     paddingBottom: t.spacing['5xl'],
@@ -345,8 +374,8 @@ const createStyles = (t: Tokens) => ({
     marginTop: t.spacing.base,
   } as TextStyle,
   addButton: {
-    width: t.containerSize.icon.md,
-    height: t.containerSize.icon.md,
+    width: t.containerSize.icon.lg, // 48dp minimum touch target
+    height: t.containerSize.icon.lg,
     borderRadius: t.borderRadius.lg,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
@@ -387,6 +416,43 @@ const createStyles = (t: Tokens) => ({
     textAlign: 'center' as const,
     marginTop: t.spacing.sm,
   } as TextStyle,
+  trialBadge: {
+    paddingHorizontal: t.spacing.sm,
+    paddingVertical: t.spacing.xs - 2,
+    borderRadius: t.borderRadius.sm,
+    marginLeft: 'auto' as const,
+  } as ViewStyle,
+  trialBadgeText: {
+    fontSize: safeScaledFontSize(t.fontSize.xs - 1),
+    fontWeight: t.fontWeight.bold,
+    letterSpacing: 0.5,
+  } as TextStyle,
+  subscriptionInfo: {
+    marginTop: t.spacing.xs,
+  } as ViewStyle,
+  subscriptionStatus: {
+    fontSize: safeScaledFontSize(t.fontSize.base),
+    fontWeight: t.fontWeight.semibold,
+  } as TextStyle,
+  subscriptionExpiry: {
+    fontSize: safeScaledFontSize(t.fontSize.sm),
+    marginTop: t.spacing.xs - 2,
+  } as TextStyle,
+  restoreRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'space-between' as const,
+    paddingVertical: t.spacing.sm,
+  } as ViewStyle,
+  restoreContent: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: t.spacing.base,
+  } as ViewStyle,
+  restoreText: {
+    fontSize: safeScaledFontSize(t.fontSize.sm + 1),
+    fontWeight: t.fontWeight.medium,
+  } as TextStyle,
 });
 
 export default function SettingsScreen() {
@@ -394,10 +460,12 @@ export default function SettingsScreen() {
   const { mode, setMode } = useThemeMode();
   const { settings, updateSettings, convertDistance } = useSettings();
   const { clubs, addClub, updateClub, removeClub } = useClubSettings();
-  const { isPremium, setShowUpgradeModal } = usePremium();
+  const { isPremium, isTrialActive, isLifetime, planType, expirationDate, setShowUpgradeModal, setShowRevenueCatPaywall } = usePremium();
+  const { restorePurchases, isLoading: isRestoring } = useSubscription();
+  const { openCustomerCenter } = useCustomerCenter();
   const insets = useSafeAreaInsets();
   const { headerEntering, cardEntering, quickFade } = useAccessibleAnimations();
-  const [editingIndex, setEditingIndex] = React.useState<number | null>(null);
+  const [editingClubId, setEditingClubId] = React.useState<string | null>(null);
   const [newClub, setNewClub] = React.useState({ name: '', normalYardage: '', loft: '' });
   const [showAddForm, setShowAddForm] = React.useState(false);
 
@@ -406,14 +474,28 @@ export default function SettingsScreen() {
   const padding = getScrollPadding(tokens.spacing.md, { minPadding: tokens.spacing.base, maxPadding: 20 });
 
   const handleSave = () => {
+    // Validate required fields before saving
+    const trimmedName = newClub.name.trim();
+    if (!trimmedName) {
+      console.warn('Club name is required');
+      return;
+    }
+
     const numericYardage = parseInt(newClub.normalYardage) || 0;
+    if (numericYardage <= 0) {
+      console.warn('Valid yardage is required');
+      return;
+    }
+
     const processedYardage =
       settings.distanceUnit === 'meters'
         ? convertDistance(numericYardage, 'yards')
         : numericYardage;
 
-    const clubData: Partial<ClubData> = {
-      name: newClub.name,
+    // Construct validated club data with all required fields
+    const clubData: ClubData = {
+      id: editingClubId ?? `club-${Date.now()}`, // Provide ID for new clubs
+      name: trimmedName,
       normalYardage: processedYardage,
       ball_speed: 0,
       launch_angle: 0,
@@ -424,19 +506,21 @@ export default function SettingsScreen() {
       wind_sensitivity: 0,
     };
 
-    if (editingIndex !== null) {
-      updateClub(editingIndex, clubData as ClubData);
+    if (editingClubId !== null) {
+      updateClub(editingClubId, clubData);
     } else {
-      addClub(clubData as ClubData);
+      addClub(clubData);
     }
 
     setNewClub({ name: '', normalYardage: '', loft: '' });
-    setEditingIndex(null);
+    setEditingClubId(null);
     setShowAddForm(false);
   };
 
-  const handleEdit = (index: number) => {
-    const club = clubs[index];
+  const handleEdit = (clubId: string) => {
+    const club = clubs.find(c => c.id === clubId);
+    if (!club) return;
+
     const displayYardage =
       settings.distanceUnit === 'meters'
         ? convertDistance(club.normalYardage, 'meters')
@@ -447,13 +531,13 @@ export default function SettingsScreen() {
       normalYardage: displayYardage.toString(),
       loft: '',
     });
-    setEditingIndex(index);
+    setEditingClubId(clubId);
     setShowAddForm(true);
   };
 
   const handleCancel = () => {
     setNewClub({ name: '', normalYardage: '', loft: '' });
-    setEditingIndex(null);
+    setEditingClubId(null);
     setShowAddForm(false);
   };
 
@@ -464,17 +548,20 @@ export default function SettingsScreen() {
     settings.altitudeUnit === 'feet';
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={[
-        styles.contentContainer,
-        { paddingTop: insets.top + tokens.spacing.md, paddingHorizontal: padding },
-      ]}
-      showsVerticalScrollIndicator={false}
-    >
+    <GradientBackground>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={[
+          styles.contentContainer,
+          { paddingTop: insets.top + tokens.spacing.md, paddingHorizontal: padding },
+        ]}
+        showsVerticalScrollIndicator={false}
+      >
       {/* Header */}
       <Animated.View entering={headerEntering}>
-        <Text style={[styles.title, { color: tokens.colors.textPrimary }]}>Settings</Text>
+        <Text style={[styles.title, { color: tokens.colors.textPrimary }]} accessibilityRole="header">
+          Settings
+        </Text>
         <Text style={[styles.subtitle, { color: tokens.colors.textMuted }]}>
           Customize your experience
         </Text>
@@ -484,8 +571,8 @@ export default function SettingsScreen() {
       <Animated.View entering={cardEntering(0)}>
         <GlassCard style={styles.sectionCard}>
           <View style={styles.sectionHeader}>
-            <Palette size={20} color={tokens.colors.brand} />
-            <Text style={[styles.sectionTitle, { color: tokens.colors.textPrimary }]}>
+            <Palette size={20} color={tokens.colors.brand} accessibilityElementsHidden={true} />
+            <Text style={[styles.sectionTitle, { color: tokens.colors.textPrimary }]} accessibilityRole="header">
               Appearance
             </Text>
           </View>
@@ -506,8 +593,8 @@ export default function SettingsScreen() {
       <Animated.View entering={cardEntering(1)}>
         <GlassCard style={styles.sectionCard}>
           <View style={styles.sectionHeader}>
-            <Ruler size={20} color={tokens.colors.brand} />
-            <Text style={[styles.sectionTitle, { color: tokens.colors.textPrimary }]}>
+            <Ruler size={20} color={tokens.colors.brand} accessibilityElementsHidden={true} />
+            <Text style={[styles.sectionTitle, { color: tokens.colors.textPrimary }]} accessibilityRole="header">
               Unit System
             </Text>
           </View>
@@ -542,6 +629,79 @@ export default function SettingsScreen() {
         </GlassCard>
       </Animated.View>
 
+      {/* Dominant Hand - for lock button positioning */}
+      <Animated.View entering={cardEntering(1.5)}>
+        <GlassCard style={styles.sectionCard}>
+          <View style={styles.sectionHeader}>
+            <Hand size={20} color={tokens.colors.brand} accessibilityElementsHidden={true} />
+            <Text style={[styles.sectionTitle, { color: tokens.colors.textPrimary }]} accessibilityRole="header">
+              Dominant Hand
+            </Text>
+          </View>
+          <SegmentedControl
+            options={[
+              { label: 'Left', value: 'left' },
+              { label: 'Right', value: 'right' },
+            ]}
+            value={settings.dominantHand}
+            onChange={(value) => updateSettings({ dominantHand: value as 'left' | 'right' })}
+            tokens={tokens}
+          />
+          <Text style={[styles.unitHint, { color: tokens.colors.textMuted }]}>
+            Controls lock button position on Wind Calculator
+          </Text>
+        </GlassCard>
+      </Animated.View>
+
+      {/* Lock Button Position */}
+      <Animated.View entering={cardEntering(1.8)}>
+        <GlassCard style={styles.sectionCard}>
+          <View style={styles.sectionHeader}>
+            <MousePointerClick size={20} color={tokens.colors.brand} accessibilityElementsHidden={true} />
+            <Text style={[styles.sectionTitle, { color: tokens.colors.textPrimary }]} accessibilityRole="header">
+              Lock Button Position
+            </Text>
+          </View>
+          <SegmentedControl
+            options={[
+              { label: 'Left', value: 'left' },
+              { label: 'Right', value: 'right' },
+              { label: 'Both', value: 'both' },
+            ]}
+            value={settings.lockButtonPosition}
+            onChange={(value) => updateSettings({ lockButtonPosition: value as 'left' | 'right' | 'both' })}
+            tokens={tokens}
+          />
+          <Text style={[styles.unitHint, { color: tokens.colors.textMuted }]}>
+            Choose where lock buttons appear on the Wind screen
+          </Text>
+        </GlassCard>
+      </Animated.View>
+
+      {/* Breakdown Default */}
+      <Animated.View entering={cardEntering(2.1)}>
+        <GlassCard style={styles.sectionCard}>
+          <View style={styles.sectionHeader}>
+            <List size={20} color={tokens.colors.brand} accessibilityElementsHidden={true} />
+            <Text style={[styles.sectionTitle, { color: tokens.colors.textPrimary }]} accessibilityRole="header">
+              Breakdown Default
+            </Text>
+          </View>
+          <SegmentedControl
+            options={[
+              { label: 'Collapsed', value: 'collapsed' },
+              { label: 'Expanded', value: 'expanded' },
+            ]}
+            value={settings.breakdownDefault}
+            onChange={(value) => updateSettings({ breakdownDefault: value as 'collapsed' | 'expanded' })}
+            tokens={tokens}
+          />
+          <Text style={[styles.unitHint, { color: tokens.colors.textMuted }]}>
+            Default view for calculation details
+          </Text>
+        </GlassCard>
+      </Animated.View>
+
       {/* Club Management */}
       <Animated.View entering={cardEntering(2)}>
         <GlassCard style={styles.sectionCard}>
@@ -555,7 +715,7 @@ export default function SettingsScreen() {
                   <Text style={styles.clubIconText}>G</Text>
                 </LinearGradient>
               </View>
-              <Text style={[styles.sectionTitle, { color: tokens.colors.textPrimary }]}>
+              <Text style={[styles.sectionTitle, { color: tokens.colors.textPrimary }]} accessibilityRole="header">
                 My Clubs
               </Text>
             </View>
@@ -563,8 +723,10 @@ export default function SettingsScreen() {
               <Pressable
                 onPress={() => setShowAddForm(true)}
                 style={styles.addButton}
+                accessibilityRole="button"
+                accessibilityLabel="Add new club"
               >
-                <Plus size={20} color={tokens.colors.brand} />
+                <Plus size={20} color={tokens.colors.brand} accessibilityElementsHidden={true} />
               </Pressable>
             )}
           </View>
@@ -585,6 +747,7 @@ export default function SettingsScreen() {
                   },
                 ]}
                 placeholderTextColor={tokens.colors.textMuted}
+                accessibilityLabel="Club name"
               />
               <TextInput
                 placeholder={`Distance (${settings.distanceUnit})`}
@@ -600,6 +763,7 @@ export default function SettingsScreen() {
                   },
                 ]}
                 placeholderTextColor={tokens.colors.textMuted}
+                accessibilityLabel={`Club distance in ${settings.distanceUnit}`}
               />
               <View style={styles.formButtons}>
                 <Button variant="ghost" onPress={handleCancel} style={styles.formButton}>
@@ -611,7 +775,7 @@ export default function SettingsScreen() {
                   style={styles.formButton}
                   disabled={!newClub.name || !newClub.normalYardage}
                 >
-                  {editingIndex !== null ? 'Update' : 'Add Club'}
+                  {editingClubId !== null ? 'Update' : 'Add Club'}
                 </Button>
               </View>
             </Animated.View>
@@ -620,6 +784,7 @@ export default function SettingsScreen() {
           {/* Club List */}
           <View style={styles.clubList}>
             {clubs.map((club, index) => {
+              const clubId = club.id || `fallback-${club.name}-${index}`;
               const displayYardage =
                 settings.distanceUnit === 'meters'
                   ? convertDistance(club.normalYardage, 'meters')
@@ -627,12 +792,12 @@ export default function SettingsScreen() {
 
               return (
                 <ClubItem
-                  key={index}
+                  key={clubId}
                   club={club}
                   displayYardage={displayYardage}
                   unit={settings.distanceUnit === 'yards' ? 'yds' : 'm'}
-                  onEdit={() => handleEdit(index)}
-                  onDelete={() => removeClub(index)}
+                  onEdit={() => handleEdit(clubId)}
+                  onDelete={() => removeClub(clubId)}
                   tokens={tokens}
                 />
               );
@@ -646,20 +811,107 @@ export default function SettingsScreen() {
         </GlassCard>
       </Animated.View>
 
-      {/* Premium Upsell */}
+      {/* Premium Status (for premium users) */}
+      {isPremium && !__DEV__ && (
+        <Animated.View entering={cardEntering(3)}>
+          <GlassCard style={styles.sectionCard}>
+            <View style={styles.sectionHeader}>
+              <Crown size={20} color={tokens.colors.brand} accessibilityElementsHidden={true} />
+              <Text style={[styles.sectionTitle, { color: tokens.colors.textPrimary }]} accessibilityRole="header">
+                Premium
+              </Text>
+              {isTrialActive && (
+                <View style={[styles.trialBadge, { backgroundColor: `${tokens.colors.success}20` }]}>
+                  <Text style={[styles.trialBadgeText, { color: tokens.colors.success }]}>
+                    FREE TRIAL
+                  </Text>
+                </View>
+              )}
+              {isLifetime && (
+                <View style={[styles.trialBadge, { backgroundColor: `${tokens.colors.brand}20` }]}>
+                  <Text style={[styles.trialBadgeText, { color: tokens.colors.brand }]}>
+                    LIFETIME
+                  </Text>
+                </View>
+              )}
+            </View>
+            <View style={styles.subscriptionInfo}>
+              <Text style={[styles.subscriptionStatus, { color: tokens.colors.textPrimary }]}>
+                {isLifetime ? 'Lifetime Access' : isTrialActive ? 'Trial Active' : `${planType === 'yearly' ? 'Annual' : 'Monthly'} Premium`}
+              </Text>
+              {expirationDate && !isLifetime && (
+                <Text style={[styles.subscriptionExpiry, { color: tokens.colors.textMuted }]}>
+                  {isTrialActive ? 'Trial ends' : 'Renews'}:{' '}
+                  {new Date(expirationDate).toLocaleDateString()}
+                </Text>
+              )}
+            </View>
+
+            {/* Manage Subscription Button */}
+            <Pressable
+              onPress={openCustomerCenter}
+              style={[
+                styles.restoreRow,
+                { marginTop: tokens.spacing.base, borderTopWidth: tokens.borderWidth.thin, borderTopColor: tokens.colors.border },
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel="Manage subscription"
+            >
+              <View style={styles.restoreContent}>
+                <Settings size={20} color={tokens.colors.brand} />
+                <Text style={[styles.restoreText, { color: tokens.colors.textPrimary }]}>
+                  Manage Subscription
+                </Text>
+              </View>
+              <ChevronRight size={18} color={tokens.colors.textMuted} />
+            </Pressable>
+          </GlassCard>
+        </Animated.View>
+      )}
+
+      {/* Premium Upsell (for free users) */}
       {!isPremium && (
         <Animated.View entering={cardEntering(3)}>
           <PremiumCard onUpgrade={() => setShowUpgradeModal(true)} />
         </Animated.View>
       )}
 
-      {/* Version Info */}
+      {/* Restore Purchases */}
       <Animated.View entering={cardEntering(4)}>
+        <GlassCard style={styles.sectionCard}>
+          <Pressable
+            onPress={restorePurchases}
+            disabled={isRestoring}
+            style={[
+              styles.restoreRow,
+              { opacity: isRestoring ? 0.6 : 1 },
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel="Restore purchases"
+          >
+            <View style={styles.restoreContent}>
+              <RefreshCw
+                size={20}
+                color={tokens.colors.brand}
+                style={isRestoring ? { transform: [{ rotate: '45deg' }] } : undefined}
+              />
+              <Text style={[styles.restoreText, { color: tokens.colors.textPrimary }]}>
+                {isRestoring ? 'Restoring...' : 'Restore Purchases'}
+              </Text>
+            </View>
+            <ChevronRight size={18} color={tokens.colors.textMuted} />
+          </Pressable>
+        </GlassCard>
+      </Animated.View>
+
+      {/* Version Info */}
+      <Animated.View entering={cardEntering(5)}>
         <Text style={[styles.versionText, { color: tokens.colors.textMuted }]}>
           AICaddy Pro v1.0.0
         </Text>
       </Animated.View>
-    </ScrollView>
+      </ScrollView>
+    </GradientBackground>
   );
 }
 

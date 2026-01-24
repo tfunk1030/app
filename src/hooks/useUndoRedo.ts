@@ -280,7 +280,7 @@ export function useUndoRedo<T = unknown>(config: UndoRedoConfig) {
     createInitialState<T>()
   );
 
-  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastActionRef = useRef<UndoableAction<T> | null>(null);
 
   // --------------------------------------------------------------------------
@@ -658,4 +658,4 @@ export function createUndoRedoHook<T>() {
 // Export types for external use
 // ============================================================================
 
-export type { UndoRedoState, UndoRedoConfig };
+export type { UndoRedoState };

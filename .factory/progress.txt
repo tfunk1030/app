@@ -1,0 +1,90 @@
+# Droid Factory Progress Log
+
+## Codebase Patterns
+
+### Project Structure
+- React Native + Expo SDK 54+
+- Expo Router for navigation (file-based)
+- NativeWind v4 for styling (Tailwind)
+- Zustand for state management
+- RevenueCat for subscriptions
+
+### Key Directories
+- `src/features/` - Feature modules (play, settings, etc.)
+- `src/core/` - Shared components, hooks, models
+- `src/providers/` - Context providers
+- `src/theme/` - Design tokens and themes
+
+### Design Tokens
+- Colors: See `src/theme/tokens.ts`
+- Spacing: 4/8/12/16/24/32/48 (8pt grid)
+- Touch targets: 48x48dp minimum
+
+### Common Gotchas
+- Use `@/` import alias, not relative paths
+- FlashList for lists >20 items
+- All interactive elements need accessibilityLabel
+- Test on both iOS and Android
+
+---
+
+## Session Log
+
+## 2026-01-14 - Global checks
+
+**Typecheck:** pass (`npx tsc --noEmit`)
+**Lint:** pass with warnings (`npx expo lint`)
+
+**Fixes applied:**
+- Removed unused `@ts-expect-error` in `components/ExternalLink.tsx`
+- Restored test typechecking and added Jest typings (`@types/jest` + `tsconfig.json` types)
+- Fixed ESLint errors: conditional hook calls, duplicate exports, missing `displayName` on memo/forwardRef components, and unescaped JSX entity
+
+---
+
+(New entries will be added above this line)
+
+
+## 2026-01-14 - PYYW System Implementation & Full Audit
+
+**Task:** Create validation-first system with droids, skills, and agents
+**Status:** Complete
+
+### New Infrastructure Created
+- **adversarial-validator**: Meta-droid enforcing PYYW (Prove Yourself Wrong) protocol
+- **spacing-auditor**: Strict 4/8px grid validation
+- **workflow-auditor**: User flow documentation with code verification
+- **dead-code-hunter**: Unused code detection with 6 attack vectors
+- **appstore-validator**: Live URL/asset verification for App Store
+- **attack-vectors skill**: Pre-built attacks for UI, logic, deps, config, dead code, App Store
+- **current-validation-patterns skill**: React Native/Expo validation approaches
+
+### Key Findings (PYYW Validated)
+
+**Spacing:**
+- gap: 2 in PlayScreen.tsx:559 → CONFIRMED violation, fixed to gap: 4
+- margin: 1.5 in BoldCard.tsx:251 → REJECTED by PYYW (intentional for gradient border)
+- Valid tokens: 4, 8, 12, 16, 24, 32, 48, 64, 96, 120
+
+**Dead Code:**
+- 28 duplicate exports found by knip → ALL REJECTED by PYYW
+- Dual-export pattern (named + default) is intentional for backwards compatibility
+
+**App Store P0 Blockers:**
+- Icon: 192x192, needs 1024x1024 (no alpha, sRGB)
+- Privacy URL: Alert placeholder, needs live URL
+- Terms URL: Not implemented, needs live URL
+- Bundle ID: PASS (com.tfunk1030.aicaddypro consistent)
+
+### PYYW Protocol Value
+- 29 false positives prevented by running attack vectors
+- Every finding backed by evidence (file, grep, git log)
+- All timestamps dynamic via `date -Iseconds`
+
+### Learnings
+- Always check BOTH token files (tokens.ts AND redesign/tokens.ts)
+- Comments like "// spacing-ok" or "// Creates the gradient border effect" indicate intentional overrides
+- Dual-export pattern is standard React practice, not dead code
+- Never trust code for URLs - always curl to verify
+
+---

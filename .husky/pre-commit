@@ -1,1 +1,28 @@
+#!/bin/sh
+
+# Run unit tests (fast feedback)
+echo "Running unit tests..."
 npx jest --passWithNoTests
+
+# Run accessibility regression tests
+echo "Running accessibility tests..."
+npx jest --testPathPatterns=a11y --passWithNoTests
+
+# Check for TODO/FIXME (info only, doesn't block commit)
+echo "Checking for tech debt markers..."
+git diff --cached --name-only --diff-filter=ACM | grep -E '\.(ts|tsx)$' | xargs -r grep -l -E 'TODO|FIXME|HACK|XXX' 2>/dev/null && echo "Note: Files with TODO/FIXME markers detected" || true
+
+# Check for missing accessibility props in new/modified TSX files
+echo "Checking for accessibility patterns..."
+STAGED_TSX=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.tsx$' || true)
+if [ -n "$STAGED_TSX" ]; then
+  # Check for Pressable/TouchableOpacity without accessibilityRole
+  MISSING_ROLE=$(echo "$STAGED_TSX" | xargs -r grep -l -E '<(Pressable|TouchableOpacity)' 2>/dev/null | xargs -r grep -L 'accessibilityRole' 2>/dev/null || true)
+  if [ -n "$MISSING_ROLE" ]; then
+    echo "Warning: These files may have Pressable/TouchableOpacity without accessibilityRole:"
+    echo "$MISSING_ROLE"
+    echo "(This is a warning, not blocking commit)"
+  fi
+fi
+
+echo "Pre-commit checks complete!"

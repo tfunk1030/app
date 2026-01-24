@@ -1,0 +1,10 @@
+{
+  "setup-worktree-windows": [
+    "yarn",
+    "npx expo install --fix"
+  ],
+  "setup-worktree-unix": [
+    "yarn",
+    "npx expo install --fix"
+  ]
+}

@@ -292,11 +292,13 @@ export function useReduceMotionValue(): boolean {
       .then((enabled) => {
         if (mounted) {
           setReduceMotion(enabled);
+          globalReduceMotionEnabled = enabled; // Sync global state
         }
       })
       .catch(() => {
         if (mounted) {
           setReduceMotion(false);
+          globalReduceMotionEnabled = false; // Sync global state
         }
       });
 
@@ -305,6 +307,7 @@ export function useReduceMotionValue(): boolean {
       (enabled: boolean) => {
         if (mounted) {
           setReduceMotion(enabled);
+          globalReduceMotionEnabled = enabled; // Sync global state
         }
       }
     );

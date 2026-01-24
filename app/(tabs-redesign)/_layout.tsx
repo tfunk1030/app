@@ -1,111 +1,45 @@
 /**
- * Redesign Tab Layout - 3 Tab Freemium Structure
+ * Redesign Tab Layout - NativeTabs (iOS Native Tab Bar)
  *
+ * Uses Expo Router v6 NativeTabs for:
+ * - Native iOS tab bar with Liquid Glass on iOS 26+
+ * - SF Symbols via expo-symbols
+ * - Hardware-accelerated animations
+ *
+ * Tab Structure:
  * - Shot (FREE): Environmental adjustments only
  * - Wind (PREMIUM): Full wind calculator with compass
  * - Setup: Clubs + settings
  */
 
 import React from 'react';
-import { Tabs } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import * as Haptics from 'expo-haptics';
-import { Target, Wind, Settings } from 'lucide-react-native';
+import { NativeTabs, Icon, Label } from 'expo-router/unstable-native-tabs';
 
-import { RedesignThemeProvider, useRedesignTheme } from '@/src/theme/redesign';
-import { AppProvider } from '@/src/core/context/AppProvider';
+import { RedesignThemeProvider } from '@/src/theme/redesign';
 import { EnhancedEnvironmentalProvider } from '@/src/providers/EnhancedEnvironmentalProvider';
 
 // =============================================================================
-// TAB BAR ICON COMPONENT
-// =============================================================================
-
-interface TabBarIconProps {
-  name: 'shot' | 'wind' | 'setup';
-  color: string;
-  focused: boolean;
-}
-
-function TabBarIcon({ name, color, focused }: TabBarIconProps) {
-  const size = 24;
-
-  switch (name) {
-    case 'shot':
-      return <Target size={size} color={color} strokeWidth={focused ? 2.5 : 2} />;
-    case 'wind':
-      return <Wind size={size} color={color} strokeWidth={focused ? 2.5 : 2} />;
-    case 'setup':
-      return <Settings size={size} color={color} strokeWidth={focused ? 2.5 : 2} />;
-    default:
-      return null;
-  }
-}
-
-// =============================================================================
-// TAB NAVIGATOR CONTENT
+// TAB NAVIGATOR WITH NATIVE TABS
 // =============================================================================
 
 function TabNavigatorContent() {
-  const { colors, tokens } = useRedesignTheme();
-  const insets = useSafeAreaInsets();
-
   return (
-    <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarStyle: {
-          backgroundColor: colors.surface,
-          borderTopColor: colors.border,
-          borderTopWidth: 1,
-          height: 64 + insets.bottom,
-          paddingBottom: insets.bottom,
-          paddingTop: 8,
-        },
-        tabBarActiveTintColor: colors.brand,
-        tabBarInactiveTintColor: colors.textMuted,
-        tabBarLabelStyle: {
-          fontSize: 11,
-          fontWeight: '600',
-          marginTop: 2,
-        },
-        tabBarItemStyle: {
-          paddingVertical: 4,
-        },
-      }}
-      screenListeners={{
-        tabPress: () => {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        },
-      }}
-    >
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Shot',
-          tabBarIcon: ({ color, focused }) => (
-            <TabBarIcon name="shot" color={color} focused={focused} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="wind"
-        options={{
-          title: 'Wind',
-          tabBarIcon: ({ color, focused }) => (
-            <TabBarIcon name="wind" color={color} focused={focused} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="setup"
-        options={{
-          title: 'Setup',
-          tabBarIcon: ({ color, focused }) => (
-            <TabBarIcon name="setup" color={color} focused={focused} />
-          ),
-        }}
-      />
-    </Tabs>
+    <NativeTabs>
+      <NativeTabs.Trigger name="(shot)">
+        <Icon sf={{ default: "scope", selected: "scope" }} />
+        <Label>Shot</Label>
+      </NativeTabs.Trigger>
+
+      <NativeTabs.Trigger name="(wind)">
+        <Icon sf={{ default: "wind", selected: "wind" }} />
+        <Label>Wind</Label>
+      </NativeTabs.Trigger>
+
+      <NativeTabs.Trigger name="(setup)">
+        <Icon sf={{ default: "gearshape", selected: "gearshape.fill" }} />
+        <Label>Setup</Label>
+      </NativeTabs.Trigger>
+    </NativeTabs>
   );
 }
 
@@ -114,13 +48,13 @@ function TabNavigatorContent() {
 // =============================================================================
 
 export default function RedesignTabLayout() {
+  // Note: AppProvider is already at root _layout.tsx level
+  // Only EnhancedEnvironmentalProvider is needed here for weather data
   return (
     <RedesignThemeProvider>
-      <AppProvider>
-        <EnhancedEnvironmentalProvider>
-          <TabNavigatorContent />
-        </EnhancedEnvironmentalProvider>
-      </AppProvider>
+      <EnhancedEnvironmentalProvider>
+        <TabNavigatorContent />
+      </EnhancedEnvironmentalProvider>
     </RedesignThemeProvider>
   );
 }

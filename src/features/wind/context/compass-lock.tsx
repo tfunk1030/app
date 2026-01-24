@@ -5,7 +5,7 @@
  * Works with the native iOS compass API to ensure exact heading accuracy.
  * Preserves the exact native heading values without additional processing.
  */
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 
@@ -131,8 +131,11 @@ export function CompassLockProvider({
     }
   };
 
-  // Calculate relative wind angle
-  const relativeWindAngle = ((windDirection - (lockState.isLocked ? lockState.referenceHeading : currentHeading) + lockState.manualOffset + 360) % 360);
+  // Calculate relative wind angle - memoized to prevent stale state during rapid updates
+  const relativeWindAngle = useMemo(
+    () => ((windDirection - (lockState.isLocked ? lockState.referenceHeading : currentHeading) + lockState.manualOffset + 360) % 360),
+    [windDirection, lockState.isLocked, lockState.referenceHeading, lockState.manualOffset, currentHeading]
+  );
 
   return (
     <CompassLockContext.Provider

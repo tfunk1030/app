@@ -1,0 +1,271 @@
+# UI Pipeline Progress Log
+Started: 2026-01-13
+
+## Codebase Patterns
+
+### AICaddyPro Design System
+- Dark theme primary: Golf green gradient backgrounds
+- Spacing scale: 4, 8, 12, 16, 24, 32, 48
+- Typography: System fonts with specific weights
+- Cards: GlassCard for elevated content, BoldCard for emphasis
+- Touch targets: Minimum 44x44 points
+
+### Key Files Reference
+- Design tokens: `src/theme/tokens.ts`
+- Typography: `src/theme/typography.ts`
+- Gradients: `src/theme/gradients.ts`
+- Animations: `src/theme/animations.ts`
+
+### Typecheck Command
+```bash
+npx tsc --noEmit
+```
+
+### Component Structure
+- Screens: `src/features/*/screen.tsx` or `src/features/redesign/screens/*.tsx`
+- Core UI: `src/core/components/ui/*.tsx`
+- Feature components: `src/features/*/components/*.tsx`
+
+### React Native Patterns
+- Use StyleSheet.create() not inline styles
+- Prefer useCallback/useMemo for performance
+- Avoid anonymous functions in render
+- Use accessibilityLabel for all interactive elements
+
+### Golf App Specifics
+- Outdoor readability: High contrast required
+- One-handed operation: Bottom-focused interactions
+- Glanceable info: Large numbers, minimal text
+- Weather context: Adapt to conditions display
+
+---
+
+## Iteration Log
+
+### Iteration 1 - 2026-01-13
+**Component:** UI-001 (Play Screen)
+**Phase:** rams-review
+**Status:** COMPLETE
+
+**Findings Summary:**
+- 12 issues identified (3 CRITICAL, 5 HIGH, 4 MEDIUM)
+- Key issues: ConditionsBar missing a11y props, hardcoded RGBA in QuickAction, spacing inconsistencies
+- Output: `reviews/UI-001-rams-initial.md`
+
+**Next:** Phase 2 (gpt-cross-review) - Send RAMS review to GPT for blind spot analysis
+
+---
+
+### Pipeline Fix - 2026-01-13
+**Issue:** Pipeline prompt.md referenced non-existent `/moderator gpt` command
+**Fix:** Updated to use `mcp__codex__codex` MCP tool for GPT delegation
+**Additional Fixes:**
+- Changed `python3` to `python` for Windows compatibility
+- Added "Available Tools" section to prompt.md with examples
+- Updated `.claude/commands/ui-review-pipeline.md` with same fixes
+- Verified search.py script works correctly on Windows
+
+**Files Modified:**
+- `scripts/ralph/ui-pipeline/prompt.md`
+- `.claude/commands/ui-review-pipeline.md`
+
+---
+
+### Iteration - 2026-01-13 (UI-002 Phase 1)
+**Component:** UI-002 (Setup Screen)
+**Phase:** rams-review
+**Status:** COMPLETE
+
+**Findings Summary:**
+- 14 issues identified (3 CRITICAL, 5 SERIOUS, 6 MODERATE)
+- Score: 68/100
+
+**Critical Issues:**
+1. SectionHeader action button missing accessibilityLabel
+2. Switch components (Location, Compass, Notifications) missing accessibilityLabel
+3. ClubRow action buttons missing accessibilityRole="button"
+
+**Serious Issues:**
+1. Club action buttons 36x36 - below 44x44 minimum touch target
+2. ThemeSelector radio buttons missing accessibilityLabel
+3. Unit selector radio buttons missing accessibilityLabel
+4. Missing semantic heading role on page title
+5. Premium card has no onPress handler
+
+**Key Patterns Found:**
+- Extensive hardcoded spacing values (14, 2, 10) not on design scale
+- Multiple places using magic numbers instead of tokens
+- Good use of memo() for sub-components
+- Haptic feedback implemented correctly
+
+**Output:** `reviews/UI-002-rams-initial.md`
+
+**Next:** Phase 2 (gpt-cross-review) - Send to GPT for blind spot analysis
+
+---
+
+### Iteration - 2026-01-13 (UI-002 Phase 2)
+**Component:** UI-002 (Setup Screen)
+**Phase:** gpt-cross-review
+**Status:** COMPLETE
+
+**GPT Validation Results:**
+- Switches missing accessibilityLabel: CONFIRMED P0
+- Club action icons 36x36: CONFIRMED P1
+- Premium card broken affordance: CONFIRMED P1
+- ClubRow missing accessibilityRole: Valid, P2/P1
+
+**Over-Prioritized (GPT suggests drop to P2):**
+- Theme/Unit radio "missing accessibilityLabel" - visible text usually becomes label
+
+**NEW Blind Spots Found by GPT:**
+1. Missing `accessibilityRole="radiogroup"` on Theme/Unit containers
+2. Switch rows not fully tappable (only toggle, not row label)
+3. Missing header structure (`accessibilityRole="header"` on title/sections)
+4. Small text (12-13px) risky for outdoor/sunlight - need 14-16px
+5. Premium card needs disabled state if non-functional
+6. Missing hitSlop on icon-only actions
+
+**Golf-Specific Insights:**
+- Touch targets 48dp+ ideal for gloves
+- Row-level tap targets for toggles
+- Typography scale increase for sunlight readability
+- One-hand operation: align primary actions to right side
+- No fake CTAs on-course
+
+**Output:** `reviews/UI-002-gpt-cross-review.md`
+
+**Next:** Phase 3 (skills-synthesis) - Research patterns and create synthesis document
+
+---
+
+### Iteration - 2026-01-14 (User Screenshot Fixes)
+**Component:** Shot Calculator + Wind Calculator
+**Phase:** critical-fixes
+**Status:** COMPLETE
+
+**User-Reported Issues from Screenshots (UIimages/):**
+
+1. **PlaysLike Value Not Rendering** [FIXED]
+   - Issue: Shot Calculator showed "yds" with no number
+   - Root cause: `calculationResult.playsLike` was undefined before first calculation
+   - Fix: Added fallback `String(calculationResult.playsLike || targetDistance)` in index.tsx
+   - File: `app/(tabs-redesign)/index.tsx`
+
+2. **Lock Button Overlapping S Cardinal** [FIXED]
+   - Issue: Lock button positioned inside compass, overlapping S direction
+   - Fix: Modified `getLockButtonMetrics` to position button BELOW compass
+   - Used `bottom: -(buttonSize + 12)` for 12px gap below compass
+   - Files: `src/utils/responsive.ts`, `src/features/wind/components/compass/styles.ts`
+
+3. **Compass Visual Clutter** [FIXED]
+   - Reduced DegreeMarks from 72 ticks (every 5°) to 8 ticks (every 45°)
+   - Removed BlurView and LinearGradient - simplified to solid ring
+   - Reduced pulse animation intensity (1.08→1.05, duration 1500→2000ms)
+   - Cleaned up unused localStyles (compassGlow, gradientRing*, etc.)
+   - Files: `DegreeMarks.tsx`, `WindDirectionCompass.tsx`
+
+4. **Too Many Cardinal Presets** [FIXED]
+   - Reduced from 8 presets (N, NE, E, SE, S, SW, W, NW) to 4 (N, E, S, W)
+   - Redundant with compass functionality
+   - File: `app/(tabs-redesign)/wind.tsx`
+
+5. **Wind Screen Scrolling Issue** [FIXED]
+   - Reordered layout: inputs FIRST → compass → forecast
+   - New order: Target Distance → Quick Presets → Result Card → Compass → Wind Speed → Gust Warning → Forecast
+   - Reduced scrolling required for common operations
+   - File: `app/(tabs-redesign)/wind.tsx`
+
+6. **Need Calculate Button** [FIXED]
+   - Removed auto-update behavior (useMemo → useCallback)
+   - Added explicit "Calculate" button with brand color
+   - User must tap to calculate - no surprise recalculations
+   - File: `app/(tabs-redesign)/index.tsx`
+
+**TypeScript Check:** PASSED (npx tsc --noEmit --skipLibCheck)
+
+**Next:** Look for additional UI polish opportunities
+
+---
+
+### Iteration - 2026-01-14 (Additional Accessibility)
+**Component:** Shot Calculator + Wind Calculator
+**Phase:** accessibility-polish
+**Status:** COMPLETE
+
+**Improvements Made:**
+
+1. **Added accessibilityRole="header" to screen titles**
+   - Shot Calculator title now marked as header
+   - Wind Calculator title now marked as header
+   - Settings screen already had header role (verified)
+
+2. **Verified Component Accessibility**
+   - QuickAction: Has accessibilityRole="button", accessibilityLabel, accessibilityState ✓
+   - MetricPill: Has accessibilityRole="text", accessibilityLabel ✓
+   - ResultCard: Has accessibilityRole="summary" or "button", accessibilityLabel ✓
+   - All interactive buttons in Wind screen have proper labels ✓
+
+**TypeScript Check:** PASSED
+
+**All User-Reported Issues Complete:**
+- ✓ PlaysLike value rendering
+- ✓ Lock button repositioned outside compass
+- ✓ Compass simplified (8 ticks, solid ring)
+- ✓ Cardinal presets reduced (8 → 4)
+- ✓ Wind screen reordered (inputs first)
+- ✓ Calculate button added
+- ✓ Header accessibility added
+
+---
+
+### Iteration - 2026-01-14 (Component Verification)
+**Phase:** verification
+**Status:** COMPLETE
+
+**Verified Components:**
+
+1. **Slider Component** (`src/core/components/ui/slider.tsx`)
+   - Uses getTouchTargetSize for 44pt minimum targets ✓
+   - Has accessibilityRole="button" on +/- buttons ✓
+   - Has accessibilityLabel on all interactive elements ✓
+   - Respects useReduceMotionValue ✓
+   - Uses design tokens throughout ✓
+   - Haptic feedback on interactions ✓
+
+2. **CardinalDirections Component** - Shows all 8 directions on compass visual (correct)
+   - Uses progressive features based on compass size ✓
+   - Intercardinals hidden on small compasses ✓
+
+**Final TypeScript Check:** PASSED
+
+**Pipeline Status:** All user-reported UI issues have been fixed and verified.
+
+---
+
+### Session Summary - 2026-01-14
+
+**User-Reported Issues (All Fixed):**
+1. ✓ PlaysLike value not rendering → Fixed with fallback value
+2. ✓ Lock button overlapping S cardinal → Repositioned outside compass
+3. ✓ Compass visual clutter → Simplified to 8 ticks, solid ring design
+4. ✓ Too many presets → Reduced from 8 to 4 directions
+5. ✓ Wind screen scroll issue → Reordered: inputs first, compass after
+6. ✓ No Calculate button → Added manual Calculate button
+
+**Additional Improvements:**
+- Added accessibilityRole="header" to screen titles
+- Verified all core components have proper accessibility
+- Cleaned up unused styles in compass components
+
+**Files Modified:**
+- `app/(tabs-redesign)/index.tsx` - Calculate button, PlaysLike fix, header a11y
+- `app/(tabs-redesign)/wind.tsx` - Reordered layout, preset simplification, header a11y
+- `src/utils/responsive.ts` - Lock button positioning metrics
+- `src/features/wind/components/compass/DegreeMarks.tsx` - Simplified ticks
+- `src/features/wind/components/compass/WindDirectionCompass.tsx` - Simplified design
+- `src/features/wind/components/compass/styles.ts` - Compass wrapper padding
+
+**TypeScript Check:** PASSED
+
+---

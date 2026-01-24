@@ -18,9 +18,10 @@ import {
   ScrollView,
   Pressable,
   Dimensions,
+  Alert,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeInDown, useReducedMotion } from 'react-native-reanimated';
 import {
   TrendingUp,
   TrendingDown,
@@ -143,9 +144,19 @@ const StatCard = memo(function StatCard({
             </Text>
           )}
           {trendValue && TrendIcon && (
-            <View style={styles.trendContainer}>
-              <TrendIcon size={12} color={getTrendColor()} />
-              <Text style={[styles.trendValue, { color: getTrendColor() }]}>
+            <View
+              style={styles.trendContainer}
+              accessibilityLabel={`Trend ${trend}: ${trendValue}`}
+            >
+              <TrendIcon
+                size={12}
+                color={getTrendColor()}
+                accessibilityElementsHidden={true}
+              />
+              <Text
+                style={[styles.trendValue, { color: getTrendColor() }]}
+                accessibilityElementsHidden={true}
+              >
                 {trendValue}
               </Text>
             </View>
@@ -191,7 +202,11 @@ const ClubPerformanceRow = memo(function ClubPerformanceRow({
   const { colors } = useRedesignTheme();
 
   return (
-    <View style={[styles.clubRow, { borderBottomColor: colors.divider }]}>
+    <View
+      style={[styles.clubRow, { borderBottomColor: colors.divider }]}
+      accessibilityRole="text"
+      accessibilityLabel={`${club.name}: ${club.avgDistance} yards average, ${club.accuracy}% accuracy, ${club.uses} shots`}
+    >
       <View style={styles.clubNameContainer}>
         <Text style={[styles.clubName, { color: colors.textPrimary }]}>
           {club.name}
@@ -244,6 +259,7 @@ export function StatsScreen() {
   const { colors, tokens, isDark } = useRedesignTheme();
   const insets = useSafeAreaInsets();
   const [selectedTab, setSelectedTab] = useState<'overview' | 'clubs' | 'rounds'>('overview');
+  const reduceMotion = useReducedMotion();
 
   return (
     <SafeAreaView
@@ -259,7 +275,10 @@ export function StatsScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <Text style={[styles.title, { color: colors.textPrimary }]}>
+          <Text
+            style={[styles.title, { color: colors.textPrimary }]}
+            accessibilityRole="header"
+          >
             Stats
           </Text>
           <Text style={[styles.subtitle, { color: colors.textMuted }]}>
@@ -268,7 +287,11 @@ export function StatsScreen() {
         </View>
 
         {/* Tab Selector */}
-        <View style={[styles.tabSelector, { backgroundColor: colors.surface }]}>
+        <View
+          style={[styles.tabSelector, { backgroundColor: colors.surface }]}
+          accessibilityRole="tablist"
+          accessibilityLabel="Stats navigation"
+        >
           {(['overview', 'clubs', 'rounds'] as const).map((tab) => (
             <Pressable
               key={tab}
@@ -281,6 +304,7 @@ export function StatsScreen() {
               ]}
               accessibilityRole="tab"
               accessibilityState={{ selected: selectedTab === tab }}
+              accessibilityLabel={`${tab.charAt(0).toUpperCase() + tab.slice(1)} tab`}
             >
               <Text
                 style={[
@@ -298,7 +322,7 @@ export function StatsScreen() {
         {selectedTab === 'overview' && (
           <>
             {/* Bento Grid */}
-            <Animated.View entering={FadeIn} style={styles.bentoGrid}>
+            <Animated.View entering={reduceMotion ? undefined : FadeIn} style={styles.bentoGrid}>
               {/* Large Card - Overall Score */}
               <StatCard
                 title="Overall Score"
@@ -348,7 +372,7 @@ export function StatsScreen() {
             </Animated.View>
 
             {/* Strokes Gained Teaser */}
-            <Animated.View entering={FadeInDown.delay(200)}>
+            <Animated.View entering={reduceMotion ? undefined : FadeInDown.delay(200)}>
               <Pressable
                 style={[
                   styles.premiumBanner,
@@ -359,6 +383,7 @@ export function StatsScreen() {
                 ]}
                 accessibilityRole="button"
                 accessibilityLabel="Unlock Strokes Gained Analysis with Premium"
+                onPress={() => Alert.alert('Premium', 'Strokes Gained Analysis requires a Premium subscription.')}
               >
                 <View style={styles.premiumBannerLeft}>
                   <Zap size={20} color={colors.brand} />
@@ -380,14 +405,18 @@ export function StatsScreen() {
         {/* Clubs Tab */}
         {selectedTab === 'clubs' && (
           <Animated.View
-            entering={FadeIn}
+            entering={reduceMotion ? undefined : FadeIn}
             style={[styles.clubsContainer, { backgroundColor: colors.surface }]}
           >
             <View style={styles.clubsHeader}>
               <Text style={[styles.clubsTitle, { color: colors.textPrimary }]}>
                 Club Performance
               </Text>
-              <BarChart3 size={20} color={colors.textMuted} />
+              <BarChart3
+                size={20}
+                color={colors.textMuted}
+                accessibilityElementsHidden={true}
+              />
             </View>
 
             {MOCK_CLUB_STATS.map((club, index) => (
@@ -398,6 +427,7 @@ export function StatsScreen() {
               style={[styles.viewAllButton, { borderColor: colors.border }]}
               accessibilityRole="button"
               accessibilityLabel="View all clubs"
+              hitSlop={{ top: 8, bottom: 8, left: 16, right: 16 }}
             >
               <Text style={[styles.viewAllText, { color: colors.brand }]}>
                 View All Clubs
@@ -409,11 +439,15 @@ export function StatsScreen() {
 
         {/* Rounds Tab */}
         {selectedTab === 'rounds' && (
-          <Animated.View entering={FadeIn} style={styles.roundsContainer}>
+          <Animated.View entering={reduceMotion ? undefined : FadeIn} style={styles.roundsContainer}>
             <View
               style={[styles.emptyState, { backgroundColor: colors.surface }]}
             >
-              <Clock size={48} color={colors.textMuted} />
+              <Clock
+                size={48}
+                color={colors.textMuted}
+                accessibilityElementsHidden={true}
+              />
               <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>
                 No Rounds Yet
               </Text>
@@ -471,9 +505,11 @@ const styles = StyleSheet.create({
 
   tab: {
     flex: 1,
-    paddingVertical: 10,
+    paddingVertical: 12,
+    minHeight: 44,
     borderRadius: 8,
     alignItems: 'center',
+    justifyContent: 'center',
   },
 
   tabText: {

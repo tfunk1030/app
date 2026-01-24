@@ -65,8 +65,7 @@ export const BoldCard: React.FC<BoldCardProps> = ({
   disabled = false,
 }) => {
   const t = useTokens();
-  const { mode } = useThemeMode();
-  const isDark = mode === 'dark' || mode === 'system';
+  const { isDark } = useThemeMode();
   const reduceMotion = useReduceMotionValue();
   const padding = getScrollPadding(16, { minPadding: 12, maxPadding: 20 });
 
@@ -108,21 +107,18 @@ export const BoldCard: React.FC<BoldCardProps> = ({
     }
   };
 
-  // Determine shadow style based on glow prop
+  // Determine shadow style based on glow prop (CSS boxShadow - New Architecture)
+  const getGlowColorWithAlpha = () => {
+    // Append 80 (50%) alpha to glow color
+    return `${getGlowColor()}80`;
+  };
+
   const shadowStyle = glow
     ? {
-        shadowColor: getGlowColor(),
-        shadowOffset: t.shadow.glow.shadowOffset,
-        shadowOpacity: t.shadow.glow.shadowOpacity,
-        shadowRadius: t.shadow.glow.shadowRadius,
-        elevation: t.shadow.glow.elevation,
+        boxShadow: `0 ${t.shadow.glow.shadowOffset.height}px ${t.shadow.glow.shadowRadius}px ${getGlowColorWithAlpha()}`,
       }
     : {
-        shadowColor: t.colors.shadow,
-        shadowOffset: t.shadow.card.shadowOffset,
-        shadowOpacity: t.shadow.card.shadowOpacity,
-        shadowRadius: t.shadow.card.shadowRadius,
-        elevation: t.shadow.card.elevation,
+        boxShadow: `0 ${t.shadow.card.shadowOffset.height}px ${t.shadow.card.shadowRadius}px ${t.colors.shadowAlpha}`,
       };
 
   // Get surface gradient colors based on variant and theme
@@ -201,6 +197,8 @@ export const BoldCard: React.FC<BoldCardProps> = ({
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
         disabled={disabled}
+        accessibilityRole="button"
+        accessibilityState={{ disabled }}
         style={[
           styles.card,
           shadowStyle,

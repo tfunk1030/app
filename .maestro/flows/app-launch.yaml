@@ -1,0 +1,20 @@
+# App Launch E2E Test
+# Verifies the app launches successfully and shows main UI
+
+appId: com.tfunk1030.aicaddypro
+---
+- launchApp:
+    clearState: true
+
+# Wait for splash screen to complete
+- extendedWaitUntil:
+    visible: "Shot"
+    timeout: 15000
+
+# Verify bottom navigation is visible
+- assertVisible: "Shot"
+- assertVisible: "Wind"
+- assertVisible: "Setup"
+
+# Take screenshot
+- takeScreenshot: app-launched

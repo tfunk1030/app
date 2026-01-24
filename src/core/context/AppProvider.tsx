@@ -48,8 +48,8 @@ export function AppProvider({ children }: AppProviderProps) {
   logger.info('Initializing AppProvider');
 
   return (
-    <DiagnosticProvider>
-      <WindDataAdapter>
+    <WindDataAdapter>
+      <DiagnosticProvider>
         <SettingsProvider>
           <PremiumProvider>
             <ClubSettingsProvider>
@@ -59,7 +59,7 @@ export function AppProvider({ children }: AppProviderProps) {
             </ClubSettingsProvider>
           </PremiumProvider>
         </SettingsProvider>
-      </WindDataAdapter>
-    </DiagnosticProvider>
+      </DiagnosticProvider>
+    </WindDataAdapter>
   );
 }

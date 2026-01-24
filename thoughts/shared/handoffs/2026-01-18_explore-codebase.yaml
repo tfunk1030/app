@@ -1,0 +1,176 @@
+---
+type: exploration
+ts: 2026-01-18T00:00:00Z
+depth: quick
+focus: entire codebase
+commit: ce3c2e9
+---
+
+summary: React Native golf app with Expo SDK 55, Expo Router navigation, Zustand state, and RevenueCat subscriptions. Current focus is Wind Calculator feature polish.
+
+# Architecture Overview
+
+stack:
+  framework: React Native 0.83.1
+  platform: Expo SDK 55 (canary)
+  routing: Expo Router 7.0.0 (native tabs)
+  styling: NativeWind v4 (Tailwind for RN)
+  state: Zustand
+  payments: RevenueCat
+
+# Directory Structure
+
+structure:
+  entry_points:
+    - app/_layout.tsx  # Root layout, providers, error handling
+    - app/index.tsx    # Initial route with navigation preference redirect
+    - app/(tabs-redesign)/_layout.tsx  # Tab navigator layout
+
+  routing:
+    pattern: file-based (Expo Router)
+    tabs:
+      - (tabs-redesign)/(shot)/index.tsx  # Shot calculator
+      - (tabs-redesign)/(wind)/index.tsx  # Wind calculator (current focus)
+      - (tabs-redesign)/(setup)/index.tsx # Setup/settings
+
+  key_modules:
+    - src/features/wind/  # Wind calculator feature (active development)
+    - src/features/settings/  # User settings, clubs, premium
+    - src/features/redesign/  # Redesigned screens
+    - src/features/calculator/  # Shot calculator
+    - src/features/home/  # Home screen
+    - src/core/  # Core context providers and UI components
+    - src/services/  # Business logic services
+    - src/stores/  # Zustand stores
+    - src/theme/  # Design system tokens
+
+# Provider Hierarchy
+
+providers:
+  order:
+    - ErrorBoundary
+    - AppThemeProvider  # Theme context
+    - AppProvider  # Consolidated providers
+    - ThemeProvider  # React Navigation theme
+
+  app_provider_children:
+    - WindDataAdapter
+    - DiagnosticProvider
+    - SettingsProvider
+    - PremiumProvider
+    - ClubSettingsProvider
+    - SensorDataProvider
+    - ShotCalcProvider
+
+# Current Focus Area
+
+current_sprint:
+  name: "Week 2: Compass Overhaul"
+  primary_screen: src/features/wind/screen.tsx
+
+  wind_feature_files:
+    - src/features/wind/screen.tsx  # Main wind calculator screen
+    - src/features/wind/components/compass/WindDirectionCompass.tsx
+    - src/features/wind/components/compass/WindArrow.tsx
+    - src/features/wind/components/compass/LockButton.tsx
+    - src/features/wind/components/compass/ThumbZoneLockButton.tsx
+    - src/features/wind/hooks/useWindCalculator.ts
+    - src/features/wind/context/compass-lock.tsx
+    - src/features/wind/context/sensor-data.tsx
+    - src/features/wind/utils/wind-colors.ts
+
+  verification_tools:
+    - "npm test wind-colors"  # Binary UI tests (41 tests)
+    - "yarn test:visual"  # Playwright visual regression
+    - Storybook stories for component isolation
+
+# Services Layer
+
+services:
+  weather:
+    - src/services/weather/weatherkit-adapter.ts
+    - src/services/weather/nws-adapter.ts
+    - src/services/weather/openmeteo-adapter.ts
+    - src/services/weather/metar-adapter.ts
+    - src/services/weather/normalize.ts
+
+  calculations:
+    - src/services/calculations/wind-calculator.ts
+    - src/services/environmental-calculations.ts
+    - src/services/elevation-service.ts
+
+  infrastructure:
+    - src/services/cache/CacheService.ts
+    - src/services/calculation-cache.ts
+    - src/services/api.ts
+    - src/services/notification/
+
+# State Management
+
+state:
+  zustand_stores:
+    - src/stores/subscription.ts  # Subscription status
+    - src/stores/navigationPreference.ts  # Navigation prefs
+
+  context_providers:
+    - src/core/context/settings.tsx  # User settings
+    - src/core/context/theme.tsx  # Theme context
+    - src/core/context/shotcalc.tsx  # Shot calculations
+    - src/features/settings/context/clubs.tsx  # Club data
+    - src/features/settings/context/premium.tsx  # Premium status
+    - src/features/wind/context/compass-lock.tsx  # Compass lock state
+    - src/features/wind/context/sensor-data.tsx  # Sensor (compass heading) data
+
+# Design System
+
+design_system:
+  tokens_file: src/theme/tokens.ts
+
+  color_palette:
+    brand: "#2E8B57"  # Course green
+    success: "#16A34A"  # Under par / tailwind
+    warning: "#F59E0B"  # Crosswind
+    danger: "#DC2626"  # Headwind
+
+  spacing_scale: "8pt grid (xs:4, sm:8, base:12, md:16, lg:24, xl:32)"
+
+  touch_targets:
+    minimum: 48dp
+    recommended: 56dp
+
+# Build & Development
+
+build:
+  cannot_use: Expo Go  # Native modules require dev client
+  native_modules:
+    - TrueSheet
+    - expo-glass-effect
+
+  commands:
+    start: "npx expo start"
+    build_ios: "eas build --profile development --platform ios"
+    lint: "npx expo lint"
+    test_wind: "npm test wind-colors"
+    visual_test: "yarn test:visual"
+
+  known_issues:
+    - "CocoaPods spawn pod ENOENT (SDK 55 canary)"
+    - "expo-glass-effect iOS 18+ only (has BlurView fallback)"
+
+# Next Steps for Implementation
+
+next_steps:
+  - Review docs/MASTER.md for detailed status
+  - Check docs/current/AICaddyPro-Action-Plan.md for sprint tasks
+  - Run "npm test wind-colors" before any wind UI changes
+  - Use Playwright MCP for visual verification
+
+refs:
+  - path: docs/MASTER.md
+    role: Master status document
+  - path: docs/current/AICaddyPro-Action-Plan.md
+    role: Current sprint tasks
+  - path: src/features/wind/screen.tsx
+    role: Primary implementation target
+  - path: src/theme/tokens.ts
+    role: Design system source of truth

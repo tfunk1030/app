@@ -25,15 +25,15 @@ export const EffectsGrid = memo(function EffectsGrid({
 }: EffectsGridProps) {
   const t = useThemeTokens();
   const styles = useMemo(() => createStyles(t), [t]);
-  const { settings } = useSettings();
+  const { settings, convertDistance } = useSettings();
   const unitLabel = useMemo(
     () => (settings.distanceUnit === 'yards' ? 'yards' : 'm'),
     [settings.distanceUnit]
   );
   const toDisplay = useCallback(
     (yards: number) =>
-      settings.distanceUnit === 'yards' ? Math.round(yards) : Math.round(yards * 0.9144),
-    [settings.distanceUnit]
+      settings.distanceUnit === 'yards' ? Math.round(yards) : Math.round(convertDistance(yards, 'meters')),
+    [settings.distanceUnit, convertDistance]
   );
   const roundedValues = useMemo(
     () => ({

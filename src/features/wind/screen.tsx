@@ -5,14 +5,15 @@ import { GlassCard } from '@/src/core/components/ui/GlassCard';
 import { Slider } from '@/src/core/components/ui/slider';
 import { usePremium } from '@/src/features/settings/context/premium';
 import WindDirectionCompass from '@/src/features/wind/components/compass';
-import { WindWeatherBar } from '@/src/features/wind/components/wind-weather-bar';
+import { ThumbZoneLockButton } from '@/src/features/wind/components/compass/ThumbZoneLockButton';
+import { useSettings } from '@/src/core/context/settings';
+import { ResultTakeoverModal } from '@/src/features/wind/components/ResultTakeoverModal';
 import { WindCalculationResults } from '@/src/features/wind/components/WindCalculationResults';
 import { WindHourlyForecastBar } from '@/src/features/wind/components/WindHourlyForecastBar';
 import { CompassLockProvider, useCompassLock } from '@/src/features/wind/context/compass-lock';
 import { useSensorData } from '@/src/features/wind/context/sensor-data';
 import { useWindCalculator } from '@/src/features/wind/hooks/useWindCalculator';
 import { useEnhancedEnvironmental } from '@/src/providers/EnhancedEnvironmentalProvider';
-import { useThemeMode } from '@/src/theme/ThemeProvider';
 import type { Tokens } from '@/src/theme/tokens';
 import { useTokens } from '@/src/theme/useTokens';
 import { LogManager } from '@/src/utils/LogManager';
@@ -20,7 +21,8 @@ import { safeScaledFontSize, getScrollPadding } from '@/src/utils/responsive';
 import { useAccessibleAnimations } from '@/src/hooks/useAccessibility';
 import { Crown, Wind } from 'lucide-react-native';
 import React, { useEffect, useMemo, useState } from 'react';
-import { Platform, Pressable, ScrollView, Text, View, ViewStyle, TextStyle } from 'react-native';
+import { Platform, Pressable, ScrollView, Text, View, ViewStyle, TextStyle, Alert, TextInput } from 'react-native';
+import { GradientBackground } from '@/src/components/GradientBackground';
 import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -68,25 +70,142 @@ const YardagePresetButton = React.memo<YardagePresetButtonProps>(({
   }), [t, isSelected]);
 
   return (
-    <Pressable onPress={onPress} style={buttonStyle}>
+    <Pressable
+      onPress={onPress}
+      style={buttonStyle}
+      accessibilityRole="button"
+      accessibilityLabel={`Select ${value} yards`}
+      accessibilityState={{ selected: isSelected }}
+    >
       <Text style={textStyle}>{value}</Text>
     </Pressable>
   );
 });
 
+YardagePresetButton.displayName = 'YardagePresetButton';
+
+interface InlineEditablePillProps {
+  label: string;
+  value: string;
+  unit?: string;
+  isEditing: boolean;
+  isOverridden: boolean;
+  onPress: () => void;
+  onChangeText: (text: string) => void;
+  onSubmit: () => void;
+  onBlur: () => void;
+  tokens: Tokens;
+}
+
+const InlineEditablePill = React.memo<InlineEditablePillProps>(({
+  label,
+  value,
+  unit,
+  isEditing,
+  isOverridden,
+  onPress,
+  onChangeText,
+  onSubmit,
+  onBlur,
+  tokens: t,
+}) => {
+  const pillStyles = useMemo(() => ({
+    container: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: t.spacing.xs,
+      paddingVertical: t.spacing.xs,
+      paddingHorizontal: t.spacing.sm,
+      borderRadius: t.borderRadius.full,
+      borderWidth: t.borderWidth.thin,
+      borderColor: isOverridden ? t.colors.warning : t.colors.border,
+      backgroundColor: t.colors.surface,
+      minHeight: t.touchTarget.minimum,
+    },
+    label: {
+      fontSize: safeScaledFontSize(t.fontSize.xs),
+      fontWeight: t.fontWeight.semibold as TextStyle['fontWeight'],
+      color: t.colors.textMuted,
+      textTransform: 'uppercase' as const,
+      letterSpacing: t.letterSpacing.wider,
+    },
+    value: {
+      fontSize: safeScaledFontSize(t.fontSize.sm),
+      fontWeight: t.fontWeight.semibold as TextStyle['fontWeight'],
+      color: t.colors.textPrimary,
+      minWidth: 40,
+      textAlign: 'center' as const,
+    },
+    unit: {
+      fontSize: safeScaledFontSize(t.fontSize.xs),
+      color: t.colors.textMuted,
+    },
+    input: {
+      fontSize: safeScaledFontSize(t.fontSize.sm),
+      fontWeight: t.fontWeight.semibold as TextStyle['fontWeight'],
+      color: t.colors.textPrimary,
+      minWidth: 40,
+      textAlign: 'center' as TextStyle['textAlign'],
+      paddingVertical: 0,
+    },
+    overrideDot: {
+      width: t.spacing.xs,
+      height: t.spacing.xs,
+      borderRadius: t.borderRadius.full,
+      backgroundColor: t.colors.warning,
+    },
+  }), [t, isOverridden]);
+
+  return (
+    <Pressable
+      onPress={onPress}
+      style={pillStyles.container}
+      accessibilityRole="button"
+      accessibilityLabel={`${label}: ${value}${unit ? ` ${unit}` : ''}${isOverridden ? ', overridden' : ''}`}
+      accessibilityHint="Double tap to edit"
+    >
+      {isOverridden && <View style={pillStyles.overrideDot} accessibilityElementsHidden={true} />}
+      <Text style={pillStyles.label}>{label}</Text>
+      {isEditing ? (
+        <TextInput
+          value={value}
+          onChangeText={onChangeText}
+          onSubmitEditing={onSubmit}
+          onBlur={onBlur}
+          keyboardType="numeric"
+          style={pillStyles.input}
+          accessibilityLabel={`${label} override value`}
+          returnKeyType="done"
+        />
+      ) : (
+        <Text style={pillStyles.value}>{value}</Text>
+      )}
+      {unit ? <Text style={pillStyles.unit}>{unit}</Text> : null}
+    </Pressable>
+  );
+});
+
+InlineEditablePill.displayName = 'InlineEditablePill';
+
 // Wind calculation component
 function WindCalculatorComponent() {
   // Get all required hooks
   const { isPremium } = usePremium();
-  const { conditions, isLoading: envLoading } = useEnhancedEnvironmental();
-  const { relativeWindAngle } = useCompassLock();
+  const { conditions, forceRefresh } = useEnhancedEnvironmental();
+  const { relativeWindAngle, isLocked, toggleLock } = useCompassLock();
   const { isLoading, windSpeed, setWindSpeed, targetYardage, setTargetYardage, result, calculate } =
     useWindCalculator();
   const t = useTokens();
-  const { mode } = useThemeMode();
-  const isDark = mode === 'dark' || mode === 'system';
   const insets = useSafeAreaInsets();
   const { headerEntering, cardEntering } = useAccessibleAnimations();
+  const { settings } = useSettings();
+
+  // State for result modal
+  const [showResultModal, setShowResultModal] = useState(false);
+  const [editingPill, setEditingPill] = useState<'wind' | 'gust' | 'direction' | null>(null);
+  const [windOverride, setWindOverride] = useState<string>('');
+  const [gustOverride, setGustOverride] = useState<string>('');
+  const [directionOverride, setDirectionOverride] = useState<string>('');
 
   // Memoized styles
   const styles = useMemo(() => createStyles(t), [t]);
@@ -100,6 +219,48 @@ function WindCalculatorComponent() {
       windAngle: relativeWindAngle,
     });
     calculate(relativeWindAngle);
+    setShowResultModal(true);
+  };
+
+  const lockButtonPosition = settings.lockButtonPosition ?? 'both';
+
+  const speedUnitLabel = settings.speedUnit === 'mps' ? 'm/s' : settings.speedUnit;
+  const windSpeedLabel = speedUnitLabel;
+  const baseWindSpeed = Math.round(conditions?.windSpeed || 0);
+  const baseWindGust = Math.round(conditions?.windGust || 0);
+  const baseWindDirection = Math.round(conditions?.windDirection || 0);
+
+  const effectiveWindSpeed = windOverride !== '' ? parseInt(windOverride, 10) : baseWindSpeed;
+  const effectiveGust = gustOverride !== '' ? parseInt(gustOverride, 10) : baseWindGust;
+  const effectiveDirection = directionOverride !== '' ? parseInt(directionOverride, 10) : baseWindDirection;
+
+  const handlePillCommit = (type: 'wind' | 'gust' | 'direction') => {
+    if (type === 'wind') {
+      const value = parseInt(windOverride, 10);
+      if (Number.isFinite(value)) {
+        setWindSpeed(value);
+      } else {
+        setWindOverride('');
+      }
+    }
+    if (type === 'gust') {
+      const value = parseInt(gustOverride, 10);
+      if (!Number.isFinite(value)) {
+        setGustOverride('');
+      }
+    }
+    if (type === 'direction') {
+      const value = parseInt(directionOverride, 10);
+      if (!Number.isFinite(value)) {
+        setDirectionOverride('');
+      }
+    }
+    setEditingPill(null);
+  };
+
+  // Handle modal dismiss
+  const handleDismissModal = () => {
+    setShowResultModal(false);
   };
 
   // Premium check
@@ -108,19 +269,28 @@ function WindCalculatorComponent() {
       <View style={[styles.container, styles.centerContent, { backgroundColor: t.colors.background }]}>
         <Animated.View entering={headerEntering} style={styles.premiumContainer}>
           <View style={[styles.premiumIconContainer, { backgroundColor: t.colors.brandBackgroundAlpha }]}>
-            <Crown size={t.containerSize.icon.lg} color={t.colors.brand} />
+            <Crown
+              size={t.containerSize.icon.lg}
+              color={t.colors.brand}
+              accessibilityElementsHidden={true}
+            />
           </View>
-          <Text style={[styles.premiumTitle, { color: t.colors.textPrimary }]}>
+          <Text
+            style={[styles.premiumTitle, { color: t.colors.textPrimary }]}
+            accessibilityRole="header"
+          >
             Premium Feature
           </Text>
           <Text style={[styles.premiumText, { color: t.colors.textMuted }]}>
             Wind calculator is available with premium
           </Text>
           <Button
-            onPress={() => {}} // Handle premium upgrade
+            onPress={() => Alert.alert('Premium', 'Wind calculator requires a Premium subscription.')}
             variant="neon"
             size="lg"
             style={styles.premiumButton}
+            accessibilityLabel="Upgrade to premium subscription"
+            accessibilityHint="Opens premium subscription options"
           >
             Upgrade to Premium
           </Button>
@@ -132,7 +302,11 @@ function WindCalculatorComponent() {
   // Loading state
   if (isLoading) {
     return (
-      <View style={[styles.container, styles.centerContent, { backgroundColor: t.colors.background }]}>
+      <View
+        style={[styles.container, styles.centerContent, { backgroundColor: t.colors.background }]}
+        accessibilityRole="progressbar"
+        accessibilityLabel="Loading wind calculator"
+      >
         <View style={[styles.loadingPulse, { backgroundColor: t.colors.surfaceAlt }]} />
         <View style={[styles.loadingPulse, { backgroundColor: t.colors.surfaceAlt, width: '60%' }]} />
       </View>
@@ -143,79 +317,158 @@ function WindCalculatorComponent() {
   if (!conditions) {
     return (
       <View style={[styles.container, styles.centerContent, { backgroundColor: t.colors.background }]}>
-        <Wind size={t.containerSize.icon.lg} color={t.colors.textMuted} />
-        <Text style={[styles.errorText, { color: t.colors.textMuted }]}>
-          Unable to load conditions
-        </Text>
+        <Animated.View
+          entering={headerEntering}
+          style={styles.errorContainer}
+          accessibilityRole="alert"
+          accessibilityLabel="Unable to load weather conditions"
+        >
+          <View
+            style={[
+              styles.errorIconContainer,
+              { backgroundColor: t.colors.dangerBackgroundAlpha },
+            ]}
+          >
+            <Wind
+              size={t.containerSize.icon.md}
+              color={t.colors.danger}
+              accessibilityElementsHidden={true}
+            />
+          </View>
+          <Text style={[styles.errorTitle, { color: t.colors.textPrimary }]}>
+            Unable to Load Conditions
+          </Text>
+          <Text style={[styles.errorMessage, { color: t.colors.textMuted }]}>
+            Weather data is required for wind calculations. Please check your connection and try
+            again.
+          </Text>
+          <Button
+            onPress={async () => {
+              // Force refresh environmental data
+              logger.info('User requested retry for wind conditions');
+              await forceRefresh();
+            }}
+            variant="neon"
+            size="lg"
+            style={styles.retryButton}
+            accessibilityLabel="Retry loading weather conditions"
+            accessibilityHint="Attempts to reload weather data"
+          >
+            Try Again
+          </Button>
+        </Animated.View>
       </View>
     );
   }
 
   return (
-    <ScrollView
-      style={[styles.container, { backgroundColor: t.colors.background }]}
-      contentContainerStyle={[
-        styles.contentContainer,
-        { paddingTop: insets.top + t.spacing.md, paddingHorizontal: padding },
-      ]}
-      showsVerticalScrollIndicator={false}
-    >
-      {/* Header */}
+    <GradientBackground>
+      <ScrollView
+        testID="wind-scroll-view"
+        style={styles.container}
+        contentContainerStyle={[
+          styles.contentContainer,
+          { paddingTop: insets.top + t.spacing.lg, paddingHorizontal: padding },
+        ]}
+        showsVerticalScrollIndicator={false}
+      >
+      {/* Header with Current Wind Display */}
       <Animated.View entering={headerEntering}>
-        <Text style={[styles.title, { color: t.colors.textPrimary }]}>Wind Calculator</Text>
-        <Text style={[styles.subtitle, { color: t.colors.textMuted }]}>
-          Calculate wind effect on your shot
+        <Text style={[styles.title, { color: t.colors.textPrimary }]} accessibilityRole="header">
+          Wind Calculator
         </Text>
+        {/* Current wind conditions - always visible */}
+        <View style={[styles.currentWindRow, { borderColor: t.colors.border }]}>
+          <InlineEditablePill
+            label="Wind"
+            value={String(effectiveWindSpeed)}
+            unit={speedUnitLabel}
+            isEditing={editingPill === 'wind'}
+            isOverridden={windOverride !== ''}
+            onPress={() => setEditingPill('wind')}
+            onChangeText={(text) => setWindOverride(text.replace(/[^0-9]/g, ''))}
+            onSubmit={() => handlePillCommit('wind')}
+            onBlur={() => handlePillCommit('wind')}
+            tokens={t}
+          />
+          <InlineEditablePill
+            label="From"
+            value={String(effectiveDirection)}
+            unit="°"
+            isEditing={editingPill === 'direction'}
+            isOverridden={directionOverride !== ''}
+            onPress={() => setEditingPill('direction')}
+            onChangeText={(text) => setDirectionOverride(text.replace(/[^0-9]/g, ''))}
+            onSubmit={() => handlePillCommit('direction')}
+            onBlur={() => handlePillCommit('direction')}
+            tokens={t}
+          />
+          {baseWindGust > baseWindSpeed && (
+            <InlineEditablePill
+              label="Gusts"
+              value={String(effectiveGust)}
+              unit={speedUnitLabel}
+              isEditing={editingPill === 'gust'}
+              isOverridden={gustOverride !== ''}
+              onPress={() => setEditingPill('gust')}
+              onChangeText={(text) => setGustOverride(text.replace(/[^0-9]/g, ''))}
+              onSubmit={() => handlePillCommit('gust')}
+              onBlur={() => handlePillCommit('gust')}
+              tokens={t}
+            />
+          )}
+        </View>
       </Animated.View>
 
-      {/* Weather Bars - Collapsible sections */}
+      {/* Hourly forecast - collapsible */}
       <Animated.View entering={cardEntering(0)}>
         <WindHourlyForecastBar />
       </Animated.View>
 
-      <Animated.View entering={cardEntering(1)}>
-        <WindWeatherBar />
-      </Animated.View>
-
       {/* Compass Card */}
-      <Animated.View entering={cardEntering(2)}>
+      <Animated.View entering={cardEntering(1)}>
         <GlassCard gradient glow style={styles.compassCard}>
           <Text style={[styles.compassHint, { color: t.colors.textMuted }]}>
             Point phone in shot direction and tap lock
           </Text>
           <View style={styles.compassWrapper}>
-            <WindDirectionCompass size={260} />
+            <WindDirectionCompass windDirection={effectiveDirection} windSpeed={effectiveWindSpeed} speedUnit={speedUnitLabel} />
           </View>
         </GlassCard>
       </Animated.View>
 
       {/* Wind Speed Slider */}
-      <Animated.View entering={cardEntering(3)}>
+      <Animated.View entering={cardEntering(2)}>
         <GlassCard style={styles.sliderCard}>
-          <Slider
-            value={windSpeed}
-            onValueChange={setWindSpeed}
-            min={0}
-            max={50}
-            step={1}
-            label="Wind Speed"
-            unit="mph"
-          />
+            <Slider
+              value={windSpeed}
+              onValueChange={(value) => {
+                setWindSpeed(value);
+                if (windOverride !== '') {
+                  setWindOverride('');
+                }
+              }}
+              min={0}
+              max={50}
+              step={1}
+              label="Wind Speed"
+              unit={windSpeedLabel}
+            />
         </GlassCard>
       </Animated.View>
 
       {/* Target Yardage Section */}
-      <Animated.View entering={cardEntering(4)}>
+      <Animated.View entering={cardEntering(3)}>
         <GlassCard style={styles.yardageCard}>
-          <Slider
-            value={targetYardage}
-            onValueChange={setTargetYardage}
-            min={50}
-            max={300}
-            step={1}
-            label="Target Yardage"
-            unit="yds"
-          />
+            <Slider
+              value={targetYardage}
+              onValueChange={setTargetYardage}
+              min={50}
+              max={300}
+              step={1}
+              label="Target Yardage"
+              unit="yds"
+            />
 
           {/* Quick Presets */}
           <View style={[styles.presetsContainer, { borderTopColor: t.colors.border }]}>
@@ -238,25 +491,58 @@ function WindCalculatorComponent() {
       </Animated.View>
 
       {/* Calculate Button */}
-      <Animated.View entering={cardEntering(5)}>
+      <Animated.View entering={cardEntering(4)}>
         <Button
           onPress={handleCalculate}
           variant="neon"
           size="lg"
-          glow
+          glow={!isLoading}
+          disabled={isLoading}
           style={styles.calculateButton}
+          accessibilityLabel={isLoading ? 'Calculating wind effect' : 'Calculate wind effect'}
+          accessibilityHint="Calculates wind effect based on current settings"
         >
-          Calculate Wind Effect
+          {isLoading ? 'Calculating...' : 'Calculate Wind Effect'}
         </Button>
       </Animated.View>
 
       {/* Results Panel */}
       {result && (
-        <Animated.View entering={cardEntering(0)}>
+        <Animated.View
+          entering={cardEntering(0)}
+          accessibilityRole="summary"
+          accessibilityLabel="Wind calculation results"
+        >
           <WindCalculationResults result={result} />
         </Animated.View>
       )}
-    </ScrollView>
+      </ScrollView>
+
+      {/* Thumb-zone lock button - positioned for one-handed use */}
+      {(lockButtonPosition === 'left' || lockButtonPosition === 'both') && (
+        <ThumbZoneLockButton
+          side="left"
+          isLocked={isLocked}
+          onPress={toggleLock}
+          accessibilityLabel={isLocked ? 'Unlock compass, left' : 'Lock compass, left'}
+        />
+      )}
+      {(lockButtonPosition === 'right' || lockButtonPosition === 'both') && (
+        <ThumbZoneLockButton
+          side="right"
+          isLocked={isLocked}
+          onPress={toggleLock}
+          accessibilityLabel={isLocked ? 'Unlock compass, right' : 'Lock compass, right'}
+        />
+      )}
+
+      {/* Result takeover modal - shows on calculation */}
+      <ResultTakeoverModal
+        visible={showResultModal && result !== null}
+        result={result}
+        onDismiss={handleDismissModal}
+      />
+    </GradientBackground>
   );
 }
 
@@ -283,7 +569,10 @@ function WindCalculatorScreen() {
         ]}
       >
         <Animated.View entering={headerEntering} style={styles.errorContainer}>
-          <Text style={[styles.errorTitle, { color: t.colors.danger }]}>
+          <Text
+            style={[styles.errorTitle, { color: t.colors.danger }]}
+            accessibilityRole="header"
+          >
             Something went wrong
           </Text>
           <Text style={[styles.errorMessage, { color: t.colors.textMuted }]}>
@@ -294,6 +583,8 @@ function WindCalculatorScreen() {
             variant="neon"
             size="lg"
             style={styles.retryButton}
+            accessibilityLabel="Retry loading wind calculator"
+            accessibilityHint="Dismisses the error and attempts to reload"
           >
             Try Again
           </Button>
@@ -335,7 +626,11 @@ export default function WindScreen() {
     return (
       <View style={[styles.container, styles.centerContent, { backgroundColor: t.colors.background }]}>
         <Animated.View entering={headerEntering}>
-          <Wind size={t.containerSize.icon.sm} color={t.colors.textMuted} />
+          <Wind
+            size={t.containerSize.icon.sm}
+            color={t.colors.textMuted}
+            accessibilityElementsHidden={true}
+          />
         </Animated.View>
       </View>
     );
@@ -363,15 +658,41 @@ const createStyles = (t: Tokens) => ({
     fontSize: safeScaledFontSize(t.fontSize['4xl'] - 4), // 32px hero title
     fontWeight: t.fontWeight.bold,
     letterSpacing: t.letterSpacing.tight,
-    marginBottom: t.spacing.xs,
+    marginBottom: t.spacing.sm,
   } as TextStyle,
-  subtitle: {
-    fontSize: safeScaledFontSize(t.fontSize.sm + 1), // 15px subtitle
+  currentWindRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: t.spacing.lg, // 24dp - section gap
+    paddingVertical: t.spacing.base,
+    paddingHorizontal: t.spacing.md,
+    borderRadius: t.borderRadius.lg,
+    borderWidth: t.borderWidth.thin,
+    backgroundColor: 'transparent',
+    gap: t.spacing.sm,
+  } as ViewStyle,
+  windStatItem: {
+    alignItems: 'center',
+    paddingHorizontal: t.spacing.md,
+  } as ViewStyle,
+  windStatDivider: {
+    width: t.borderWidth.thin,
+    height: t.spacing.xl,
+  } as ViewStyle,
+  windStatLabel: {
+    fontSize: safeScaledFontSize(t.fontSize.xs),
     fontWeight: t.fontWeight.medium,
-    marginBottom: t.spacing.lg,
+    marginBottom: t.spacing.xs,
+    textTransform: 'uppercase',
+    letterSpacing: t.letterSpacing.wider,
+  } as TextStyle,
+  windStatValue: {
+    fontSize: safeScaledFontSize(t.fontSize.xl),
+    fontWeight: t.fontWeight.bold,
   } as TextStyle,
   compassCard: {
-    marginBottom: t.spacing.md,
+    marginBottom: t.spacing.lg, // 24dp - section gap
     alignItems: 'center',
   } as ViewStyle,
   compassHint: {
@@ -379,21 +700,20 @@ const createStyles = (t: Tokens) => ({
     fontWeight: t.fontWeight.medium,
     textAlign: 'center',
     marginBottom: t.spacing.md,
-    opacity: t.opacity.subtle,
   } as TextStyle,
   compassWrapper: {
     alignItems: 'center',
     justifyContent: 'center',
   } as ViewStyle,
   sliderCard: {
-    marginBottom: t.spacing.md,
+    marginBottom: t.spacing.lg, // 24dp - section gap
   } as ViewStyle,
   yardageCard: {
-    marginBottom: t.spacing.md,
+    marginBottom: t.spacing.lg, // 24dp - section gap
   } as ViewStyle,
   presetsContainer: {
-    marginTop: t.spacing.md + t.spacing.xs, // 20px
-    paddingTop: t.spacing.md,
+    marginTop: t.spacing.sm, // 8dp - related element gap
+    paddingTop: t.spacing.sm, // 8dp - related element gap
     borderTopWidth: t.borderWidth.thin,
   } as ViewStyle,
   presetsLabel: {
@@ -408,7 +728,7 @@ const createStyles = (t: Tokens) => ({
     gap: t.spacing.sm,
   } as ViewStyle,
   calculateButton: {
-    marginBottom: t.spacing.md,
+    marginBottom: t.spacing.lg, // 24dp - section gap before results
   } as ViewStyle,
   loadingPulse: {
     borderRadius: t.borderRadius.lg,
@@ -418,24 +738,35 @@ const createStyles = (t: Tokens) => ({
   } as ViewStyle,
   errorContainer: {
     alignItems: 'center',
-    padding: t.spacing.lg,
+    padding: t.spacing.xl,
+    maxWidth: t.containerSize.contentMaxWidth.error,
+  } as ViewStyle,
+  errorIconContainer: {
+    width: t.containerSize.icon['2xl'],
+    height: t.containerSize.icon['2xl'],
+    borderRadius: t.borderRadius['3xl'],
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: t.spacing.lg,
   } as ViewStyle,
   errorTitle: {
-    fontSize: safeScaledFontSize(t.fontSize.xl),
+    fontSize: safeScaledFontSize(t.fontSize['2xl']),
     fontWeight: t.fontWeight.bold,
     marginBottom: t.spacing.sm,
+    textAlign: 'center',
   } as TextStyle,
   errorMessage: {
-    fontSize: safeScaledFontSize(t.fontSize.sm),
+    fontSize: safeScaledFontSize(t.fontSize.base),
     textAlign: 'center',
     marginBottom: t.spacing.lg,
+    lineHeight: t.lineHeight.relaxed,
   } as TextStyle,
   errorText: {
     fontSize: safeScaledFontSize(t.fontSize.base),
     marginTop: t.spacing.md,
   } as TextStyle,
   retryButton: {
-    minWidth: t.spacing['4xl'] + t.spacing['3xl'] + t.spacing.xs, // ~160px
+    minWidth: t.containerSize.buttonMinWidth.default,
   } as ViewStyle,
   premiumContainer: {
     alignItems: 'center',
@@ -460,6 +791,6 @@ const createStyles = (t: Tokens) => ({
     marginBottom: t.spacing.lg,
   } as TextStyle,
   premiumButton: {
-    minWidth: t.spacing['4xl'] + t.spacing['3xl'] + t.spacing['2xl'] - t.spacing.sm, // ~200px
+    minWidth: t.containerSize.buttonMinWidth.wide,
   } as ViewStyle,
 });

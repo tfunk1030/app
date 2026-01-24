@@ -4,7 +4,6 @@
 
 // Tokens
 export * from './tokens';
-export { default as redesignTokens } from './tokens';
 
 // Provider & Hooks
 export {
@@ -14,4 +13,3 @@ export {
   useRedesignTokens,
   useIsDark,
 } from './RedesignThemeProvider';
-export type { ThemeMode, ThemeColors } from './RedesignThemeProvider';

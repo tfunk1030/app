@@ -48,6 +48,9 @@ interface ResultCardProps {
   /** Label for tertiary */
   tertiaryLabel?: string;
 
+  /** Tertiary value semantic color: 'positive' (green/shorter), 'negative' (red/longer), 'neutral' */
+  tertiaryStatus?: 'positive' | 'negative' | 'neutral';
+
   /** Card variant */
   variant?: 'default' | 'highlighted' | 'compact';
 
@@ -75,6 +78,7 @@ export const ResultCard = memo(function ResultCard({
   secondaryLabel = 'Club',
   tertiaryValue,
   tertiaryLabel = 'Adjustment',
+  tertiaryStatus = 'neutral',
   variant = 'default',
   onPress,
   style,
@@ -108,13 +112,13 @@ export const ResultCard = memo(function ResultCard({
       borderColor: isHighlighted ? colors.brand : colors.border,
       borderWidth: isHighlighted ? 2 : 1,
       padding: isCompact ? tokens.spacing.base : tokens.spacing.lg,
-    },
-    isHighlighted && {
-      ...tokens.shadows.lg,
-      shadowColor: colors.brand,
+      ...(isHighlighted && {
+        ...tokens.shadows.lg,
+        shadowColor: colors.brand,
+      }),
     },
     style,
-  ];
+  ].filter(Boolean) as ViewStyle[];
 
   const content = (
     <>
@@ -138,6 +142,7 @@ export const ResultCard = memo(function ResultCard({
             ]}
             numberOfLines={1}
             adjustsFontSizeToFit
+            minimumFontScale={0.5}
           >
             {primaryValue}
           </Text>
@@ -173,7 +178,16 @@ export const ResultCard = memo(function ResultCard({
               <Text style={[styles.detailLabel, { color: colors.textMuted }]}>
                 {tertiaryLabel}
               </Text>
-              <Text style={[styles.detailValue, { color: colors.textPrimary }]}>
+              <Text style={[
+                styles.detailValue,
+                {
+                  color: tertiaryStatus === 'positive'
+                    ? colors.success
+                    : tertiaryStatus === 'negative'
+                    ? colors.error
+                    : colors.textPrimary,
+                },
+              ]}>
                 {tertiaryValue}
               </Text>
             </View>

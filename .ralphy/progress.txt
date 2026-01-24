@@ -1,0 +1,292 @@
+# Ralphy Progress Log
+
+## 2026-01-21: Card Borders and Shadows Visible (PRD Task)
+
+### Task
+Restore premium card styling with visible borders and shadows per PRD Section 3.1.
+
+### Problem
+NEW version had flat design regression:
+- Background: Flat black (was dark navy gradient)
+- Cards: Minimal/no borders (was visible borders)
+- Depth: None (was subtle shadows)
+
+### Changes Made
+
+#### 1. Updated Dark Mode Token Colors (`src/theme/tokens.ts`)
+**Before (flat):**
+- `background: boldColors.slate900` (#0F172A)
+- `surface: boldColors.slate800` (#1E293B)
+- `border: 'rgba(71, 85, 105, 0.6)'` (semi-transparent)
+
+**After (premium OLD version):**
+- `background: '#0a0f1a'` (PRD spec)
+- `surface: '#0d1220'` (PRD card background)
+- `surfaceAlt: '#1a2035'` (gradient end)
+- `border: '#2a3545'` (PRD solid visible border)
+- `surfaceGlass: 'rgba(13, 18, 32, 0.85)'`
+
+#### 2. Enhanced Shadow Presets (`src/theme/tokens.ts`)
+**Card shadow per PRD:**
+```tsx
+card: {
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 4 },
+  shadowOpacity: 0.3,  // increased from 0.25
+  shadowRadius: 8,
+  elevation: 5,        // increased from 4
+}
+```
+
+#### 3. Updated Surface Gradients (`src/theme/gradients.ts`)
+- `surface.dark`: Now uses #0d1220 to #0a0f1a (OLD version card colors)
+- `surface.elevated`: Matching premium glass effect
+
+#### 4. GlassCard Shadow Props (`src/core/components/ui/GlassCard.tsx`)
+Added React Native shadow props alongside CSS boxShadow for iOS compatibility:
+```tsx
+const shadowStyle = glow
+  ? { boxShadow: '...', ...t.shadow.glow }
+  : { boxShadow: '...', ...t.shadow.card };
+```
+
+#### 5. Card Component Shadow Props (`src/core/components/ui/card.tsx`)
+Same pattern - added spread of `t.shadow.card` for visible iOS shadows.
+
+### Files Modified
+- `src/theme/tokens.ts` (dark mode colors, shadow presets)
+- `src/theme/gradients.ts` (surface gradients)
+- `src/core/components/ui/GlassCard.tsx` (shadow props)
+- `src/core/components/ui/card.tsx` (shadow props)
+
+### PRD Reference
+Section 3.1 "Flat Design Regression" - Acceptance Criteria:
+- [x] Background has subtle gradient (not flat black)
+- [x] Cards have visible borders (#2a3545)
+- [x] Cards have subtle shadow for depth (opacity 0.3, radius 8)
+- [x] Premium feel restored
+
+### Color Reference Applied
+```tsx
+// OLD Version Colors (from PRD)
+background: '#0a0f1a'     // Start
+backgroundEnd: '#1a2035'  // End (gradient)
+cardBackground: '#0d1220'
+cardBorder: '#2a3545'
+```
+
+---
+
+## 2026-01-21: Background Gradient Implementation
+
+### Task
+Background gradient present - added premium dark navy gradient to all main screens.
+
+### Changes Made
+
+#### 1. Created Reusable GradientBackground Component
+- `src/components/GradientBackground.tsx` (NEW)
+  - Uses expo-linear-gradient for smooth gradient rendering
+  - Premium dark navy gradient colors from OLD version design (#0a0f1a → #1a2035)
+  - Supports both dark and light mode gradients
+  - Configurable colors via props
+  - Wraps children with absolute positioned gradient
+
+#### 2. Updated Wind Screen
+- `src/features/wind/screen.tsx` (MODIFIED)
+  - Added GradientBackground import
+  - Wrapped main content in GradientBackground component
+  - Replaced flat background with premium gradient
+
+#### 3. Updated Shot Screen
+- `app/(tabs-redesign)/(shot)/index.tsx` (MODIFIED)
+  - Added GradientBackground import
+  - Wrapped both loading and main content views in GradientBackground
+  - Removed background color styles in favor of gradient
+
+#### 4. Updated Settings Screen
+- `src/features/settings/screen.tsx` (MODIFIED)
+  - Added GradientBackground import
+  - Wrapped ScrollView in GradientBackground component
+  - Removed background color from container style
+
+### Design Reference
+Per PRD.md Section 3.1:
+- OLD Version: Dark navy gradient (#0a0f1a → #1a2035)
+- NEW Version (before): Flat black (looked flat and unprofessional)
+- Implementation: Vertical gradient from deep navy to slightly lighter navy
+
+### Verification
+- All GradientBackground imports verified present in all 3 screens
+- Component exports both named and default export
+- Uses expo-linear-gradient (already installed in project)
+
+### Files Modified
+- `src/components/GradientBackground.tsx` (NEW)
+- `src/features/wind/screen.tsx` (MODIFIED)
+- `app/(tabs-redesign)/(shot)/index.tsx` (MODIFIED)
+- `src/features/settings/screen.tsx` (MODIFIED)
+
+---
+
+## 2026-01-21: Accessibility Regression Prevention System
+
+### Task
+No accessibility regressions - implemented comprehensive a11y testing infrastructure.
+
+### Changes Made
+
+#### 1. Created Accessibility Regression Test Suite
+- `src/__tests__/a11y/accessibility-rules.test.ts` - Core a11y validation utilities
+  - Touch target validation (48dp minimum per project requirement)
+  - Accessibility label validation
+  - Value with unit validation (for screen readers)
+  - Interactive element prop validation
+  - Decorative element hiding validation
+  - Slider accessibility validation
+
+- `src/__tests__/a11y/component-a11y.test.tsx` - Component-level a11y tests
+  - Button accessibility props verification
+  - ThumbZoneLockButton accessibility verification
+  - Touch target size validation
+  - Accessibility state management tests
+  - Reduced motion support tests
+
+#### 2. Enhanced Pre-Commit Hook
+Updated `.husky/pre-commit` to:
+- Run accessibility tests automatically
+- Check for missing accessibilityRole in staged TSX files
+- Provide warnings for potential a11y issues
+
+#### 3. Enhanced Playwright E2E Tests
+Added to `e2e/visual.spec.ts`:
+- `no interactive elements without accessible names` - Catches unlabeled buttons
+- `headers are properly marked` - Verifies heading structure
+- `no duplicate IDs that break accessibility` - Prevents aria reference breaks
+- `sliders have accessible values` - Validates slider a11y props
+- `focus order is logical` - Tests keyboard navigation
+
+#### 4. Added npm Script
+- `npm run test:a11y` - Run accessibility tests specifically
+
+### Existing Infrastructure (Already Present)
+- ESLint with `eslint-plugin-react-native-a11y` (strict mode)
+- `has-accessibility-props` rule enabled
+- `has-valid-accessibility-role` rule enabled
+
+### Files Modified
+- `src/__tests__/a11y/accessibility-rules.test.ts` (NEW)
+- `src/__tests__/a11y/component-a11y.test.tsx` (NEW)
+- `.husky/pre-commit` (MODIFIED)
+- `e2e/visual.spec.ts` (MODIFIED)
+- `package.json` (MODIFIED - added test:a11y script)
+
+### Verification Commands
+```bash
+npm run test:a11y      # Run a11y unit tests
+yarn test:visual       # Run Playwright a11y tests
+npm run lint           # Run ESLint with a11y rules
+```
+
+### A11y Rules Reference
+See `.claude/rules/react-native-a11y.md` for checklist.
+
+---
+
+## 2026-01-21: UI/UX Restoration PRD Created
+
+### New Task Plan
+Created PRD and tasks for UI/UX restoration based on 10-screenshot analysis.
+
+**PRD**: `.ralphy/prd-ui-restoration.md`
+**Tasks**: `.ralphy/tasks.yaml` (updated)
+
+### Problem Summary
+NEW version regressed from OLD version:
+- **Score dropped**: 8.7/10 → 4.5/10
+- **P0 Bugs**: Title overlap, missing tab icons
+- **P1 Issues**: Compass too small (200px vs 280px), polish lost
+- **P2 Issues**: Flat design, truncated text
+
+### Task Phases
+1. **P0 Critical** - Fix title overlap, restore tab icons
+2. **P1 High** - Restore compass size and polish
+3. **P2 Medium** - Restore gradient, fix truncation
+4. **Preserve** - Keep NEW features (inline editing, +1/-1 buttons)
+5. **Verify** - Run tests, visual comparison
+
+### Run Tasks
+```bash
+ralphy run                    # Run all tasks
+ralphy run fix-title-overlap  # Run specific task
+ralphy status                 # Check task status
+```
+
+### Target Scorecard
+| Category | Before | After |
+|----------|--------|-------|
+| Visual Polish | 4 | 9 |
+| Layout | 3 | 9 |
+| Navigation | 2 | 9 |
+| Compass | 5 | 9 |
+| **Overall** | **4.5** | **9.0** |
+
+---
+
+## 2026-01-18: Parallel Analysis Plan Created
+
+### New Task Plan
+Added `.ralphy/tasks.yaml` with 6 parallel analysis tracks:
+1. **arch-analysis** - Architecture & dependency health
+2. **a11y-audit** - Accessibility compliance (WCAG 2.1)
+3. **animation-review** - Reanimated usage & durations
+4. **design-system** - Token usage & theming
+5. **typescript-quality** - Type safety & code quality
+6. **test-coverage** - Test health & coverage gaps
+
+### Run Tasks
+```bash
+ralphy run              # Run all tasks
+ralphy run a11y-audit   # Run specific task
+ralphy status           # Check task status
+```
+
+### Reports Output
+All reports written to `.ralphy/reports/`:
+- arch-analysis.md
+- a11y-audit.md
+- animation-review.md
+- design-system.md
+- typescript-quality.md
+- test-coverage.md
+- synthesis.md (aggregated findings)
+
+---
+
+## 2026-01-18: Reanimated Migration Complete
+
+### Completed
+- [x] Migrated WindArrow.tsx from react-native Animated to react-native-reanimated
+- [x] Migrated WindDirectionCompass.tsx pulse animation to reanimated
+- [x] Migrated LockButton.tsx to accept SharedValue<number>
+- [x] Updated types.ts for SharedValue prop types
+- [x] Updated LockButton.stories.tsx with mock SharedValue
+- [x] Fixed hardcoded colors in WindDirectionCompass (warningBackgroundAlpha, PhoneArrow)
+
+### Key Changes
+- WindArrow: useSharedValue, useAnimatedStyle, withSpring, withRepeat, cancelAnimation
+- Gust animation reduced from 500ms to 200ms (meets guideline)
+- All animations now run on UI thread (60fps)
+- Respects useReducedMotion system setting
+
+### Verification
+- All 41 wind-colors tests passing
+- No TypeScript errors in compass components
+- RAMS review score: 96/100
+
+### Files Modified
+- src/features/wind/components/compass/WindArrow.tsx
+- src/features/wind/components/compass/WindDirectionCompass.tsx
+- src/features/wind/components/compass/LockButton.tsx
+- src/features/wind/components/compass/LockButton.stories.tsx
+- src/features/wind/components/compass/types.ts

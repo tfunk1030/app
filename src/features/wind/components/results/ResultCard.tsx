@@ -5,7 +5,7 @@
  * with consistent styling and layout.
  */
 
-import { GlassCard } from '@/src/core/components/ui/GlassCard';
+import { BoldCard } from '@/src/core/components/ui/BoldCard';
 import { SectionHeader } from '@/src/core/components/ui/SectionHeader';
 import { useTokens } from '@/src/theme/useTokens';
 import type { Tokens } from '@/src/theme/tokens';
@@ -45,9 +45,9 @@ export function ResultCard({
   const styles = useMemo(() => createStyles(t), [t]);
 
   return (
-    <GlassCard style={StyleSheet.flatten([styles.resultsCard, style])}>
+    <BoldCard variant="elevated" style={StyleSheet.flatten([styles.resultsCard, style])}>
       {showHeader && <SectionHeader title={title} />}
       <View style={styles.resultsContent}>{children}</View>
-    </GlassCard>
+    </BoldCard>
   );
 }

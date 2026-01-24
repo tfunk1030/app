@@ -26,7 +26,7 @@ interface NavigationPreferenceState {
 }
 
 export const useNavigationPreference = create<NavigationPreferenceState>((set, get) => ({
-  style: 'classic',
+  style: 'redesign', // Default to redesign (unified 3-tab layout)
   isLoaded: false,
 
   setStyle: async (style: NavigationStyle) => {
@@ -40,15 +40,16 @@ export const useNavigationPreference = create<NavigationPreferenceState>((set, g
 
   loadPreference: async () => {
     try {
-      const stored = await AsyncStorage.getItem(STORAGE_KEY);
-      if (stored === 'classic' || stored === 'redesign') {
-        set({ style: stored, isLoaded: true });
+      const saved = await AsyncStorage.getItem(STORAGE_KEY);
+      if (saved && (saved === 'classic' || saved === 'redesign')) {
+        set({ style: saved as NavigationStyle, isLoaded: true });
       } else {
-        set({ isLoaded: true });
+        // Default to redesign if no preference is stored
+        set({ style: 'redesign', isLoaded: true });
       }
     } catch (error) {
       console.error('Failed to load navigation preference:', error);
-      set({ isLoaded: true });
+      set({ style: 'redesign', isLoaded: true });
     }
   },
 

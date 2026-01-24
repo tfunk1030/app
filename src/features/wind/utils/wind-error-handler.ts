@@ -7,6 +7,7 @@
 
 import {
   AppError,
+  ErrorDetails,
   ErrorFactory,
   ErrorHandler,
   ErrorType,
@@ -83,7 +84,7 @@ export class WindError extends AppError {
     message: string,
     severity: ErrorSeverity = ErrorSeverity.ERROR,
     recoveryStrategies: RecoveryStrategy[] = [RecoveryStrategy.NOTIFY],
-    details?: any
+    details?: ErrorDetails
   ) {
     // Map to standard error type for compatibility
     const standardErrorType = mapToStandardErrorType(windErrorType);
@@ -148,20 +149,20 @@ export const WindErrorFactory = {
   /**
    * Create an invalid club error
    */
-  invalidClub(clubName: string, details?: any): WindError {
+  invalidClub(clubName: string, details?: ErrorDetails): WindError {
     return new WindError(
       WindErrorType.INVALID_CLUB,
       `Invalid club: ${clubName}`,
       ErrorSeverity.WARNING,
       [RecoveryStrategy.FALLBACK, RecoveryStrategy.NOTIFY],
-      { clubName, ...details }
+      { clubName, ...(details ?? {}) }
     );
   },
 
   /**
    * Create a calculation failed error
    */
-  calculationFailed(message: string, details?: any): WindError {
+  calculationFailed(message: string, details?: ErrorDetails): WindError {
     return new WindError(
       WindErrorType.CALCULATION_FAILED,
       message,
@@ -174,33 +175,33 @@ export const WindErrorFactory = {
   /**
    * Create a no recommended club error
    */
-  noRecommendedClub(distance: number, details?: any): WindError {
+  noRecommendedClub(distance: number, details?: ErrorDetails): WindError {
     return new WindError(
       WindErrorType.NO_RECOMMENDED_CLUB,
       `No recommended club for ${distance} yards`,
       ErrorSeverity.WARNING,
       [RecoveryStrategy.FALLBACK, RecoveryStrategy.NOTIFY],
-      { distance, ...details }
+      { distance, ...(details ?? {}) }
     );
   },
 
   /**
    * Create a max iterations reached error
    */
-  maxIterationsReached(iterations: number, details?: any): WindError {
+  maxIterationsReached(iterations: number, details?: ErrorDetails): WindError {
     return new WindError(
       WindErrorType.MAX_ITERATIONS_REACHED,
       `Maximum iterations (${iterations}) reached without convergence`,
       ErrorSeverity.WARNING,
       [RecoveryStrategy.FALLBACK, RecoveryStrategy.NOTIFY],
-      { iterations, ...details }
+      { iterations, ...(details ?? {}) }
     );
   },
 
   /**
    * Create an invalid parameters error
    */
-  invalidParameters(message: string, details?: any): WindError {
+  invalidParameters(message: string, details?: ErrorDetails): WindError {
     return new WindError(
       WindErrorType.INVALID_PARAMETERS,
       message,
@@ -213,7 +214,7 @@ export const WindErrorFactory = {
   /**
    * Create an invalid input error
    */
-  invalidInput(message: string, inputType: 'windSpeed' | 'windAngle' | 'targetYardage', value: any): WindError {
+  invalidInput(message: string, inputType: 'windSpeed' | 'windAngle' | 'targetYardage', value: unknown): WindError {
     let errorType: WindErrorType;
 
     switch (inputType) {
@@ -242,7 +243,7 @@ export const WindErrorFactory = {
   /**
    * Create a compass error
    */
-  compassError(isUnavailable: boolean, details?: any): WindError {
+  compassError(isUnavailable: boolean, details?: ErrorDetails): WindError {
     const errorType = isUnavailable
       ? WindErrorType.COMPASS_UNAVAILABLE
       : WindErrorType.COMPASS_INACCURATE;
@@ -263,7 +264,7 @@ export const WindErrorFactory = {
   /**
    * Create an environmental data missing error
    */
-  environmentalDataMissing(details?: any): WindError {
+  environmentalDataMissing(details?: ErrorDetails): WindError {
     return new WindError(
       WindErrorType.ENVIRONMENTAL_DATA_MISSING,
       'Environmental data is not available',

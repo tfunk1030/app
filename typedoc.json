@@ -1,0 +1,29 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "entryPoints": [
+    "src/lib/logger.ts",
+    "src/lib/tracing.ts",
+    "src/lib/metrics.ts",
+    "src/lib/analytics.ts",
+    "src/hooks/usePresets.ts",
+    "src/hooks/useUndoRedo.ts"
+  ],
+  "out": "docs/api",
+  "name": "AICaddy Pro API Documentation",
+  "readme": "README.md",
+  "excludePrivate": true,
+  "excludeProtected": true,
+  "excludeInternal": true,
+  "includeVersion": true,
+  "categorizeByGroup": true,
+  "navigationLinks": {
+    "GitHub": "https://github.com/tfunk1030/app",
+    "Docs": "/docs"
+  },
+  "plugin": [],
+  "sort": ["source-order"],
+  "validation": {
+    "notExported": true,
+    "invalidLink": true
+  }
+}

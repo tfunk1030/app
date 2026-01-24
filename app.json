@@ -1,13 +1,12 @@
 {
   "expo": {
-    "name": "aicaddypro",
+    "name": "AI Caddy Pro",
     "slug": "aicaddypro",
     "version": "1.2.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "myapp",
+    "scheme": "aicaddypro",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
     "splash": {
       "image": "./assets/images/splash-icon.png",
       "resizeMode": "contain",
@@ -29,18 +28,22 @@
         }
       ],
       "expo-font",
-      "expo-web-browser"
+      "expo-web-browser",
+      "@react-native-community/datetimepicker"
     ],
     "ios": {
-      "supportsTablet": true,
+      "supportsTablet": false,
       "bundleIdentifier": "com.tfunk1030.aicaddypro",
-      "buildNumber": "1.2.0",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "aps-environment": "production",
         "NSCompassUsageDescription": "This app uses the compass to provide directional information",
         "NSMotionUsageDescription": "This app uses the compass to provide directional information",
-        "UIRequiredDeviceCapabilities": ["gyroscope", "magnetometer", "accelerometer"],
+        "UIRequiredDeviceCapabilities": [
+          "gyroscope",
+          "magnetometer",
+          "accelerometer"
+        ],
         "NSLocationWhenInUseUsageDescription": "AICaddyPro needs access to your location to provide accurate weather conditions and environmental data for your golf game.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "AICaddyPro needs access to your location to provide accurate weather conditions and environmental data for your golf game.",
         "NSLocationAlwaysUsageDescription": "AICaddyPro needs access to your location to provide accurate weather conditions and environmental data for your golf game."

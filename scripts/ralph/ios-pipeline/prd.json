@@ -1,0 +1,408 @@
+{
+  "branchName": "ios/app-store-readiness",
+  "pipelineConfig": {
+    "strategy": "per-component-then-global",
+    "reviewers": [
+      "ios-expert",
+      "app-store-reviewer",
+      "security-analyst"
+    ],
+    "autoCommit": true,
+    "requireAllReviewersPass": true
+  },
+  "globalConsistencyCheck": {
+    "enabled": true,
+    "runAfterAllComponents": true,
+    "passes": false,
+    "status": "REJECT",
+    "blockers": [
+      "P0-1: 1024x1024 icon required",
+      "P0-2: Privacy Policy URL required",
+      "P0-3: Terms of Service URL required (upgraded from P1)",
+      "P0-4: App Store Connect metadata incomplete"
+    ],
+    "auditedAt": "2024-01-13",
+    "crossReviewedBy": "GPT-5.2-codex",
+    "crossReviewDate": "2024-01-13"
+  },
+  "userStories": [
+    {
+      "id": "IOS-001",
+      "title": "App Store Metadata & Assets",
+      "component": "app.json",
+      "relatedFiles": [
+        "app.config.ts",
+        "eas.json",
+        "assets/icon.png",
+        "assets/splash.png",
+        "assets/adaptive-icon.png"
+      ],
+      "requirements": [
+        "App name under 30 characters",
+        "Subtitle under 30 characters",
+        "Description under 4000 characters",
+        "Keywords optimized for golf/weather apps",
+        "Screenshots for all required device sizes",
+        "App preview video (optional but recommended)",
+        "Category: Sports (primary), Weather (secondary)",
+        "Age rating: 4+ (no objectionable content)"
+      ],
+      "phases": {
+        "audit": {
+          "status": "complete",
+          "output": "reviews/IOS-001-audit.md",
+          "findings": "P0: Icon 192x192 (needs 1024x1024), P1: Name fixed to 'AI Caddy Pro'"
+        },
+        "implementation": {
+          "status": "blocked",
+          "output": "reviews/IOS-001-changes.md",
+          "blockedBy": "user-provided-icon"
+        },
+        "verification": {
+          "status": "pending",
+          "output": null
+        }
+      },
+      "currentPhase": "implementation",
+      "priority": 1,
+      "passes": false
+    },
+    {
+      "id": "IOS-002",
+      "title": "App Icons & Launch Screen",
+      "component": "assets/",
+      "isDirectory": true,
+      "relatedFiles": [
+        "app.json",
+        "assets/icon.png",
+        "assets/adaptive-icon.png",
+        "assets/splash.png",
+        "assets/favicon.png"
+      ],
+      "requirements": [
+        "App icon: 1024x1024 PNG (no alpha/transparency)",
+        "All iOS icon sizes generated correctly",
+        "No rounded corners in source icon (iOS applies them)",
+        "Launch screen displays correctly on all devices",
+        "Launch screen matches app theme",
+        "No text or essential info in icon corners",
+        "Icon readable at small sizes (29x29)",
+        "Adaptive icon for Android configured"
+      ],
+      "phases": {
+        "audit": {
+          "status": "complete",
+          "output": "reviews/IOS-002-audit.md",
+          "findings": "P0: icon.png 192x192 (needs 1024x1024), splash-icon OK at 1024x1024"
+        },
+        "implementation": {
+          "status": "blocked",
+          "output": null,
+          "blockedBy": "user-provided-icon"
+        },
+        "verification": {
+          "status": "pending",
+          "output": null
+        }
+      },
+      "currentPhase": "implementation",
+      "priority": 2,
+      "passes": false
+    },
+    {
+      "id": "IOS-003",
+      "title": "Privacy & Permissions",
+      "component": "app.json",
+      "relatedFiles": [
+        "app.config.ts",
+        "src/providers/EnhancedEnvironmentalProvider.tsx",
+        "src/features/wind/context/sensor-data.tsx",
+        "ios/AICaddyPro/Info.plist"
+      ],
+      "requirements": [
+        "NSLocationWhenInUseUsageDescription - clear golf-specific reason",
+        "NSLocationAlwaysAndWhenInUseUsageDescription - if background needed",
+        "NSMotionUsageDescription - compass/heading explanation",
+        "App Tracking Transparency (ATT) implemented if using IDFA",
+        "Privacy Nutrition Labels accurate in App Store Connect",
+        "Data collection minimized and documented",
+        "No unnecessary permissions requested",
+        "Permission prompts show at appropriate time (not on launch)"
+      ],
+      "phases": {
+        "audit": {
+          "status": "complete",
+          "output": "reviews/IOS-003-audit.md",
+          "findings": "PASS - All permission strings present, no ATT needed, P1: permission timing"
+        },
+        "implementation": {
+          "status": "complete",
+          "output": null,
+          "note": "No changes required"
+        },
+        "verification": {
+          "status": "complete",
+          "output": null
+        }
+      },
+      "currentPhase": "complete",
+      "priority": 3,
+      "passes": true
+    },
+    {
+      "id": "IOS-004",
+      "title": "In-App Purchases & Subscriptions",
+      "component": "src/stores/subscription.ts",
+      "relatedFiles": [
+        "src/features/settings/context/premium.tsx",
+        "src/core/components/ui/PremiumCard.tsx",
+        "src/core/components/ui/CustomerCenter.tsx",
+        "app.json"
+      ],
+      "requirements": [
+        "RevenueCat SDK properly configured",
+        "Subscription products created in App Store Connect",
+        "Restore purchases functionality working",
+        "Receipt validation implemented",
+        "Subscription status properly cached",
+        "Grace period handling for expired subscriptions",
+        "Clear pricing displayed before purchase",
+        "Terms of Service and Privacy Policy links present",
+        "Subscription management via CustomerCenter"
+      ],
+      "phases": {
+        "audit": {
+          "status": "complete",
+          "output": "reviews/IOS-004-audit.md",
+          "findings": "P0: Privacy Policy placeholder, P0: ToS missing (upgraded), RevenueCat OK"
+        },
+        "implementation": {
+          "status": "blocked",
+          "output": null,
+          "blockedBy": ["user-provided-privacy-policy-url", "user-provided-tos-url"]
+        },
+        "verification": {
+          "status": "pending",
+          "output": null
+        }
+      },
+      "currentPhase": "implementation",
+      "priority": 4,
+      "passes": false
+    },
+    {
+      "id": "IOS-005",
+      "title": "Performance & Stability",
+      "component": "src/",
+      "isDirectory": true,
+      "relatedFiles": [
+        "src/app/_layout.tsx",
+        "src/providers/",
+        "src/hooks/useAccessibility.ts",
+        "src/utils/LogManager.ts"
+      ],
+      "requirements": [
+        "App launches within 3 seconds",
+        "No memory leaks in navigation",
+        "Proper cleanup in useEffect hooks",
+        "Error boundaries implemented",
+        "Crash reporting configured (Sentry/Crashlytics)",
+        "No console.log in production build",
+        "Images optimized and cached",
+        "List virtualization for long lists (FlashList)",
+        "Reduce motion respected for accessibility",
+        "Background task handling proper"
+      ],
+      "phases": {
+        "audit": {
+          "status": "complete",
+          "output": "reviews/IOS-005-audit.md",
+          "findings": "PASS - ErrorBoundary OK, LogManager OK, P1: Sentry not enabled"
+        },
+        "implementation": {
+          "status": "complete",
+          "output": null,
+          "note": "Sentry enablement deferred to user choice"
+        },
+        "verification": {
+          "status": "complete",
+          "output": null
+        }
+      },
+      "currentPhase": "complete",
+      "priority": 5,
+      "passes": true
+    },
+    {
+      "id": "IOS-006",
+      "title": "Security & Compliance",
+      "component": "app.json",
+      "relatedFiles": [
+        "app.config.ts",
+        "src/utils/",
+        "src/core/context/settings.tsx",
+        ".env.example"
+      ],
+      "requirements": [
+        "App Transport Security (ATS) enabled",
+        "No HTTP endpoints (HTTPS only)",
+        "API keys not hardcoded in source",
+        "Sensitive data stored in SecureStore",
+        "No sensitive data in AsyncStorage unencrypted",
+        "GDPR/CCPA compliance for EU/CA users",
+        "Terms of Service URL valid",
+        "Privacy Policy URL valid",
+        "Data retention policy documented",
+        "User data deletion capability"
+      ],
+      "phases": {
+        "audit": {
+          "status": "complete",
+          "output": "reviews/IOS-006-audit.md",
+          "findings": "PASS - ATS enabled, all HTTPS, API keys from env vars"
+        },
+        "implementation": {
+          "status": "complete",
+          "output": null,
+          "note": "No changes required"
+        },
+        "verification": {
+          "status": "complete",
+          "output": null
+        }
+      },
+      "currentPhase": "complete",
+      "priority": 6,
+      "passes": true
+    },
+    {
+      "id": "IOS-007",
+      "title": "Build & Distribution Configuration",
+      "component": "eas.json",
+      "relatedFiles": [
+        "app.json",
+        "app.config.ts",
+        "package.json",
+        "ios/Podfile"
+      ],
+      "requirements": [
+        "EAS Build configured for production",
+        "Bundle identifier unique and consistent",
+        "Version number follows semantic versioning",
+        "Build number auto-increments",
+        "iOS deployment target set appropriately (iOS 13+)",
+        "Required device capabilities declared",
+        "Bitcode enabled/disabled as needed",
+        "Signing certificates valid and not expiring soon",
+        "Provisioning profiles up to date",
+        "TestFlight distribution ready"
+      ],
+      "phases": {
+        "audit": {
+          "status": "complete",
+          "output": "reviews/IOS-007-audit.md",
+          "findings": "PASS - EAS production profile ready, autoIncrement enabled, submit config OK"
+        },
+        "implementation": {
+          "status": "complete",
+          "output": null,
+          "note": "No changes required"
+        },
+        "verification": {
+          "status": "complete",
+          "output": null
+        }
+      },
+      "currentPhase": "complete",
+      "priority": 7,
+      "passes": true
+    },
+    {
+      "id": "IOS-008",
+      "title": "Accessibility Compliance",
+      "component": "src/",
+      "isDirectory": true,
+      "relatedFiles": [
+        "src/features/redesign/screens/",
+        "src/core/components/ui/",
+        "src/hooks/useAccessibility.ts"
+      ],
+      "requirements": [
+        "VoiceOver fully functional on all screens",
+        "Dynamic Type supported (text scales)",
+        "Sufficient color contrast (WCAG AA)",
+        "Touch targets minimum 44x44 points",
+        "Reduce Motion setting respected",
+        "No information conveyed by color alone",
+        "Focus order logical for screen readers",
+        "accessibilityLabel on all interactive elements",
+        "accessibilityRole properly set",
+        "accessibilityHint where helpful"
+      ],
+      "phases": {
+        "audit": {
+          "status": "complete",
+          "output": "UI-GLOBAL-review.md",
+          "note": "Completed in UI polish pipeline"
+        },
+        "implementation": {
+          "status": "complete",
+          "output": null
+        },
+        "verification": {
+          "status": "complete",
+          "output": null
+        }
+      },
+      "currentPhase": "complete",
+      "priority": 8,
+      "passes": true
+    },
+    {
+      "id": "IOS-GLOBAL",
+      "title": "App Store Review Guidelines Compliance",
+      "component": "GLOBAL",
+      "isGlobalCheck": true,
+      "checkpoints": [
+        "Guideline 1.1 - App Completeness (no crashes, placeholders)",
+        "Guideline 1.2 - User Generated Content (if applicable)",
+        "Guideline 2.1 - App Completeness (functional app)",
+        "Guideline 2.3 - Accurate Metadata",
+        "Guideline 2.5 - Software Requirements (iOS SDK)",
+        "Guideline 3.1 - Payments (IAP for digital goods)",
+        "Guideline 3.1.2 - Subscriptions (clear terms, restore)",
+        "Guideline 4.2 - Minimum Functionality (not a simple website)",
+        "Guideline 5.1 - Privacy (data collection disclosure)",
+        "Guideline 5.1.1 - Data Collection (privacy nutrition labels)",
+        "Guideline 5.1.2 - Data Use and Sharing",
+        "Performance - App launches and responds quickly",
+        "Design - Follows iOS Human Interface Guidelines"
+      ],
+      "phases": {
+        "global-audit": {
+          "status": "complete",
+          "output": "reviews/IOS-GLOBAL-checklist.md",
+          "findings": "REJECT - 4 P0 blockers: icon, privacy policy, ToS, App Store Connect metadata",
+          "crossReview": {
+            "reviewer": "GPT-5.2-codex",
+            "date": "2024-01-13",
+            "verdict": "REJECT",
+            "improvements": ["ToS upgraded to P0", "Added App Store Connect metadata", "Added screenshot requirements", "Added verification evidence tracker"]
+          }
+        },
+        "final-fixes": {
+          "status": "blocked",
+          "output": null,
+          "blockedBy": ["user-provided-icon", "user-provided-privacy-url", "user-provided-tos-url", "app-store-connect-metadata"]
+        },
+        "submission-checklist": {
+          "status": "pending",
+          "output": null
+        }
+      },
+      "currentPhase": "final-fixes",
+      "priority": 99,
+      "passes": false
+    }
+  ]
+}

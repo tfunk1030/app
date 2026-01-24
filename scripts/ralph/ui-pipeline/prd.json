@@ -1,0 +1,381 @@
+{
+  "branchName": "ui/multi-agent-polish",
+  "pipelineConfig": {
+    "strategy": "per-component-then-global",
+    "reviewers": [
+      "rams",
+      "gpt-moderator",
+      "ui-ux-pro-max"
+    ],
+    "autoCommit": true,
+    "requireAllReviewersPass": true
+  },
+  "globalConsistencyCheck": {
+    "enabled": true,
+    "runAfterAllComponents": true,
+    "passes": true
+  },
+  "userStories": [
+    {
+      "id": "UI-001",
+      "title": "Play Screen (Home) Polish",
+      "component": "src/features/redesign/screens/PlayScreen.tsx",
+      "relatedFiles": [
+        "src/components/redesign/MetricPill.tsx",
+        "src/components/redesign/QuickAction.tsx",
+        "src/components/redesign/ResultCard.tsx"
+      ],
+      "phases": {
+        "rams-review": {
+          "status": "complete",
+          "output": "UI-001-rams-initial.md"
+        },
+        "gpt-cross-review": {
+          "status": "complete",
+          "output": "UI-001-gpt-cross-review.md"
+        },
+        "skills-synthesis": {
+          "status": "complete",
+          "output": "UI-001-synthesis.md"
+        },
+        "final-plan": {
+          "status": "complete",
+          "output": "UI-001-plan.md"
+        },
+        "implementation": {
+          "status": "complete",
+          "output": "UI-001-changes.md"
+        },
+        "post-review": {
+          "status": "complete",
+          "output": "UI-001-post-review.md"
+        },
+        "gpt-verification": {
+          "status": "complete",
+          "output": "UI-001-gpt-verify.md"
+        },
+        "fixes": {
+          "status": "complete",
+          "output": null
+        }
+      },
+      "currentPhase": "complete",
+      "priority": 1,
+      "passes": true
+    },
+    {
+      "id": "UI-002",
+      "title": "Setup Screen Polish",
+      "component": "src/features/redesign/screens/SetupScreen.tsx",
+      "relatedFiles": [
+        "src/core/components/ui/slider.tsx",
+        "src/core/components/ui/Input.tsx",
+        "src/core/components/ui/SectionHeader.tsx"
+      ],
+      "phases": {
+        "rams-review": {
+          "status": "complete",
+          "output": "UI-002-rams-initial.md"
+        },
+        "gpt-cross-review": {
+          "status": "complete",
+          "output": "UI-002-gpt-cross-review.md"
+        },
+        "skills-synthesis": {
+          "status": "complete",
+          "output": "UI-002-synthesis.md"
+        },
+        "final-plan": {
+          "status": "complete",
+          "output": "UI-002-plan.md"
+        },
+        "implementation": {
+          "status": "complete",
+          "output": "UI-002-changes.md"
+        },
+        "post-review": {
+          "status": "complete",
+          "output": "UI-002-post-review.md"
+        },
+        "gpt-verification": {
+          "status": "complete",
+          "output": "UI-002-gpt-verify.md"
+        },
+        "fixes": {
+          "status": "complete",
+          "output": null
+        }
+      },
+      "currentPhase": "complete",
+      "priority": 2,
+      "passes": true
+    },
+    {
+      "id": "UI-003",
+      "title": "Stats Screen Polish",
+      "component": "src/features/redesign/screens/StatsScreen.tsx",
+      "relatedFiles": [
+        "src/core/components/ui/GlassCard.tsx",
+        "src/core/components/ui/MetricTile.tsx"
+      ],
+      "phases": {
+        "rams-review": {
+          "status": "complete",
+          "output": "UI-003-rams-initial.md"
+        },
+        "gpt-cross-review": {
+          "status": "complete",
+          "output": "UI-003-gpt-cross-review.md"
+        },
+        "skills-synthesis": {
+          "status": "complete",
+          "output": "UI-003-synthesis.md"
+        },
+        "final-plan": {
+          "status": "complete",
+          "output": "UI-003-plan.md"
+        },
+        "implementation": {
+          "status": "complete",
+          "output": "UI-003-changes.md"
+        },
+        "post-review": {
+          "status": "complete",
+          "output": "UI-003-post-review.md"
+        },
+        "gpt-verification": {
+          "status": "complete",
+          "output": "UI-003-gpt-verify.md"
+        },
+        "fixes": {
+          "status": "complete",
+          "output": null
+        }
+      },
+      "currentPhase": "complete",
+      "priority": 3,
+      "passes": true
+    },
+    {
+      "id": "UI-004",
+      "title": "Wind/Calculator Screen Polish",
+      "component": "src/features/wind/screen.tsx",
+      "relatedFiles": [
+        "src/features/wind/components/compass/WindDirectionCompass.tsx",
+        "src/features/wind/components/WindCalculationResults.tsx",
+        "src/features/wind/components/results/PrimaryRecommendation.tsx",
+        "src/features/wind/components/results/EffectsGrid.tsx"
+      ],
+      "phases": {
+        "rams-review": {
+          "status": "complete",
+          "output": "UI-004-rams-initial.md"
+        },
+        "gpt-cross-review": {
+          "status": "complete",
+          "output": "UI-004-gpt-cross-review.md"
+        },
+        "skills-synthesis": {
+          "status": "complete",
+          "output": null
+        },
+        "final-plan": {
+          "status": "complete",
+          "output": null
+        },
+        "implementation": {
+          "status": "complete",
+          "output": "UI-004-changes.md"
+        },
+        "post-review": {
+          "status": "complete",
+          "output": "UI-004-post-review.md"
+        },
+        "gpt-verification": {
+          "status": "complete",
+          "output": "UI-004-gpt-verify.md"
+        },
+        "fixes": {
+          "status": "complete",
+          "output": null
+        }
+      },
+      "currentPhase": "complete",
+      "priority": 4,
+      "passes": true
+    },
+    {
+      "id": "UI-005",
+      "title": "Settings Screen Polish",
+      "component": "src/features/settings/screen.tsx",
+      "relatedFiles": [
+        "src/core/components/ui/card.tsx",
+        "src/core/components/ui/button.tsx"
+      ],
+      "phases": {
+        "rams-review": {
+          "status": "complete",
+          "output": "UI-005-rams-initial.md"
+        },
+        "gpt-cross-review": {
+          "status": "complete",
+          "output": "UI-005-gpt-cross-review.md"
+        },
+        "skills-synthesis": {
+          "status": "complete",
+          "output": null
+        },
+        "final-plan": {
+          "status": "complete",
+          "output": null
+        },
+        "implementation": {
+          "status": "complete",
+          "output": "UI-005-changes.md"
+        },
+        "post-review": {
+          "status": "complete",
+          "output": "UI-005-post-review.md"
+        },
+        "gpt-verification": {
+          "status": "complete",
+          "output": "UI-005-gpt-verify.md"
+        },
+        "fixes": {
+          "status": "complete",
+          "output": null
+        }
+      },
+      "currentPhase": "complete",
+      "priority": 5,
+      "passes": true
+    },
+    {
+      "id": "UI-006",
+      "title": "Core UI Components Polish",
+      "component": "src/core/components/ui/",
+      "isDirectory": true,
+      "relatedFiles": [
+        "src/core/components/ui/GlassCard.tsx",
+        "src/core/components/ui/GradientHero.tsx",
+        "src/core/components/ui/FloatingTabBar.tsx",
+        "src/core/components/ui/BoldCard.tsx",
+        "src/core/components/ui/BoldTabBar.tsx"
+      ],
+      "phases": {
+        "rams-review": {
+          "status": "complete",
+          "output": "UI-006-rams-initial.md"
+        },
+        "gpt-cross-review": {
+          "status": "complete",
+          "output": null
+        },
+        "skills-synthesis": {
+          "status": "complete",
+          "output": null
+        },
+        "final-plan": {
+          "status": "complete",
+          "output": null
+        },
+        "implementation": {
+          "status": "complete",
+          "output": "UI-006-changes.md"
+        },
+        "post-review": {
+          "status": "complete",
+          "output": null
+        },
+        "gpt-verification": {
+          "status": "complete",
+          "output": null
+        },
+        "fixes": {
+          "status": "complete",
+          "output": null
+        }
+      },
+      "currentPhase": "complete",
+      "priority": 6,
+      "passes": true
+    },
+    {
+      "id": "UI-007",
+      "title": "Navigation & Tab Bar Polish",
+      "component": "src/features/redesign/navigation/RedesignTabNavigator.tsx",
+      "relatedFiles": [
+        "app/(tabs-redesign)/_layout.tsx"
+      ],
+      "phases": {
+        "rams-review": {
+          "status": "complete",
+          "output": "UI-007-changes.md"
+        },
+        "gpt-cross-review": {
+          "status": "complete",
+          "output": null
+        },
+        "skills-synthesis": {
+          "status": "complete",
+          "output": null
+        },
+        "final-plan": {
+          "status": "complete",
+          "output": null
+        },
+        "implementation": {
+          "status": "complete",
+          "output": "UI-007-changes.md"
+        },
+        "post-review": {
+          "status": "complete",
+          "output": null
+        },
+        "gpt-verification": {
+          "status": "complete",
+          "output": null
+        },
+        "fixes": {
+          "status": "complete",
+          "output": null
+        }
+      },
+      "currentPhase": "complete",
+      "priority": 7,
+      "passes": true
+    },
+    {
+      "id": "UI-GLOBAL",
+      "title": "Global Consistency Check",
+      "component": "GLOBAL",
+      "isGlobalCheck": true,
+      "checkpoints": [
+        "Design token usage consistency across all screens",
+        "Spacing scale adherence (4/8/12/16/24/32/48)",
+        "Typography hierarchy consistency",
+        "Color palette compliance",
+        "Animation timing consistency",
+        "Accessibility standards (contrast, touch targets)",
+        "Dark mode consistency"
+      ],
+      "phases": {
+        "global-review": {
+          "status": "complete",
+          "output": "UI-GLOBAL-review.md"
+        },
+        "final-fixes": {
+          "status": "complete",
+          "output": null
+        },
+        "commit": {
+          "status": "pending",
+          "output": null
+        }
+      },
+      "currentPhase": "complete",
+      "priority": 99,
+      "passes": true
+    }
+  ]
+}

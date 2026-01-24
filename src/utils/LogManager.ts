@@ -13,13 +13,19 @@ import { FeatureFlags } from './FeatureFlags';
 // Log levels with color codes for console output
 type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
+/**
+ * Log data type - allows structured objects for spread compatibility.
+ * Uses Record<string, unknown> to allow arbitrary keys while being type-safe.
+ */
+type LogData = Record<string, unknown> | Error | unknown | undefined;
+
 // Log entry structure for consistent formatting
 interface LogEntry {
   timestamp: string;
   level: LogLevel;
   component: string;
   message: string;
-  data?: any;
+  data?: LogData;
   environment: 'development' | 'production';
   sessionId: string;
 }
@@ -153,7 +159,7 @@ class Logger {
   /**
    * Log a debug message (development only unless forceProd is true)
    */
-  debug(message: string, data?: any, forceProd: boolean = false): void {
+  debug(message: string, data?: LogData, forceProd: boolean = false): void {
     if (!isProduction || forceProd || FeatureFlags.ENHANCED_LOGGING) {
       this._addEntry('debug', message, data);
       console.debug(`[${this.component}] ${message}`, data || '');
@@ -163,7 +169,7 @@ class Logger {
   /**
    * Log an info message
    */
-  info(message: string, data?: any): void {
+  info(message: string, data?: LogData): void {
     this._addEntry('info', message, data);
     console.info(`[${this.component}] ${message}`, data || '');
   }
@@ -171,7 +177,7 @@ class Logger {
   /**
    * Log a warning message
    */
-  warn(message: string, data?: any): void {
+  warn(message: string, data?: LogData): void {
     this._addEntry('warn', message, data);
     console.warn(`[${this.component}] ${message}`, data || '');
   }
@@ -179,7 +185,7 @@ class Logger {
   /**
    * Log an error message
    */
-  error(message: string, data?: any): void {
+  error(message: string, data?: LogData): void {
     this._addEntry('error', message, data);
     console.error(`[${this.component}] ${message}`, data || '');
 
@@ -192,7 +198,7 @@ class Logger {
   /**
    * Log a lifecycle event such as component mount/unmount
    */
-  lifecycle(action: string, data?: any): void {
+  lifecycle(action: string, data?: LogData): void {
     this._addEntry('info', `Lifecycle: ${action}`, data);
 
     // Always log lifecycle events in production if enhanced logging is enabled
@@ -204,7 +210,7 @@ class Logger {
   /**
    * Log a state transition with detailed before/after state
    */
-  stateTransition(from: any, to: any, cause?: string): void {
+  stateTransition(from: unknown, to: unknown, cause?: string): void {
     const message = cause ? `State transition (${cause})` : 'State transition';
 
     const data = {
@@ -243,10 +249,10 @@ class Logger {
   /**
    * Log initialization events with timing information
    */
-  initialization(stage: string, data?: any): void {
+  initialization(stage: string, data?: LogData): void {
     const message = `Initialization: ${stage}`;
     const enhancedData = {
-      ...data,
+      ...(data ?? {}),
       timestamp: Date.now(),
       timeSinceStart: Date.now() - new Date(currentSessionId.split('_')[1]).getTime(),
     };
@@ -260,10 +266,10 @@ class Logger {
   /**
    * Log sensor availability and status
    */
-  sensorStatus(sensor: string, available: boolean, data?: any): void {
+  sensorStatus(sensor: string, available: boolean, data?: LogData): void {
     const message = `Sensor ${sensor}: ${available ? 'Available' : 'Unavailable'}`;
     const enhancedData = {
-      ...data,
+      ...(data ?? {}),
       sensor,
       available,
       timestamp: Date.now(),
@@ -278,10 +284,10 @@ class Logger {
   /**
    * Log performance metrics
    */
-  performance(operation: string, durationMs: number, data?: any): void {
+  performance(operation: string, durationMs: number, data?: LogData): void {
     const message = `Performance: ${operation} took ${durationMs}ms`;
     const enhancedData = {
-      ...data,
+      ...(data ?? {}),
       operation,
       durationMs,
       timestamp: Date.now(),
@@ -295,7 +301,7 @@ class Logger {
     }
   }
 
-  private _addEntry(level: LogLevel, message: string, data?: any): void {
+  private _addEntry(level: LogLevel, message: string, data?: LogData): void {
     const entry: LogEntry = {
       timestamp: new Date().toISOString(),
       level,
@@ -319,7 +325,7 @@ class Logger {
     }
   }
 
-  private _sendToMonitoring(level: LogLevel, message: string, data?: any): void {
+  private _sendToMonitoring(_level: LogLevel, _message: string, _data?: LogData): void {
     // In a real app, this would send data to a monitoring service
     // For now, we'll just store it in logs but in the future it could
     // use expo-server-sdk or another service to report errors

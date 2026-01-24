@@ -1,0 +1,88 @@
+{
+  "prs": [
+    {
+      "id": "PR-1",
+      "title": "Fix Critical Theme Logic & Home Screen Accessibility",
+      "priority": "P0",
+      "files": [
+        "src/theme/ThemeProvider.tsx",
+        "src/features/home/screen.tsx",
+        "src/features/calculator/screen.tsx",
+        "src/features/wind/screen.tsx"
+      ],
+      "tasks": [
+        "Refactor AppThemeProvider to expose isDark and effectiveScheme",
+        "Update AppThemeProvider to listen to Appearance changes",
+        "Replace mode === 'system' checks with isDark",
+        "Add accessibilityRole='header' to Home title",
+        "Add accessibilityLabel to MetricTile components"
+      ],
+      "acceptanceCriteria": [
+        "System mode respects OS light/dark setting correctly",
+        "OS theme changes update app immediately",
+        "Home screen elements announced correctly by screen readers"
+      ]
+    },
+    {
+      "id": "PR-2",
+      "title": "Enforce 48dp Touch Targets & Remove Hardcoded Colors",
+      "priority": "P1",
+      "files": [
+        "src/utils/responsive.ts",
+        "src/components/ContextualOverlay.tsx",
+        "src/components/diagnostics/DiagnosticOverlay.tsx",
+        "src/features/wind/components/compass/WindDirectionCompass.tsx"
+      ],
+      "tasks": [
+        "Update MIN_TOUCH_TARGET to 48",
+        "Replace hardcoded colors in Overlays with tokens",
+        "Fix hardcoded colors in Compass",
+        "Audit Overlay touch sizes"
+      ],
+      "acceptanceCriteria": [
+        "Interactive elements meet 48dp minimum",
+        "No hardcoded hex values in targeted components",
+        "Diagnostic overlay accessible"
+      ]
+    },
+    {
+      "id": "PR-3",
+      "title": "Interactive UX & Input Accessibility",
+      "priority": "P1",
+      "files": [
+        "src/core/components/ui/Input.tsx",
+        "app/_layout.tsx",
+        "src/core/components/ui/slider.tsx"
+      ],
+      "tasks": [
+        "Add error prop and accessibility states to Input",
+        "Defer Location Permission request",
+        "Add accessibilityHint to Sliders"
+      ],
+      "acceptanceCriteria": [
+        "No location prompt on launch",
+        "Input errors accessible and visible",
+        "Sliders provide usage hints"
+      ]
+    },
+    {
+      "id": "PR-4",
+      "title": "Robustness & Error Recovery",
+      "priority": "P2",
+      "files": [
+        "src/features/wind/screen.tsx",
+        "src/components/error-boundary/ErrorBoundary.tsx",
+        "src/features/wind/components/compass/WindDirectionCompass.tsx"
+      ],
+      "tasks": [
+        "Add Retry button to Wind error state",
+        "Make ErrorBoundary accessible",
+        "Enhance Compass lock announcements"
+      ],
+      "acceptanceCriteria": [
+        "Wind error recoverable via UI",
+        "Compass announces full context on lock"
+      ]
+    }
+  ]
+}

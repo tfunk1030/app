@@ -181,7 +181,7 @@ export const QuickAction = memo(function QuickAction({
               styles.sublabel,
               {
                 color: variant === 'primary'
-                  ? 'rgba(255,255,255,0.8)'
+                  ? colors.textInverse + 'CC' // 80% opacity
                   : colors.textMuted,
               },
             ]}
@@ -205,7 +205,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 16,
-    gap: 10,
+    gap: 8, // spacing.sm
   },
 
   disabled: {
