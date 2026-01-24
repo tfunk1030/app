@@ -5,7 +5,7 @@
     "version": "1.2.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "myapp",
+    "scheme": "aicaddypro",
     "userInterfaceStyle": "automatic",
     "splash": {
       "image": "./assets/images/splash-icon.png",
@@ -34,7 +34,6 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.tfunk1030.aicaddypro",
-      "buildNumber": "1.2.0",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "aps-environment": "production",

@@ -182,12 +182,12 @@ function getErrorMessage(error: PurchasesError): string {
 /**
  * Subscription Zustand store
  */
-// Only allow premium bypass in development when explicitly enabled via env var
-const FORCE_PREMIUM_BYPASS = __DEV__ && process.env.EXPO_PUBLIC_DEV_PREMIUM === 'true';
+// Premium bypass: enabled via env var (works in dev and preview builds)
+const FORCE_PREMIUM_BYPASS = process.env.EXPO_PUBLIC_BYPASS_PREMIUM === 'true';
 
 export const useSubscription = create<SubscriptionState>((set, get) => ({
   status: 'unknown',
-  isPremium: FORCE_PREMIUM_BYPASS || __DEV__, // Default to premium in dev mode for testing
+  isPremium: FORCE_PREMIUM_BYPASS, // Bypass via EXPO_PUBLIC_BYPASS_PREMIUM env var
   isInitialized: false,
   isLoading: false,
   offerings: null,
@@ -212,7 +212,7 @@ export const useSubscription = create<SubscriptionState>((set, get) => ({
       // If no API key configured, skip initialization (dev mode)
       if (!apiKey) {
         logger.warn('RevenueCat API key not configured, skipping initialization');
-        set({ isInitialized: true, isPremium: FORCE_PREMIUM_BYPASS || __DEV__ });
+        set({ isInitialized: true, isPremium: FORCE_PREMIUM_BYPASS });
         return;
       }
 
@@ -222,7 +222,7 @@ export const useSubscription = create<SubscriptionState>((set, get) => ({
         try {
           const parsed: CachedSubscriptionState = JSON.parse(cached);
           set({
-            isPremium: parsed.isPremium || __DEV__,
+            isPremium: parsed.isPremium || FORCE_PREMIUM_BYPASS,
             status: parsed.status || 'unknown',
             expirationDate: parsed.expirationDate,
             isTrialActive: parsed.isTrialActive,
@@ -251,7 +251,7 @@ export const useSubscription = create<SubscriptionState>((set, get) => ({
       set({
         isInitialized: true,
         error: 'Failed to initialize purchases',
-        isPremium: FORCE_PREMIUM_BYPASS || __DEV__, // Fallback with bypass support
+        isPremium: FORCE_PREMIUM_BYPASS, // Fallback with bypass support
       });
     }
   },
@@ -264,7 +264,7 @@ export const useSubscription = create<SubscriptionState>((set, get) => ({
       // Update store state
       set({
         status,
-        isPremium: isPremium || __DEV__,
+        isPremium: isPremium || FORCE_PREMIUM_BYPASS,
         expirationDate,
         isTrialActive,
         isLifetime,
@@ -276,7 +276,7 @@ export const useSubscription = create<SubscriptionState>((set, get) => ({
       // Persist to AsyncStorage for offline access
       const cachedState: CachedSubscriptionState = {
         status,
-        isPremium: isPremium || __DEV__,
+        isPremium: isPremium || FORCE_PREMIUM_BYPASS,
         expirationDate,
         isTrialActive,
         isLifetime,
@@ -356,7 +356,7 @@ export const useSubscription = create<SubscriptionState>((set, get) => ({
       // Update store state
       set({
         status,
-        isPremium: isPremium || __DEV__,
+        isPremium: isPremium || FORCE_PREMIUM_BYPASS,
         expirationDate,
         isTrialActive,
         isLifetime,
@@ -368,7 +368,7 @@ export const useSubscription = create<SubscriptionState>((set, get) => ({
       // Persist to AsyncStorage
       const cachedState: CachedSubscriptionState = {
         status,
-        isPremium: isPremium || __DEV__,
+        isPremium: isPremium || FORCE_PREMIUM_BYPASS,
         expirationDate,
         isTrialActive,
         isLifetime,
@@ -425,7 +425,7 @@ export const useSubscription = create<SubscriptionState>((set, get) => ({
 
       set({
         status,
-        isPremium: isPremium || __DEV__,
+        isPremium: isPremium || FORCE_PREMIUM_BYPASS,
         expirationDate,
         isTrialActive,
         isLifetime,
@@ -447,7 +447,7 @@ export const useSubscription = create<SubscriptionState>((set, get) => ({
 
       set({
         status,
-        isPremium: isPremium || __DEV__,
+        isPremium: isPremium || FORCE_PREMIUM_BYPASS,
         expirationDate,
         isTrialActive,
         isLifetime,

@@ -7,19 +7,25 @@
     "development": {
       "developmentClient": true,
       "distribution": "internal",
-      "channel": "development"
+      "channel": "development",
+      "env": {
+        "EXPO_PUBLIC_BYPASS_PREMIUM": "true"
+      }
     },
     "preview": {
+      "developmentClient": false,
       "distribution": "internal",
-      "channel": "preview"
+      "channel": "preview",
+      "env": {
+        "EXPO_PUBLIC_BYPASS_PREMIUM": "true"
+      }
     },
     "production": {
       "autoIncrement": true,
       "channel": "production",
       "distribution": "store",
       "ios": {
-        "credentialsSource": "remote",
-        "enterpriseProvisioning": "universal"
+        "credentialsSource": "remote"
       }
     }
   },
