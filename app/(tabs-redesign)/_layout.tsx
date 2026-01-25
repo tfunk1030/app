@@ -13,16 +13,20 @@
  */
 
 import React from 'react';
+import { Platform } from 'react-native';
+import { Tabs } from 'expo-router';
 import { NativeTabs, Icon, Label } from 'expo-router/unstable-native-tabs';
+import { Target, Wind, Settings } from 'lucide-react-native';
 
 import { RedesignThemeProvider } from '@/src/theme/redesign';
 import { EnhancedEnvironmentalProvider } from '@/src/providers/EnhancedEnvironmentalProvider';
+import { useTokens } from '@/src/theme/useTokens';
 
 // =============================================================================
-// TAB NAVIGATOR WITH NATIVE TABS
+// TAB NAVIGATOR - NATIVE (iOS/Android)
 // =============================================================================
 
-function TabNavigatorContent() {
+function NativeTabNavigator() {
   return (
     <NativeTabs>
       <NativeTabs.Trigger name="(shot)">
@@ -41,6 +45,70 @@ function TabNavigatorContent() {
       </NativeTabs.Trigger>
     </NativeTabs>
   );
+}
+
+// =============================================================================
+// TAB NAVIGATOR - WEB
+// =============================================================================
+
+function WebTabNavigator() {
+  const t = useTokens();
+
+  return (
+    <Tabs
+      screenOptions={{
+        headerShown: false,
+        tabBarActiveTintColor: t.colors.brand,
+        tabBarInactiveTintColor: t.colors.textMuted,
+        tabBarStyle: {
+          backgroundColor: t.colors.surface,
+          borderTopColor: t.colors.border,
+          paddingTop: 8,
+          paddingBottom: 8,
+          height: 60,
+        },
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontWeight: '600',
+        },
+      }}
+    >
+      <Tabs.Screen
+        name="(shot)"
+        options={{
+          title: 'Shot',
+          tabBarIcon: ({ color, size }) => <Target size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="(wind)"
+        options={{
+          title: 'Wind',
+          tabBarIcon: ({ color, size }) => <Wind size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="(setup)"
+        options={{
+          title: 'Setup',
+          tabBarIcon: ({ color, size }) => <Settings size={size} color={color} />,
+        }}
+      />
+    </Tabs>
+  );
+}
+
+// =============================================================================
+// PLATFORM-SPECIFIC TAB NAVIGATOR
+// =============================================================================
+
+function TabNavigatorContent() {
+  // Use NativeTabs on iOS for native tab bar experience
+  // Use regular Tabs on web/Android for proper rendering
+  if (Platform.OS === 'ios') {
+    return <NativeTabNavigator />;
+  }
+  return <WebTabNavigator />;
 }
 
 // =============================================================================
