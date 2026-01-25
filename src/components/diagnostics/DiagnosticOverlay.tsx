@@ -8,12 +8,12 @@
  */
 
 import { useWindData } from '@/src/components/diagnostics/DiagnosticOverlayAdapter';
-import { darkTokens as tokens } from '@/src/theme/tokens';
+import { useTokens } from '@/src/theme/useTokens';
 import { FeatureFlags } from '@/src/utils/FeatureFlags';
 import { LogManager } from '@/src/utils/LogManager';
 import { scaledFontSize } from '@/src/utils/responsive';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Dimensions,
   Platform,
@@ -24,6 +24,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import type { TokenSet } from '@/src/theme/tokens';
 
 // Tab options for the diagnostic overlay
 type DiagnosticTab = 'logs' | 'sensors' | 'state' | 'flags' | 'transitions' | 'cache';
@@ -45,6 +46,12 @@ export const DiagnosticOverlay: React.FC<DiagnosticOverlayProps> = ({ isVisible,
   const [sessionId, setSessionId] = useState<string>('');
   const [isExpanded, setIsExpanded] = useState<boolean>(false);
   const [stateTransitions, setStateTransitions] = useState<any[]>([]);
+
+  // Get theme tokens
+  const tokens = useTokens();
+
+  // Memoized styles based on tokens
+  const styles = useMemo(() => createStyles(tokens), [tokens]);
 
   // Get wind data for state transitions
   const windData = useWindData();
@@ -205,7 +212,12 @@ export const DiagnosticOverlay: React.FC<DiagnosticOverlayProps> = ({ isVisible,
       <View style={styles.tabContent}>
         <View style={styles.tabHeader}>
           <Text style={styles.tabHeaderText}>State Transitions ({stateTransitions.length})</Text>
-          <Pressable style={styles.clearButton} onPress={loadStateTransitions}>
+          <Pressable
+            style={styles.clearButton}
+            onPress={loadStateTransitions}
+            accessibilityRole="button"
+            accessibilityLabel="Refresh state transitions"
+          >
             <Text style={styles.clearButtonText}>Refresh</Text>
           </Pressable>
         </View>
@@ -258,7 +270,12 @@ export const DiagnosticOverlay: React.FC<DiagnosticOverlayProps> = ({ isVisible,
       <View style={styles.tabContent}>
         <View style={styles.tabHeader}>
           <Text style={styles.tabHeaderText}>Logs ({logs.length})</Text>
-          <Pressable style={styles.clearButton} onPress={clearLogs}>
+          <Pressable
+            style={styles.clearButton}
+            onPress={clearLogs}
+            accessibilityRole="button"
+            accessibilityLabel="Clear all logs"
+          >
             <Text style={styles.clearButtonText}>Clear</Text>
           </Pressable>
         </View>
@@ -382,22 +399,35 @@ export const DiagnosticOverlay: React.FC<DiagnosticOverlayProps> = ({ isVisible,
       style={[styles.container, isExpanded ? styles.expandedContainer : styles.collapsedContainer]}
     >
       <View style={styles.header}>
-        <Pressable onPress={toggleExpanded} style={styles.expandButton}>
+        <Pressable
+          onPress={toggleExpanded}
+          style={styles.expandButton}
+          accessibilityRole="button"
+          accessibilityLabel={isExpanded ? 'Collapse diagnostics panel' : 'Expand diagnostics panel'}
+        >
           <Text style={styles.expandButtonText}>{isExpanded ? '▼' : '▲'}</Text>
         </Pressable>
         <Text style={styles.title}>Diagnostic Mode</Text>
-        <Pressable onPress={onClose} style={styles.closeButton}>
+        <Pressable
+          onPress={onClose}
+          style={styles.closeButton}
+          accessibilityRole="button"
+          accessibilityLabel="Close diagnostics panel"
+        >
           <Text style={styles.closeButtonText}>✕</Text>
         </Pressable>
       </View>
 
       {isExpanded && (
         <>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabBarScroll}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabBarScroll} accessibilityRole="tablist">
             <View style={styles.tabBar}>
               <Pressable
                 style={[styles.tab, activeTab === 'logs' && styles.activeTab]}
                 onPress={() => setActiveTab('logs')}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: activeTab === 'logs' }}
+                accessibilityLabel="Logs tab"
               >
                 <Text style={[styles.tabText, activeTab === 'logs' && styles.activeTabText]}>
                   Logs
@@ -406,6 +436,9 @@ export const DiagnosticOverlay: React.FC<DiagnosticOverlayProps> = ({ isVisible,
               <Pressable
                 style={[styles.tab, activeTab === 'sensors' && styles.activeTab]}
                 onPress={() => setActiveTab('sensors')}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: activeTab === 'sensors' }}
+                accessibilityLabel="Sensors tab"
               >
                 <Text style={[styles.tabText, activeTab === 'sensors' && styles.activeTabText]}>
                   Sensors
@@ -414,6 +447,9 @@ export const DiagnosticOverlay: React.FC<DiagnosticOverlayProps> = ({ isVisible,
               <Pressable
                 style={[styles.tab, activeTab === 'state' && styles.activeTab]}
                 onPress={() => setActiveTab('state')}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: activeTab === 'state' }}
+                accessibilityLabel="State tab"
               >
                 <Text style={[styles.tabText, activeTab === 'state' && styles.activeTabText]}>
                   State
@@ -422,6 +458,9 @@ export const DiagnosticOverlay: React.FC<DiagnosticOverlayProps> = ({ isVisible,
               <Pressable
                 style={[styles.tab, activeTab === 'flags' && styles.activeTab]}
                 onPress={() => setActiveTab('flags')}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: activeTab === 'flags' }}
+                accessibilityLabel="Feature flags tab"
               >
                 <Text style={[styles.tabText, activeTab === 'flags' && styles.activeTabText]}>
                   Flags
@@ -430,6 +469,9 @@ export const DiagnosticOverlay: React.FC<DiagnosticOverlayProps> = ({ isVisible,
               <Pressable
                 style={[styles.tab, activeTab === 'transitions' && styles.activeTab]}
                 onPress={() => setActiveTab('transitions')}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: activeTab === 'transitions' }}
+                accessibilityLabel="State transitions tab"
               >
                 <Text style={[styles.tabText, activeTab === 'transitions' && styles.activeTabText]}>
                   Transitions
@@ -438,6 +480,9 @@ export const DiagnosticOverlay: React.FC<DiagnosticOverlayProps> = ({ isVisible,
               <Pressable
                 style={[styles.tab, activeTab === 'cache' && styles.activeTab]}
                 onPress={() => setActiveTab('cache')}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: activeTab === 'cache' }}
+                accessibilityLabel="Cache status tab"
               >
                 <Text style={[styles.tabText, activeTab === 'cache' && styles.activeTabText]}>
                   Cache
@@ -453,8 +498,8 @@ export const DiagnosticOverlay: React.FC<DiagnosticOverlayProps> = ({ isVisible,
   );
 };
 
-// Styles
-const styles = StyleSheet.create({
+// Styles factory
+const createStyles = (tokens: TokenSet) => StyleSheet.create({
   container: {
     position: 'absolute',
     left: 0,
@@ -517,14 +562,22 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   expandButton: {
-    padding: 5,
+    padding: 12,
+    minWidth: 48,
+    minHeight: 48,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   expandButtonText: {
     color: tokens.colors.textPrimary,
     fontSize: scaledFontSize(16),
   },
   closeButton: {
-    padding: 5,
+    padding: 12,
+    minWidth: 48,
+    minHeight: 48,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   closeButtonText: {
     color: tokens.colors.textPrimary,

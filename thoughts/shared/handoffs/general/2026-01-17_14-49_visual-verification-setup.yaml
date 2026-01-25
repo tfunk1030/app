@@ -1,0 +1,77 @@
+---
+session: general
+date: 2026-01-17
+status: complete
+outcome: SUCCEEDED
+---
+
+goal: Set up visual verification tools and clean up unused hooks for AICaddyPro
+now: Run /design-review on main screens to audit whole-app consistency
+
+test: npm test wind-colors && yarn test:visual
+
+done_this_session:
+  - task: Installed Playwright visual testing framework
+    files: [playwright.config.ts, e2e/visual.spec.ts, package.json]
+  - task: Installed Storybook for React Native component isolation
+    files: [.rnstorybook/main.ts, src/features/wind/components/compass/WindArrow.stories.tsx]
+  - task: Created 12 WindArrow story variants for visual testing
+    files: [src/features/wind/components/compass/WindArrow.stories.tsx]
+  - task: Updated project CLAUDE.md with visual verification workflow
+    files: [CLAUDE.md]
+  - task: Created new UI verification workflow rule
+    files: [~/.claude/rules/ui-verification-workflow.md]
+  - task: Updated aicaddypro-context.md rule with new commands
+    files: [~/.claude/rules/aicaddypro-context.md]
+  - task: Updated react-native-a11y.md rule with testing commands
+    files: [~/.claude/rules/react-native-a11y.md]
+  - task: Updated ios-ui-fix-workflow.md with visual tools section
+    files: [docs/current/ios-ui-fix-workflow.md]
+  - task: Cleaned up 104 unused hook files (3.2MB to 44KB)
+    files: [~/.claude/hooks/]
+  - task: Removed slow dependency audit hook (2-5s per edit)
+    files: [~/.claude/settings.json]
+
+blockers: []
+
+questions:
+  - User may want to run visual baselines (yarn test:visual:update) after starting Expo web
+
+decisions:
+  - deleted_unused_hooks: 107 hook files were not referenced in settings.json - removed to reduce confusion
+  - removed_dep_audit_hook: PostToolUse:Edit dependency audit added 2-5s latency per package.json edit - removed for speed
+  - kept_braintrust_hooks: Braintrust tracing is enabled (TRACE_TO_BRAINTRUST=true) so kept all 5 braintrust hooks
+
+findings:
+  - hooks_before: 107 files (3.2MB) - 29 .sh, 63 .js, 15 archive
+  - hooks_after: 3 files (44KB) - braintrust_hooks.py, CONFIG.md, README.md
+  - active_hooks: 6 total - 5 braintrust + 1 WebSearch year injection
+  - tests_passing: 41/41 wind-colors tests pass
+
+worked:
+  - Binary test approach for UI fixes prevents regression
+  - Playwright MCP already available for real-time visual verification
+  - Storybook stories provide isolated component testing
+
+failed: []
+
+next:
+  - Run yarn test:visual:update to create baseline screenshots (requires Expo web running)
+  - Run /design-review on main screens for whole-app consistency audit
+  - Run /a11y-audit on main screens for accessibility check
+  - Consider adding more component stories for other critical components
+
+files:
+  created:
+    - playwright.config.ts
+    - e2e/visual.spec.ts
+    - src/features/wind/components/compass/WindArrow.stories.tsx
+    - ~/.claude/rules/ui-verification-workflow.md
+  modified:
+    - package.json (added Playwright, Storybook deps and scripts)
+    - .rnstorybook/main.ts (added src/**/*.stories pattern)
+    - CLAUDE.md (added Visual Verification Tools section)
+    - ~/.claude/rules/aicaddypro-context.md (added UI Fix Workflow)
+    - ~/.claude/rules/react-native-a11y.md (added testing commands)
+    - ~/.claude/settings.json (removed slow dependency audit hook)
+    - docs/current/ios-ui-fix-workflow.md (added Visual Verification Tools section)

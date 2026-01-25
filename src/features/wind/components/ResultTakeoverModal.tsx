@@ -12,6 +12,7 @@ import { BlurView } from 'expo-blur';
 import Animated, { FadeIn, FadeOut, SlideInDown, SlideOutDown } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { useTokens } from '@/src/theme/useTokens';
+import { useReduceMotion } from '@/src/hooks/useReduceMotion';
 import type { WindCalculatorResult } from '../hooks/useWindCalculator';
 import { DualResultCard } from './results/DualResultCard';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -76,6 +77,7 @@ interface ResultTakeoverModalProps {
 
 export function ResultTakeoverModal({ visible, result, onDismiss }: ResultTakeoverModalProps) {
   const t = useTokens();
+  const { getEnteringAnimation, getExitingAnimation } = useReduceMotion();
 
   const handleDismiss = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -87,16 +89,21 @@ export function ResultTakeoverModal({ visible, result, onDismiss }: ResultTakeov
   return (
     <Modal visible={visible} transparent animationType="none">
       <Animated.View
-        entering={FadeIn.duration(200)}
-        exiting={FadeOut.duration(200)}
+        entering={getEnteringAnimation(FadeIn.duration(200))}
+        exiting={getExitingAnimation(FadeOut.duration(200))}
         style={styles.overlay}
       >
         <BlurView intensity={40} style={StyleSheet.absoluteFill} />
-        <Pressable style={StyleSheet.absoluteFill} onPress={handleDismiss} />
+        <Pressable
+          style={StyleSheet.absoluteFill}
+          onPress={handleDismiss}
+          accessibilityRole="button"
+          accessibilityLabel="Dismiss modal"
+        />
 
         <Animated.View
-          entering={SlideInDown.springify().damping(20)}
-          exiting={SlideOutDown.duration(200)}
+          entering={getEnteringAnimation(SlideInDown.springify().damping(20))}
+          exiting={getExitingAnimation(SlideOutDown.duration(200))}
           style={[styles.content, { backgroundColor: t.colors.surface }]}
         >
           {/* North Star Message - "Play X yards, aim Y left/right" */}

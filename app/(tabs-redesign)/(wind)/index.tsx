@@ -9,7 +9,7 @@
  * - Full-screen results with explicit calculate action
  */
 
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -18,7 +18,9 @@ import {
   RefreshControl,
   Pressable,
   TextInput,
+  AccessibilityInfo,
 } from 'react-native';
+import { ErrorBoundary } from '@/src/components/error-boundary/ErrorBoundary';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
   useAnimatedStyle,
@@ -246,6 +248,13 @@ function WindCalculatorRedesign({ sensorAvailable = true, compassAccuracy = 'hig
     }
   }, [error]);
 
+  // Announce errors to screen readers for accessibility
+  useEffect(() => {
+    if (calcError) {
+      AccessibilityInfo.announceForAccessibility(`Error: ${calcError}`);
+    }
+  }, [calcError]);
+
   const compassAnimatedStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: interpolate(slideOffset.value, [0, 1], [0, -screen.height]) }],
     opacity: interpolate(slideOffset.value, [0, 0.4], [1, 0]),
@@ -421,7 +430,8 @@ function WindCalculatorRedesign({ sensorAvailable = true, compassAccuracy = 'hig
                 onPress={() => handleDistanceStep(-1)}
                 style={[styles.stepperButtonInline, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}
                 accessibilityRole="button"
-                accessibilityLabel="Decrease distance by 1 yard"
+                accessibilityLabel={`Decrease distance by 1 ${unit}. Current: ${targetDistance} ${unit}`}
+                accessibilityHint={`Range: ${distMin} to ${distMax} ${unit}`}
               >
                 <Text style={[styles.stepperTextInline, { color: colors.textPrimary }]}>-1</Text>
               </Pressable>
@@ -429,7 +439,8 @@ function WindCalculatorRedesign({ sensorAvailable = true, compassAccuracy = 'hig
                 onPress={() => handleDistanceStep(1)}
                 style={[styles.stepperButtonInline, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}
                 accessibilityRole="button"
-                accessibilityLabel="Increase distance by 1 yard"
+                accessibilityLabel={`Increase distance by 1 ${unit}. Current: ${targetDistance} ${unit}`}
+                accessibilityHint={`Range: ${distMin} to ${distMax} ${unit}`}
               >
                 <Text style={[styles.stepperTextInline, { color: colors.textPrimary }]}>+1</Text>
               </Pressable>
@@ -504,7 +515,7 @@ function WindCalculatorRedesign({ sensorAvailable = true, compassAccuracy = 'hig
           )}
 
           {/* Manual Input */}
-          <View style={[styles.manualSection, { backgroundColor: colors.surfaceElevated, borderRadius: 12 }]}>
+          <View style={[styles.manualSection, { backgroundColor: colors.surfaceElevated, borderRadius: tokens.borderRadius.lg }]}>
             <Pressable
               onPress={handleManualToggle}
               style={[styles.manualToggle, { borderBottomWidth: manualOpen ? 1 : 0, borderBottomColor: colors.border }]}
@@ -769,9 +780,13 @@ function PremiumUpgradePrompt() {
 export default function WindScreen() {
   const { isPremium } = usePremium();
 
-  // Premium users get the full wind calculator
+  // Premium users get the full wind calculator wrapped in error boundary
   if (isPremium) {
-    return <WindCalculatorWithCompass />;
+    return (
+      <ErrorBoundary>
+        <WindCalculatorWithCompass />
+      </ErrorBoundary>
+    );
   }
 
   // Free users see upgrade prompt

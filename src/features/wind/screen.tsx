@@ -19,10 +19,11 @@ import { useTokens } from '@/src/theme/useTokens';
 import { LogManager } from '@/src/utils/LogManager';
 import { safeScaledFontSize, getScrollPadding } from '@/src/utils/responsive';
 import { useAccessibleAnimations } from '@/src/hooks/useAccessibility';
-import { Crown, Wind } from 'lucide-react-native';
-import React, { useEffect, useMemo, useState } from 'react';
-import { Platform, Pressable, ScrollView, Text, View, ViewStyle, TextStyle, Alert, TextInput } from 'react-native';
+import { ArrowLeft, Crown, Wind } from 'lucide-react-native';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Platform, Pressable, ScrollView, Text, View, ViewStyle, TextStyle, Alert, TextInput, Animated as RNAnimated, Easing } from 'react-native';
 import Animated from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Create a logger for the wind screen
@@ -62,10 +63,8 @@ const YardagePresetButton = React.memo<YardagePresetButtonProps>(({
     fontSize: safeScaledFontSize(t.fontSize.sm),
     fontWeight: t.fontWeight.semibold as TextStyle['fontWeight'],
     color: isSelected ? t.colors.brand : t.colors.textMuted,
-    ...Platform.select({
-      ios: { fontFamily: 'Menlo' },
-      android: { fontFamily: 'monospace' },
-    }),
+    // Use tabular figures for consistent number widths without jarring monospace
+    fontVariant: ['tabular-nums'],
   }), [t, isSelected]);
 
   return (
@@ -117,8 +116,8 @@ const InlineEditablePill = React.memo<InlineEditablePillProps>(({
       paddingHorizontal: t.spacing.sm,
       borderRadius: t.borderRadius.full,
       borderWidth: t.borderWidth.thin,
-      borderColor: isOverridden ? t.colors.warning : t.colors.border,
-      backgroundColor: t.colors.surface,
+      borderColor: isEditing ? t.colors.brand : isOverridden ? t.colors.warning : t.colors.border,
+      backgroundColor: isEditing ? t.colors.brandBackgroundAlpha : t.colors.surface,
       minHeight: t.touchTarget.minimum,
     },
     label: {
@@ -128,12 +127,21 @@ const InlineEditablePill = React.memo<InlineEditablePillProps>(({
       textTransform: 'uppercase' as const,
       letterSpacing: t.letterSpacing.wider,
     },
+    valueContainer: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: t.spacing.xs / 2,
+      borderBottomWidth: isEditing ? 0 : t.borderWidth.thin,
+      borderBottomColor: t.colors.textMuted,
+      borderStyle: 'dashed' as const,
+    },
     value: {
       fontSize: safeScaledFontSize(t.fontSize.sm),
       fontWeight: t.fontWeight.semibold as TextStyle['fontWeight'],
       color: t.colors.textPrimary,
-      minWidth: 40,
+      minWidth: 32,
       textAlign: 'center' as const,
+      fontVariant: ['tabular-nums'] as const,
     },
     unit: {
       fontSize: safeScaledFontSize(t.fontSize.xs),
@@ -143,17 +151,24 @@ const InlineEditablePill = React.memo<InlineEditablePillProps>(({
       fontSize: safeScaledFontSize(t.fontSize.sm),
       fontWeight: t.fontWeight.semibold as TextStyle['fontWeight'],
       color: t.colors.textPrimary,
-      minWidth: 40,
+      minWidth: 32,
       textAlign: 'center' as TextStyle['textAlign'],
       paddingVertical: 0,
+      fontVariant: ['tabular-nums'] as const,
     },
-    overrideDot: {
-      width: t.spacing.xs,
-      height: t.spacing.xs,
-      borderRadius: t.borderRadius.full,
-      backgroundColor: t.colors.warning,
+    overrideBadge: {
+      paddingHorizontal: t.spacing.xs,
+      paddingVertical: 2,
+      borderRadius: t.borderRadius.sm,
+      backgroundColor: t.colors.warningBackgroundAlpha,
     },
-  }), [t, isOverridden]);
+    overrideBadgeText: {
+      fontSize: safeScaledFontSize(t.fontSize.xs - 2),
+      fontWeight: t.fontWeight.bold as TextStyle['fontWeight'],
+      color: t.colors.warning,
+      textTransform: 'uppercase' as const,
+    },
+  }), [t, isOverridden, isEditing]);
 
   return (
     <Pressable
@@ -161,9 +176,8 @@ const InlineEditablePill = React.memo<InlineEditablePillProps>(({
       style={pillStyles.container}
       accessibilityRole="button"
       accessibilityLabel={`${label}: ${value}${unit ? ` ${unit}` : ''}${isOverridden ? ', overridden' : ''}`}
-      accessibilityHint="Double tap to edit"
+      accessibilityHint="Tap to edit value"
     >
-      {isOverridden && <View style={pillStyles.overrideDot} accessibilityElementsHidden={true} />}
       <Text style={pillStyles.label}>{label}</Text>
       {isEditing ? (
         <TextInput
@@ -175,11 +189,20 @@ const InlineEditablePill = React.memo<InlineEditablePillProps>(({
           style={pillStyles.input}
           accessibilityLabel={`${label} override value`}
           returnKeyType="done"
+          autoFocus
+          selectTextOnFocus
         />
       ) : (
-        <Text style={pillStyles.value}>{value}</Text>
+        <View style={pillStyles.valueContainer}>
+          <Text style={pillStyles.value}>{value}</Text>
+        </View>
       )}
       {unit ? <Text style={pillStyles.unit}>{unit}</Text> : null}
+      {isOverridden && (
+        <View style={pillStyles.overrideBadge} accessibilityElementsHidden={true}>
+          <Text style={pillStyles.overrideBadgeText}>Edit</Text>
+        </View>
+      )}
     </Pressable>
   );
 });
@@ -206,20 +229,114 @@ function WindCalculatorComponent() {
   const [gustOverride, setGustOverride] = useState<string>('');
   const [directionOverride, setDirectionOverride] = useState<string>('');
 
+  // Animation state for in-place swap (bolt-old pattern)
+  const [showResults, setShowResults] = useState(false);
+  const inputOpacity = useRef(new RNAnimated.Value(1)).current;
+  const inputTranslateY = useRef(new RNAnimated.Value(0)).current;
+  const resultsOpacity = useRef(new RNAnimated.Value(0)).current;
+  const resultsTranslateY = useRef(new RNAnimated.Value(20)).current;
+  const containerHeight = useRef(new RNAnimated.Value(0)).current;
+
+  // Height tracking refs
+  const inputMeasuredHeight = useRef<number | null>(null);
+  const resultsMeasuredHeight = useRef<number | null>(null);
+
   // Memoized styles
   const styles = useMemo(() => createStyles(t), [t]);
   const padding = getScrollPadding(t.spacing.md, { minPadding: t.spacing.base, maxPadding: t.spacing.xl });
 
-  // Handle calculation button press
-  const handleCalculate = () => {
+  // Handle calculation button press - triggers animated swap to results
+  const handleCalculate = useCallback(() => {
     logger.info('Calculate button pressed', {
       windSpeed,
       targetYardage,
       windAngle: relativeWindAngle,
     });
     calculate(relativeWindAngle);
-    setShowResultModal(true);
-  };
+    // Trigger animation swap to results view
+    setShowResults(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+    RNAnimated.parallel([
+      RNAnimated.timing(inputOpacity, {
+        toValue: 0,
+        duration: t.animation.fast,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: true,
+      }),
+      RNAnimated.timing(inputTranslateY, {
+        toValue: -12,
+        duration: t.animation.fast,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: true,
+      }),
+      RNAnimated.timing(resultsOpacity, {
+        toValue: 1,
+        duration: t.animation.normal,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: true,
+      }),
+      RNAnimated.timing(resultsTranslateY, {
+        toValue: 0,
+        duration: t.animation.normal,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    // Animate container height if measured
+    if (resultsMeasuredHeight.current) {
+      RNAnimated.timing(containerHeight, {
+        toValue: resultsMeasuredHeight.current,
+        duration: t.animation.normal,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: false,
+      }).start();
+    }
+  }, [windSpeed, targetYardage, relativeWindAngle, calculate, inputOpacity, inputTranslateY, resultsOpacity, resultsTranslateY, containerHeight, t.animation]);
+
+  // Handle back button - returns to inputs view with animation
+  const handleBackToInputs = useCallback(async () => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+    RNAnimated.parallel([
+      RNAnimated.timing(resultsOpacity, {
+        toValue: 0,
+        duration: t.animation.fast,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: true,
+      }),
+      RNAnimated.timing(resultsTranslateY, {
+        toValue: 20,
+        duration: t.animation.fast,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setShowResults(false);
+      const targetH = inputMeasuredHeight.current || 0;
+      RNAnimated.parallel([
+        RNAnimated.timing(inputOpacity, {
+          toValue: 1,
+          duration: t.animation.normal,
+          easing: Easing.out(Easing.quad),
+          useNativeDriver: true,
+        }),
+        RNAnimated.timing(inputTranslateY, {
+          toValue: 0,
+          duration: t.animation.normal,
+          easing: Easing.out(Easing.quad),
+          useNativeDriver: true,
+        }),
+        RNAnimated.timing(containerHeight, {
+          toValue: targetH,
+          duration: t.animation.normal,
+          easing: Easing.out(Easing.quad),
+          useNativeDriver: false,
+        }),
+      ]).start();
+    });
+  }, [resultsOpacity, resultsTranslateY, inputOpacity, inputTranslateY, containerHeight, t.animation]);
 
   const lockButtonPosition = settings.lockButtonPosition ?? 'both';
 
@@ -298,7 +415,7 @@ function WindCalculatorComponent() {
     );
   }
 
-  // Loading state
+  // Loading state with animated shimmer
   if (isLoading) {
     return (
       <View
@@ -306,8 +423,19 @@ function WindCalculatorComponent() {
         accessibilityRole="progressbar"
         accessibilityLabel="Loading wind calculator"
       >
-        <View style={[styles.loadingPulse, { backgroundColor: t.colors.surfaceAlt }]} />
-        <View style={[styles.loadingPulse, { backgroundColor: t.colors.surfaceAlt, width: '60%' }]} />
+        <Animated.View
+          entering={headerEntering}
+          style={styles.loadingContainer}
+        >
+          <Wind
+            size={t.containerSize.icon.lg}
+            color={t.colors.brand}
+            accessibilityElementsHidden={true}
+          />
+          <Text style={[styles.loadingText, { color: t.colors.textMuted }]}>
+            Loading wind data...
+          </Text>
+        </Animated.View>
       </View>
     );
   }
@@ -371,148 +499,216 @@ function WindCalculatorComponent() {
         ]}
         showsVerticalScrollIndicator={false}
       >
-      {/* Header with Current Wind Display */}
-      <Animated.View entering={headerEntering}>
-        <Text style={[styles.title, { color: t.colors.textPrimary }]} accessibilityRole="header">
-          Wind Calculator
-        </Text>
-        {/* Current wind conditions - always visible */}
-        <View style={[styles.currentWindRow, { borderColor: t.colors.border }]}>
-          <InlineEditablePill
-            label="Wind"
-            value={String(effectiveWindSpeed)}
-            unit={speedUnitLabel}
-            isEditing={editingPill === 'wind'}
-            isOverridden={windOverride !== ''}
-            onPress={() => setEditingPill('wind')}
-            onChangeText={(text) => setWindOverride(text.replace(/[^0-9]/g, ''))}
-            onSubmit={() => handlePillCommit('wind')}
-            onBlur={() => handlePillCommit('wind')}
-            tokens={t}
-          />
-          <InlineEditablePill
-            label="From"
-            value={String(effectiveDirection)}
-            unit="°"
-            isEditing={editingPill === 'direction'}
-            isOverridden={directionOverride !== ''}
-            onPress={() => setEditingPill('direction')}
-            onChangeText={(text) => setDirectionOverride(text.replace(/[^0-9]/g, ''))}
-            onSubmit={() => handlePillCommit('direction')}
-            onBlur={() => handlePillCommit('direction')}
-            tokens={t}
-          />
-          {baseWindGust > baseWindSpeed && (
+        {/* Header with Current Wind Display - always visible */}
+        <Animated.View entering={headerEntering}>
+          <Text style={[styles.title, { color: t.colors.textPrimary }]} accessibilityRole="header">
+            Wind Calculator
+          </Text>
+          {/* Current wind conditions - always visible */}
+          <View style={[styles.currentWindRow, { borderColor: t.colors.border }]}>
             <InlineEditablePill
-              label="Gusts"
-              value={String(effectiveGust)}
+              label="Wind"
+              value={String(effectiveWindSpeed)}
               unit={speedUnitLabel}
-              isEditing={editingPill === 'gust'}
-              isOverridden={gustOverride !== ''}
-              onPress={() => setEditingPill('gust')}
-              onChangeText={(text) => setGustOverride(text.replace(/[^0-9]/g, ''))}
-              onSubmit={() => handlePillCommit('gust')}
-              onBlur={() => handlePillCommit('gust')}
+              isEditing={editingPill === 'wind'}
+              isOverridden={windOverride !== ''}
+              onPress={() => setEditingPill('wind')}
+              onChangeText={(text) => setWindOverride(text.replace(/[^0-9]/g, ''))}
+              onSubmit={() => handlePillCommit('wind')}
+              onBlur={() => handlePillCommit('wind')}
               tokens={t}
             />
-          )}
-        </View>
-      </Animated.View>
-
-      {/* Hourly forecast - collapsible */}
-      <Animated.View entering={cardEntering(0)}>
-        <WindHourlyForecastBar />
-      </Animated.View>
-
-      {/* Compass Card */}
-      <Animated.View entering={cardEntering(1)}>
-        <GlassCard gradient glow style={styles.compassCard}>
-          <Text style={[styles.compassHint, { color: t.colors.textMuted }]}>
-            Point phone in shot direction and tap lock
-          </Text>
-          <View style={styles.compassWrapper}>
-            <WindDirectionCompass windDirection={effectiveDirection} windSpeed={effectiveWindSpeed} speedUnit={speedUnitLabel} />
-          </View>
-        </GlassCard>
-      </Animated.View>
-
-      {/* Wind Speed Slider */}
-      <Animated.View entering={cardEntering(2)}>
-        <GlassCard style={styles.sliderCard}>
-            <Slider
-              value={windSpeed}
-              onValueChange={(value) => {
-                setWindSpeed(value);
-                if (windOverride !== '') {
-                  setWindOverride('');
-                }
-              }}
-              min={0}
-              max={50}
-              step={1}
-              label="Wind Speed"
-              unit={windSpeedLabel}
+            <InlineEditablePill
+              label="From"
+              value={String(effectiveDirection)}
+              unit="°"
+              isEditing={editingPill === 'direction'}
+              isOverridden={directionOverride !== ''}
+              onPress={() => setEditingPill('direction')}
+              onChangeText={(text) => setDirectionOverride(text.replace(/[^0-9]/g, ''))}
+              onSubmit={() => handlePillCommit('direction')}
+              onBlur={() => handlePillCommit('direction')}
+              tokens={t}
             />
-        </GlassCard>
-      </Animated.View>
-
-      {/* Target Yardage Section */}
-      <Animated.View entering={cardEntering(3)}>
-        <GlassCard style={styles.yardageCard}>
-            <Slider
-              value={targetYardage}
-              onValueChange={setTargetYardage}
-              min={50}
-              max={300}
-              step={1}
-              label="Target Yardage"
-              unit="yds"
-            />
-
-          {/* Quick Presets */}
-          <View style={[styles.presetsContainer, { borderTopColor: t.colors.border }]}>
-            <Text style={[styles.presetsLabel, { color: t.colors.textMuted }]}>
-              Quick Select
-            </Text>
-            <View style={styles.presetsRow}>
-              {YARDAGE_PRESETS.map((preset) => (
-                <YardagePresetButton
-                  key={preset}
-                  value={preset}
-                  isSelected={targetYardage === preset}
-                  onPress={() => setTargetYardage(preset)}
-                  tokens={t}
-                />
-              ))}
+            {/* Gust pill - always rendered to prevent layout shift, hidden when no gusts */}
+            <View style={{ opacity: baseWindGust > baseWindSpeed ? 1 : 0, pointerEvents: baseWindGust > baseWindSpeed ? 'auto' : 'none' }}>
+              <InlineEditablePill
+                label="Gusts"
+                value={String(effectiveGust)}
+                unit={speedUnitLabel}
+                isEditing={editingPill === 'gust'}
+                isOverridden={gustOverride !== ''}
+                onPress={() => setEditingPill('gust')}
+                onChangeText={(text) => setGustOverride(text.replace(/[^0-9]/g, ''))}
+                onSubmit={() => handlePillCommit('gust')}
+                onBlur={() => handlePillCommit('gust')}
+                tokens={t}
+              />
             </View>
           </View>
-        </GlassCard>
-      </Animated.View>
-
-      {/* Calculate Button */}
-      <Animated.View entering={cardEntering(4)}>
-        <Button
-          onPress={handleCalculate}
-          variant="neon"
-          size="lg"
-          glow
-          style={styles.calculateButton}
-          accessibilityHint="Calculates wind effect based on current settings"
-        >
-          Calculate Wind Effect
-        </Button>
-      </Animated.View>
-
-      {/* Results Panel */}
-      {result && (
-        <Animated.View
-          entering={cardEntering(0)}
-          accessibilityRole="summary"
-          accessibilityLabel="Wind calculation results"
-        >
-          <WindCalculationResults result={result} />
         </Animated.View>
-      )}
+
+        {/* Hourly forecast - always visible */}
+        <Animated.View entering={cardEntering(0)}>
+          <WindHourlyForecastBar />
+        </Animated.View>
+
+        {/* Animated in-place swap container (bolt-old pattern) */}
+        <RNAnimated.View style={{ minHeight: containerHeight }}>
+          {/* Input Section - fades out when results shown */}
+          <RNAnimated.View
+            style={{
+              opacity: inputOpacity,
+              transform: [{ translateY: inputTranslateY }],
+              display: showResults ? 'none' : 'flex',
+            }}
+            pointerEvents={showResults ? 'none' : 'auto'}
+            onLayout={(e) => {
+              const h = e.nativeEvent.layout.height;
+              if (!inputMeasuredHeight.current || inputMeasuredHeight.current !== h) {
+                inputMeasuredHeight.current = h;
+                if (!showResults) {
+                  containerHeight.setValue(h);
+                }
+              }
+            }}
+          >
+            {/* Compass Card */}
+            <Animated.View entering={cardEntering(1)}>
+              <View style={styles.sectionHeader}>
+                <Text style={[styles.sectionTitle, { color: t.colors.textPrimary }]}>
+                  Shot Direction
+                </Text>
+                <Text style={[styles.sectionSubtitle, { color: t.colors.textMuted }]}>
+                  Point phone at target, then lock
+                </Text>
+              </View>
+              <GlassCard gradient glow style={styles.compassCard}>
+                <View style={styles.compassWrapper}>
+                  <WindDirectionCompass windDirection={effectiveDirection} windSpeed={effectiveWindSpeed} speedUnit={speedUnitLabel} />
+                </View>
+              </GlassCard>
+            </Animated.View>
+
+            {/* Wind Speed Slider */}
+            <Animated.View entering={cardEntering(2)}>
+              <GlassCard style={styles.sliderCard}>
+                <Slider
+                  value={windSpeed}
+                  onValueChange={(value) => {
+                    setWindSpeed(value);
+                    if (windOverride !== '') {
+                      setWindOverride('');
+                    }
+                  }}
+                  min={0}
+                  max={50}
+                  step={1}
+                  label="Wind Speed"
+                  unit={windSpeedLabel}
+                />
+              </GlassCard>
+            </Animated.View>
+
+            {/* Target Yardage Section */}
+            <Animated.View entering={cardEntering(3)}>
+              <GlassCard style={styles.yardageCard}>
+                <Slider
+                  value={targetYardage}
+                  onValueChange={setTargetYardage}
+                  min={50}
+                  max={300}
+                  step={1}
+                  label="Target Yardage"
+                  unit="yds"
+                />
+
+                {/* Quick Presets */}
+                <View style={[styles.presetsContainer, { borderTopColor: t.colors.border }]}>
+                  <Text style={[styles.presetsLabel, { color: t.colors.textMuted }]}>
+                    Quick Select
+                  </Text>
+                  <View style={styles.presetsRow}>
+                    {YARDAGE_PRESETS.map((preset) => (
+                      <YardagePresetButton
+                        key={preset}
+                        value={preset}
+                        isSelected={targetYardage === preset}
+                        onPress={() => setTargetYardage(preset)}
+                        tokens={t}
+                      />
+                    ))}
+                  </View>
+                </View>
+              </GlassCard>
+            </Animated.View>
+
+            {/* Calculate Button */}
+            <Animated.View entering={cardEntering(4)}>
+              <Button
+                onPress={handleCalculate}
+                variant="neon"
+                size="lg"
+                glow={!isLoading}
+                disabled={isLoading}
+                style={styles.calculateButton}
+                accessibilityLabel={isLoading ? 'Calculating wind effect' : 'Calculate wind effect'}
+                accessibilityHint="Calculates wind effect based on current settings"
+              >
+                {isLoading ? 'Calculating...' : 'Calculate Wind Effect'}
+              </Button>
+            </Animated.View>
+          </RNAnimated.View>
+
+          {/* Results Section - fades in when results shown */}
+          <RNAnimated.View
+            style={{
+              opacity: resultsOpacity,
+              transform: [{ translateY: resultsTranslateY }],
+              display: showResults ? 'flex' : 'none',
+            }}
+            pointerEvents={showResults ? 'auto' : 'none'}
+            onLayout={(e) => {
+              const h = e.nativeEvent.layout.height;
+              if (!resultsMeasuredHeight.current || resultsMeasuredHeight.current !== h) {
+                resultsMeasuredHeight.current = h;
+                if (showResults) {
+                  RNAnimated.timing(containerHeight, {
+                    toValue: h,
+                    duration: t.animation.normal,
+                    easing: Easing.out(Easing.quad),
+                    useNativeDriver: false,
+                  }).start();
+                }
+              }
+            }}
+          >
+            {/* Back Button */}
+            <Button
+              onPress={handleBackToInputs}
+              variant="outline"
+              size="lg"
+              style={styles.backButton}
+              accessibilityLabel="Back to compass and inputs"
+              accessibilityHint="Returns to the input view to adjust settings"
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: t.spacing.xs }}>
+                <ArrowLeft size={18} color={t.colors.textPrimary} />
+                <Text style={{ color: t.colors.textPrimary, fontWeight: t.fontWeight.semibold as TextStyle['fontWeight'] }}>Back</Text>
+              </View>
+            </Button>
+
+            {/* Wind Calculation Results */}
+            {result && (
+              <View
+                accessibilityRole="summary"
+                accessibilityLabel="Wind calculation results"
+              >
+                <WindCalculationResults result={result} />
+              </View>
+            )}
+          </RNAnimated.View>
+        </RNAnimated.View>
       </ScrollView>
 
       {/* Thumb-zone lock button - positioned for one-handed use */}
@@ -533,9 +729,9 @@ function WindCalculatorComponent() {
         />
       )}
 
-      {/* Result takeover modal - shows on calculation */}
+      {/* Result takeover modal - kept as fallback option */}
       <ResultTakeoverModal
-        visible={showResultModal && result !== null}
+        visible={showResultModal && result !== null && !showResults}
         result={result}
         onDismiss={handleDismissModal}
       />
@@ -688,16 +884,22 @@ const createStyles = (t: Tokens) => ({
     fontSize: safeScaledFontSize(t.fontSize.xl),
     fontWeight: t.fontWeight.bold,
   } as TextStyle,
+  sectionHeader: {
+    marginBottom: t.spacing.sm,
+  } as ViewStyle,
+  sectionTitle: {
+    fontSize: safeScaledFontSize(t.fontSize.lg),
+    fontWeight: t.fontWeight.semibold,
+    marginBottom: t.spacing.xs / 2,
+  } as TextStyle,
+  sectionSubtitle: {
+    fontSize: safeScaledFontSize(t.fontSize.sm),
+    fontWeight: t.fontWeight.normal,
+  } as TextStyle,
   compassCard: {
     marginBottom: t.spacing.lg, // 24dp - section gap
     alignItems: 'center',
   } as ViewStyle,
-  compassHint: {
-    fontSize: safeScaledFontSize(t.fontSize.xs),
-    fontWeight: t.fontWeight.medium,
-    textAlign: 'center',
-    marginBottom: t.spacing.md,
-  } as TextStyle,
   compassWrapper: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -727,12 +929,19 @@ const createStyles = (t: Tokens) => ({
   calculateButton: {
     marginBottom: t.spacing.lg, // 24dp - section gap before results
   } as ViewStyle,
-  loadingPulse: {
-    borderRadius: t.borderRadius.lg,
-    marginBottom: t.spacing.md,
-    height: t.containerSize.icon.sm,
-    width: '80%',
+  backButton: {
+    marginBottom: t.spacing.lg, // 24dp - section gap before results
+    backgroundColor: 'transparent',
   } as ViewStyle,
+  loadingContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: t.spacing.md,
+  } as ViewStyle,
+  loadingText: {
+    fontSize: safeScaledFontSize(t.fontSize.base),
+    fontWeight: t.fontWeight.medium,
+  } as TextStyle,
   errorContainer: {
     alignItems: 'center',
     padding: t.spacing.xl,

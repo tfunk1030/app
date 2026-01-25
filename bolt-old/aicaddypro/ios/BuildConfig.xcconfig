@@ -1,0 +1,7 @@
+#include "Pods/Target Support Files/Pods-aicaddypro/Pods-aicaddypro.debug.xcconfig"
+
+// Add environment variables for debug builds
+ALLOW_EXCEPTIONS = true
+
+// This allows debugging the exception flow in development
+// but prevents crashes in production builds

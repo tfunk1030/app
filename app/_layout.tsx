@@ -9,6 +9,8 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useState } from 'react';
 import { LogBox, Platform, Text as RNText } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import 'react-native-reanimated';
 import SegmentedCacheManager from '../src/utils/SegmentedCacheManager';
 import CacheManager from '../src/utils/cacheManager';
@@ -202,30 +204,34 @@ const RootLayoutNav = () => {
 
   return (
     // Wrap with theme + app providers
-    <AppThemeProvider>
-      <AppProvider>
-        <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-          <Stack>
-            <Stack.Screen name="(tabs-redesign)" options={{ headerShown: false }} />
-            <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
-            <Stack.Screen name="index" options={{ headerShown: false }} />
-          </Stack>
-          {/* Onboarding flow - shows on first app launch only */}
-          {onboardingChecked && (
-            <OnboardingFlow
-              visible={showOnboarding}
-              onComplete={handleOnboardingComplete}
-            />
-          )}
-          {/* Paywall modal for premium subscriptions (custom UI) */}
-          <Paywall />
-          {/* RevenueCat Paywall (native UI from RevenueCat dashboard) */}
-          <RevenueCatPaywall />
-          {/* Customer Center for subscription management */}
-          <CustomerCenter />
-        </ThemeProvider>
-      </AppProvider>
-    </AppThemeProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <BottomSheetModalProvider>
+        <AppThemeProvider>
+          <AppProvider>
+            <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+              <Stack>
+                <Stack.Screen name="(tabs-redesign)" options={{ headerShown: false }} />
+                <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+                <Stack.Screen name="index" options={{ headerShown: false }} />
+              </Stack>
+              {/* Onboarding flow - shows on first app launch only */}
+              {onboardingChecked && (
+                <OnboardingFlow
+                  visible={showOnboarding}
+                  onComplete={handleOnboardingComplete}
+                />
+              )}
+              {/* Paywall modal for premium subscriptions (custom UI) */}
+              <Paywall />
+              {/* RevenueCat Paywall (native UI from RevenueCat dashboard) */}
+              <RevenueCatPaywall />
+              {/* Customer Center for subscription management */}
+              <CustomerCenter />
+            </ThemeProvider>
+          </AppProvider>
+        </AppThemeProvider>
+      </BottomSheetModalProvider>
+    </GestureHandlerRootView>
   );
 };
 

@@ -4,6 +4,7 @@ import { useSettings } from '@/src/core/context/settings';
 import { fetchHourlyWind, HourlyWindPoint } from '@/src/services/weather/hourly-forecast';
 import type { Tokens } from '@/src/theme/tokens';
 import { useTokens } from '@/src/theme/useTokens';
+import { useReduceMotionValue } from '@/src/hooks/useReduceMotion';
 import { LogManager } from '@/src/utils/LogManager';
 import { safeScaledFontSize, getTouchTargetSize } from '@/src/utils/responsive';
 import * as Location from 'expo-location';
@@ -110,6 +111,7 @@ const createStyles = (t: Tokens) => ({
 
 export function WindHourlyForecastBar() {
   const t = useTokens();
+  const reduceMotion = useReduceMotionValue();
   const { convertSpeed, settings } = useSettings();
 
   // Memoize styles based on token set
@@ -121,12 +123,14 @@ export function WindHourlyForecastBar() {
   // Per interview decision: Forecast collapsed by default with mini timeline
   const [isExpanded, setIsExpanded] = useState(false);
 
-  // Toggle expand/collapse with animation
+  // Toggle expand/collapse with animation (skip animation if reduce motion)
   const handleToggle = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    if (!reduceMotion) {
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    }
     setIsExpanded((prev) => !prev);
-  }, []);
+  }, [reduceMotion]);
 
   React.useEffect(() => {
     let cancelled = false;

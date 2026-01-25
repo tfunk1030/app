@@ -3,6 +3,7 @@ import { useTokens } from '@/src/theme/useTokens';
 import { gradients, boldColors } from '@/src/theme/gradients';
 import { animationPresets, durations } from '@/src/theme/animations';
 import { scaledFontSize, getScrollPadding, moderateScale } from '@/src/utils/responsive';
+import { useReduceMotionValue } from '@/src/hooks/useReduceMotion';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import React, { useCallback, useEffect } from 'react';
@@ -95,6 +96,7 @@ export const ContextualOverlay: React.FC<ContextualOverlayProps> = ({
 }) => {
   const t = useTokens();
   const { isDark } = useThemeMode();
+  const reduceMotion = useReduceMotionValue();
   const padding = getScrollPadding(20, { minPadding: 16, maxPadding: 24 });
 
   // Animation values
@@ -151,9 +153,14 @@ export const ContextualOverlay: React.FC<ContextualOverlayProps> = ({
     }
   };
 
-  // Animate in when visible
+  // Animate in when visible (skip animations if reduce motion is enabled)
   useEffect(() => {
-    if (visible) {
+    if (reduceMotion) {
+      // Skip animations for reduce motion
+      overlayOpacity.value = visible ? 1 : 0;
+      contentTranslateY.value = visible ? 0 : 50;
+      contentScale.value = visible ? 1 : 0.95;
+    } else if (visible) {
       overlayOpacity.value = withTiming(1, {
         duration: durations.overlay,
       });
@@ -164,7 +171,7 @@ export const ContextualOverlay: React.FC<ContextualOverlayProps> = ({
       contentTranslateY.value = withTiming(50, { duration: durations.fast });
       contentScale.value = withTiming(0.95, { duration: durations.fast });
     }
-  }, [visible, overlayOpacity, contentTranslateY, contentScale]);
+  }, [visible, reduceMotion, overlayOpacity, contentTranslateY, contentScale]);
 
   // Handle backdrop press
   const handleBackdropPress = useCallback(() => {
@@ -212,7 +219,12 @@ export const ContextualOverlay: React.FC<ContextualOverlayProps> = ({
     >
       {/* Backdrop */}
       <Animated.View style={[styles.backdrop, backdropAnimatedStyle]}>
-        <Pressable style={styles.backdropPressable} onPress={handleBackdropPress}>
+        <Pressable
+          style={styles.backdropPressable}
+          onPress={handleBackdropPress}
+          accessibilityRole="button"
+          accessibilityLabel="Close overlay"
+        >
           <LinearGradient
             colors={gradients.overlay.modal as [string, string, ...string[]]}
             start={{ x: 0, y: 0 }}
@@ -292,6 +304,8 @@ export const ContextualOverlay: React.FC<ContextualOverlayProps> = ({
                 ]}
                 onPress={handleClosePress}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                accessibilityRole="button"
+                accessibilityLabel="Close overlay"
               >
                 <X
                   size={18}

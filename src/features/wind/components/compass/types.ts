@@ -50,10 +50,10 @@ export interface WindArrowProps {
   reducedMotion?: boolean;
   /** Wind relationship type for dynamic coloring */
   windRelationship?: WindRelationship;
-  /** Danger color for headwind */
-  danger?: string;
-  /** Warning color for crosswind */
-  warning?: string;
+  /** Danger color for headwind (required - use tokens.colors.danger) */
+  danger: string;
+  /** Warning color for crosswind (required - use tokens.colors.warning) */
+  warning: string;
   /** Wind gust speed in mph - triggers pulse animation when > magnitude */
   gustSpeed?: number;
 }
@@ -107,7 +107,7 @@ export interface LockButtonProps {
     };
   };
   mode: 'light' | 'dark';
-  pulseAnim: import('react-native').Animated.Value;
+  pulseAnim: import('react-native-reanimated').SharedValue<number>;
 }
 
 /**

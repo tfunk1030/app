@@ -6,7 +6,7 @@
  */
 
 import { Button } from '@/src/core/components/ui/button';
-import { tokens } from '@/src/theme/tokens';
+import { useTokens } from '@/src/theme/useTokens';
 import {
   hasPermission,
   PermissionState,
@@ -14,7 +14,7 @@ import {
   requestPermission,
 } from '@/src/utils/permissions';
 import { scaledFontSize } from '@/src/utils/responsive';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Image, ImageSourcePropType, StyleSheet, Text, View } from 'react-native';
 
 // Permission icons
@@ -51,11 +51,100 @@ export function PermissionRequest({
   showSkip = false,
   onSkip,
 }: PermissionRequestProps) {
+  const t = useTokens();
   const [permissionState, setPermissionState] = useState<PermissionState>(
     PermissionState.UNDETERMINED
   );
   const [isChecking, setIsChecking] = useState(true);
   const [isRequesting, setIsRequesting] = useState(false);
+
+  // Generate theme-aware styles
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        container: {
+          flex: 1,
+          justifyContent: 'center',
+          alignItems: 'center',
+          padding: t.spacing.xl,
+          backgroundColor: t.colors.overlay,
+        },
+        card: {
+          backgroundColor: t.colors.surfaceAlt,
+          borderRadius: t.borderRadius.xl,
+          padding: t.spacing['2xl'],
+          width: '100%',
+          maxWidth: 400,
+          borderWidth: 1,
+          borderColor: t.colors.border,
+          shadowColor: t.colors.shadow,
+          shadowOffset: { width: 0, height: 3 },
+          shadowOpacity: 0.08,
+          shadowRadius: 6,
+          elevation: 3,
+        },
+        header: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          marginBottom: t.spacing.md,
+        },
+        icon: {
+          width: 32,
+          height: 32,
+          marginRight: t.spacing.base,
+        },
+        title: {
+          fontSize: scaledFontSize(20),
+          fontWeight: '700',
+          color: t.colors.textPrimary,
+        },
+        description: {
+          fontSize: scaledFontSize(16),
+          color: t.colors.textMuted,
+          marginBottom: t.spacing['2xl'],
+          lineHeight: 24,
+        },
+        buttonContainer: {
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+        },
+        allowButton: {
+          flex: 1,
+          backgroundColor: t.colors.brand,
+          padding: t.spacing.base,
+          borderRadius: t.borderRadius.lg,
+          marginRight: t.spacing.sm,
+        },
+        allowButtonText: {
+          color: t.colors.onBrand,
+          fontSize: scaledFontSize(16),
+          fontWeight: '600',
+          textAlign: 'center',
+        },
+        skipButton: {
+          flex: 1,
+          backgroundColor: t.colors.surface,
+          padding: t.spacing.base,
+          borderRadius: t.borderRadius.lg,
+          borderWidth: 1,
+          borderColor: t.colors.brand,
+          marginLeft: t.spacing.sm,
+        },
+        skipButtonText: {
+          color: t.colors.brand,
+          fontSize: scaledFontSize(16),
+          fontWeight: '600',
+          textAlign: 'center',
+        },
+        deniedMessage: {
+          marginTop: t.spacing.md,
+          color: t.colors.danger,
+          fontSize: scaledFontSize(14),
+          textAlign: 'center',
+        },
+      }),
+    [t]
+  );
 
   useEffect(() => {
     const checkPermission = async () => {
@@ -162,85 +251,3 @@ export function PermissionRequest({
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  card: {
-    backgroundColor: tokens.colors.surfaceAlt,
-    borderRadius: 16,
-    padding: 24,
-    width: '100%',
-    maxWidth: 400,
-    borderWidth: 1,
-    borderColor: tokens.colors.border,
-    shadowColor: tokens.colors.shadow,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 3,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  icon: {
-    width: 32,
-    height: 32,
-    marginRight: 12,
-  },
-  title: {
-    fontSize: scaledFontSize(20),
-    fontWeight: '700',
-    color: tokens.colors.textPrimary,
-  },
-  description: {
-    fontSize: scaledFontSize(16),
-    color: tokens.colors.textMuted,
-    marginBottom: 24,
-    lineHeight: 24,
-  },
-  buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  allowButton: {
-    flex: 1,
-    backgroundColor: tokens.colors.brand,
-    padding: 12,
-    borderRadius: 12,
-    marginRight: 8,
-  },
-  allowButtonText: {
-    color: tokens.colors.textPrimary,
-    fontSize: scaledFontSize(16),
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  skipButton: {
-    flex: 1,
-    backgroundColor: tokens.colors.surface,
-    padding: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: tokens.colors.brand,
-    marginLeft: 8,
-  },
-  skipButtonText: {
-    color: tokens.colors.brand,
-    fontSize: scaledFontSize(16),
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  deniedMessage: {
-    marginTop: 16,
-    color: tokens.colors.danger,
-    fontSize: scaledFontSize(14),
-    textAlign: 'center',
-  },
-});

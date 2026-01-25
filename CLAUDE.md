@@ -59,16 +59,66 @@ react, typescript
 React Native golf application with weather-based shot calculations, GPS course mapping, and real-time score tracking.
 
 ## Architecture
-- Framework: React Native with Expo SDK 54+
-- Routing: Expo Router with file-based navigation
-- Styling: NativeWind v4 (Tailwind for React Native)
+- Framework: React Native 0.83.1 with Expo SDK 55 (canary)
+- Routing: Expo Router 7.0.0 with native tabs (iOS)
+- Styling: Custom design tokens (src/theme/tokens.ts)
 - State: Zustand for global state
+- Payments: RevenueCat for subscriptions
+
+## Styling System
+- **NOT NativeWind/Tailwind** - Uses custom design tokens
+- Token file: `src/theme/tokens.ts` (724 lines)
+- Usage: `const t = useTokens();` from `@/src/theme/useTokens`
+- Tokens include: colors, spacing (8pt grid), shadows, typography, animation, borderRadius
+- Light/dark themes built-in via `lightTokens` and `darkTokens`
+
+### Token Usage Pattern
+```typescript
+import { useTokens } from '@/src/theme/useTokens';
+
+export default function MyComponent() {
+  const t = useTokens();
+
+  const styles = useMemo(() => ({
+    container: {
+      backgroundColor: t.colors.surface,
+      padding: t.spacing.md,
+      borderRadius: t.borderRadius.lg,
+    }
+  }), [t]);
+
+  return <View style={styles.container}>...</View>;
+}
+```
+
+## Current Focus
+Wind screen polish per `docs/current/AICaddyPro-Action-Plan.md`
+- Week 2: Compass overhaul (dynamic wind arrows, gust animation)
+- See `docs/MASTER.md` for full status
+
+## Build Requirements
+- **Cannot use Expo Go** - Native modules require dev client
+- Native modules: TrueSheet, expo-glass-effect
+- Build with: `eas build --profile development`
+
+## Known Build Issues
+**CocoaPods Error (SDK 55 Canary):** `spawn pod ENOENT`
+- Workaround: `npx expo install --check` or downgrade to SDK 54
+
+## Key Files
+| Purpose | Path |
+|---------|------|
+| Wind Screen | `src/features/wind/screen.tsx` |
+| Compass | `src/features/wind/components/WindDirectionCompass.tsx` |
+| Theme | `src/theme/tokens.ts` |
+| Theme Hook | `src/theme/useTokens.ts` |
+| Master Doc | `docs/MASTER.md` |
 
 ## Code Style Requirements
 - TypeScript everywhere - no any types (use unknown if needed)
 - File naming: kebab-case (e.g., course-card.tsx)
 - Import paths: Use @/ alias
-- Components: Functional only, typed with React.FC<Props>
+- Components: Functional only, with typed props interfaces (NOT React.FC)
 - Lists: Use FlashList for >20 items
 
 ## Design System
@@ -131,6 +181,24 @@ When building UI:
 - npx expo lint - Run ESLint
 - eas build -p ios --profile preview - iOS build
 - eas build -p android --profile preview - Android build
+
+## Visual Verification Tools
+- `npm test wind-colors` - Run binary UI tests (41 tests)
+- `yarn test:visual` - Run Playwright visual regression tests
+- `yarn test:visual:update` - Update baseline screenshots
+- `yarn storybook-generate` - Regenerate Storybook story index
+
+## UI Fix Workflow (IMPORTANT)
+When fixing UI issues, follow this order:
+1. **Binary tests first** - Check `npm test wind-colors` passes
+2. **Visual verification** - Use Playwright MCP (`browser_snapshot`, `browser_take_screenshot`)
+3. **Component isolation** - Use Storybook stories for isolated testing
+
+Key files:
+- Tests: `src/features/wind/utils/__tests__/wind-colors.test.ts`
+- Utilities: `src/features/wind/utils/wind-colors.ts`
+- Stories: `src/features/wind/components/compass/WindArrow.stories.tsx`
+- Workflow docs: `docs/current/ios-ui-fix-workflow.md`
 
 ## NEVER Do These Things
 - Use FlatList for lists >20 items (use FlashList)

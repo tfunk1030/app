@@ -2,10 +2,24 @@
  * WindArrow Component
  *
  * Animated arrow showing wind direction with flowing animation effect.
+ * Uses react-native-reanimated for UI-thread animations.
  * Memoized with proportional scaling for performance.
  */
-import React, { useEffect, useRef } from 'react';
-import { View, Animated } from 'react-native';
+import React, { useEffect } from 'react';
+import { View } from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  withSpring,
+  withRepeat,
+  withSequence,
+  withDelay,
+  useReducedMotion,
+  interpolate,
+  cancelAnimation,
+  SharedValue,
+} from 'react-native-reanimated';
 import { getCenterElementSizes } from '@/src/utils/responsive';
 import { WindArrowProps } from './types';
 import { arrowStyles as styles } from './styles';
@@ -59,6 +73,51 @@ function getWindArrowColor(
   }
 }
 
+/**
+ * Animated small arrow component for flow effect
+ */
+const AnimatedArrow: React.FC<{
+  index: number;
+  position: number;
+  maxOpacity: number;
+  magnitudeScale: number;
+  arrowColor: string;
+  animProgress: SharedValue<number>;
+  reducedMotion: boolean;
+}> = React.memo(({ index, position, maxOpacity, magnitudeScale, arrowColor, animProgress, reducedMotion }) => {
+  const animatedStyle = useAnimatedStyle(() => {
+    // Each arrow fades in sequence based on index offset
+    const localProgress = (animProgress.value - index * 0.05 + 1) % 1;
+    const opacity = reducedMotion
+      ? maxOpacity * 0.5
+      : interpolate(localProgress, [0, 0.5, 1], [0, maxOpacity, 0]);
+
+    return {
+      opacity,
+      transform: [
+        { translateY: -(position * 135) },
+        { rotate: '180deg' },
+        { scale: magnitudeScale },
+      ],
+    };
+  });
+
+  return (
+    <Animated.View
+      style={[
+        styles.smallWindArrow,
+        {
+          left: '50%',
+          marginLeft: -6,
+          borderBottomColor: arrowColor,
+        },
+        animatedStyle,
+      ]}
+      accessibilityElementsHidden
+    />
+  );
+});
+
 const WindArrow: React.FC<WindArrowProps> = ({
   angle,
   brandAlt,
@@ -66,12 +125,16 @@ const WindArrow: React.FC<WindArrowProps> = ({
   border,
   compassSize,
   magnitude = 10, // Default moderate wind
-  reducedMotion = false,
+  reducedMotion: reducedMotionProp = false,
   windRelationship,
-  danger = '#DC2626', // Default danger color
-  warning = '#F59E0B', // Default warning color
+  danger,
+  warning,
   gustSpeed,
 }) => {
+  // Use reanimated's reduced motion hook, but also respect prop
+  const systemReducedMotion = useReducedMotion();
+  const reducedMotion = reducedMotionProp || systemReducedMotion;
+
   // Calculate dynamic arrow color based on wind relationship
   const baseArrowColor = getWindArrowColor(windRelationship, {
     success,
@@ -84,17 +147,10 @@ const WindArrow: React.FC<WindArrowProps> = ({
   const colorOpacity = getMagnitudeOpacity(magnitude);
   const arrowColor = `${baseArrowColor}${Math.round(colorOpacity * 255).toString(16).padStart(2, '0')}`;
 
-  const rotateAnim = useRef(new Animated.Value(angle)).current;
-  const scaleAnim = useRef(new Animated.Value(1)).current;
-  const arrowAnimValues = useRef([
-    new Animated.Value(0),
-    new Animated.Value(0),
-    new Animated.Value(0),
-    new Animated.Value(0),
-    new Animated.Value(0),
-  ]).current;
-  const animationRef = useRef<Animated.CompositeAnimation | null>(null);
-  const gustAnimRef = useRef<Animated.CompositeAnimation | null>(null);
+  // Shared values for animations
+  const rotateValue = useSharedValue(angle);
+  const scaleValue = useSharedValue(1);
+  const flowProgress = useSharedValue(0);
 
   const { windOriginIndicator } = getCenterElementSizes(compassSize);
 
@@ -102,49 +158,35 @@ const WindArrow: React.FC<WindArrowProps> = ({
   const magnitudeScale = getMagnitudeScale(magnitude);
   const baseOpacity = getMagnitudeOpacity(magnitude);
 
+  // Rotation animation - instant update with spring
   useEffect(() => {
-    Animated.timing(rotateAnim, {
-      toValue: angle,
-      duration: reducedMotion ? 0 : 1,
-      useNativeDriver: true,
-    }).start();
+    if (reducedMotion) {
+      rotateValue.value = angle;
+    } else {
+      rotateValue.value = withSpring(angle, {
+        damping: 20,
+        stiffness: 300,
+      });
+    }
   }, [angle, reducedMotion]);
 
+  // Flow animation - continuous looping
   useEffect(() => {
-    // Skip flow animation if reduced motion is enabled
     if (reducedMotion) {
-      arrowAnimValues.forEach(anim => anim.setValue(0.5)); // Static middle state
+      flowProgress.value = 0.5; // Static middle state
       return;
     }
 
-    const createFlowAnimation = () => {
-      arrowAnimValues.forEach(anim => anim.setValue(0));
-      const animations = arrowAnimValues.map((anim, index) =>
-        Animated.timing(anim, {
-          toValue: 1,
-          duration: 700,
-          delay: index * 5,
-          useNativeDriver: true,
-        })
-      );
-      const resetAnimations = arrowAnimValues.map(anim =>
-        Animated.timing(anim, { toValue: 0, duration: 0, useNativeDriver: true })
-      );
-      animationRef.current = Animated.loop(
-        Animated.sequence([...animations, Animated.delay(10), ...resetAnimations]),
-        {
-          iterations: -1,
-        }
-      );
-      animationRef.current.start();
-    };
+    // Continuous 0-1 progress for flow effect
+    flowProgress.value = 0;
+    flowProgress.value = withRepeat(
+      withTiming(1, { duration: 700 }),
+      -1,
+      false
+    );
 
-    createFlowAnimation();
     return () => {
-      if (animationRef.current) {
-        animationRef.current.stop();
-      }
-      arrowAnimValues.forEach(anim => anim.stopAnimation());
+      cancelAnimation(flowProgress);
     };
   }, [reducedMotion]);
 
@@ -153,83 +195,56 @@ const WindArrow: React.FC<WindArrowProps> = ({
 
   useEffect(() => {
     if (gustActive && !reducedMotion) {
-      // Pulse animation when gusts are active
-      gustAnimRef.current = Animated.loop(
-        Animated.sequence([
-          Animated.timing(scaleAnim, {
-            toValue: 1.15,
-            duration: 500,
-            useNativeDriver: true,
-          }),
-          Animated.timing(scaleAnim, {
-            toValue: 1,
-            duration: 500,
-            useNativeDriver: true,
-          }),
-        ])
+      // Pulse animation when gusts are active - reduced to 200ms per direction
+      scaleValue.value = withRepeat(
+        withSequence(
+          withTiming(1.15, { duration: 200 }),
+          withTiming(1, { duration: 200 })
+        ),
+        -1,
+        true
       );
-      gustAnimRef.current.start();
     } else {
       // Reset scale when gusts stop
-      scaleAnim.setValue(1);
+      scaleValue.value = reducedMotion ? 1 : withSpring(1, { damping: 15, stiffness: 200 });
     }
+
     return () => {
-      if (gustAnimRef.current) {
-        gustAnimRef.current.stop();
-      }
+      cancelAnimation(scaleValue);
     };
-  }, [gustActive, reducedMotion, scaleAnim]);
+  }, [gustActive, reducedMotion]);
 
-  const rotateInterpolate = rotateAnim.interpolate({
-    inputRange: [0, 360],
-    outputRange: ['0deg', '360deg'],
-  });
+  // Animated style for main container
+  const containerAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [
+      { rotate: `${rotateValue.value}deg` },
+      { scale: scaleValue.value },
+    ],
+  }));
 
-  const createWindArrows = () => {
-    const arrows = [];
-    // Number of arrows scales with magnitude (3-5)
-    const arrowCount = Math.max(3, Math.min(5, Math.floor(magnitude / 6)));
+  // Generate arrow elements
+  const arrowCount = Math.max(3, Math.min(5, Math.floor(magnitude / 6)));
+  const arrows = [];
+  for (let i = 0; i < arrowCount; i++) {
+    const position = (0.75 - i * 0.18) * magnitudeScale;
+    const maxOpacity = baseOpacity * (1 - i * 0.1);
 
-    for (let i = 0; i < arrowCount; i++) {
-      // Scale position based on magnitude
-      const position = (0.75 - i * 0.18) * magnitudeScale;
-      const opacityAnim = arrowAnimValues[i];
-      // Opacity decreases for further arrows, scaled by magnitude
-      const maxOpacity = baseOpacity * (1 - i * 0.1);
-
-      arrows.push(
-        <Animated.View
-          key={`arrow-${i}`}
-          style={[
-            styles.smallWindArrow,
-            {
-              transform: [
-                { translateY: -(position * 135) },
-                { rotate: '180deg' },
-                { scale: magnitudeScale }, // Scale arrow size with magnitude
-              ],
-              left: '50%',
-              marginLeft: -6,
-              opacity: reducedMotion
-                ? maxOpacity * 0.5 // Static opacity for reduced motion
-                : opacityAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0, maxOpacity],
-                  }),
-              borderBottomColor: arrowColor,
-            },
-          ]}
-          accessibilityElementsHidden
-        />
-      );
-    }
-    return arrows;
-  };
+    arrows.push(
+      <AnimatedArrow
+        key={`arrow-${i}`}
+        index={i}
+        position={position}
+        maxOpacity={maxOpacity}
+        magnitudeScale={magnitudeScale}
+        arrowColor={arrowColor}
+        animProgress={flowProgress}
+        reducedMotion={reducedMotion}
+      />
+    );
+  }
 
   return (
-    <Animated.View
-      style={[styles.arrowContainer, { transform: [{ rotate: rotateInterpolate }, { scale: scaleAnim }] }]}
-    >
+    <Animated.View style={[styles.arrowContainer, containerAnimatedStyle]}>
       <View
         style={[
           styles.windOriginIndicator,
@@ -243,7 +258,7 @@ const WindArrow: React.FC<WindArrowProps> = ({
           },
         ]}
       />
-      {createWindArrows()}
+      {arrows}
     </Animated.View>
   );
 };

@@ -6,7 +6,15 @@
  * Enhanced with modern design elements and improved visual hierarchy.
  */
 import React, { useEffect, useMemo, useRef } from 'react';
-import { View, Text, Animated, StyleSheet, AccessibilityInfo } from 'react-native';
+import { View, Text, StyleSheet, AccessibilityInfo } from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  withRepeat,
+  withSequence,
+  cancelAnimation,
+} from 'react-native-reanimated';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
@@ -86,8 +94,7 @@ const getWindLabelGlow = (relationship: WindRelationship, tokens: ReturnType<typ
     case 'TAILWIND':
       return tokens.colors.successBackgroundAlpha;
     case 'CROSSWIND':
-      // Warning color with alpha - using brandAlt with alpha as fallback
-      return 'rgba(245, 158, 11, 0.15)'; // Keeping this one rgba for warning (not in tokens)
+      return tokens.colors.warningBackgroundAlpha;
     case 'QUARTERING':
     default:
       return tokens.colors.surfaceAlt;
@@ -132,36 +139,35 @@ const WindDirectionCompass: React.FC<WindDirectionCompassProps> = ({
     [relativeWindAngle, windSpeed]
   );
 
-  // Animation values - simplified, single pulse for center dot
-  const pulseAnim = useRef(new Animated.Value(1)).current;
+  // Animation values - simplified, single pulse for center dot (using reanimated)
+  const pulseValue = useSharedValue(1);
 
   useEffect(() => {
-    // Track animation instance for proper cleanup
-    let animation: Animated.CompositeAnimation | null = null;
-
     // Skip continuous animations when Reduce Motion accessibility is enabled
     if (reducedMotion) {
-      // Stop any running animation first, then reset to static value
-      pulseAnim.stopAnimation();
-      pulseAnim.setValue(1);
+      pulseValue.value = 1;
       return;
     }
 
-    // Start pulse animation loop
-    animation = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, { toValue: 1.05, duration: 2000, useNativeDriver: true }),
-        Animated.timing(pulseAnim, { toValue: 1, duration: 2000, useNativeDriver: true }),
-      ])
+    // Start pulse animation loop using reanimated
+    pulseValue.value = withRepeat(
+      withSequence(
+        withTiming(1.05, { duration: 2000 }),
+        withTiming(1, { duration: 2000 })
+      ),
+      -1,
+      true
     );
-    animation.start();
 
     return () => {
-      // Explicit cleanup prevents animation overlap when preference changes
-      animation?.stop();
-      pulseAnim.stopAnimation();
+      cancelAnimation(pulseValue);
     };
-  }, [reducedMotion, pulseAnim]);
+  }, [reducedMotion]);
+
+  // Animated style for center dot
+  const centerDotAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: pulseValue.value }],
+  }));
 
   // Announce lock state changes for accessibility
   useEffect(() => {
@@ -171,6 +177,42 @@ const WindDirectionCompass: React.FC<WindDirectionCompassProps> = ({
       AccessibilityInfo.announceForAccessibility?.('Compass unlocked');
     }
   }, [isLocked]);
+
+  // Track previous wind values for change detection
+  const prevWindRef = useRef({ speed: windSpeed, relationship: windRelationship });
+
+  // Announce significant wind changes for accessibility (debounced)
+  useEffect(() => {
+    const prev = prevWindRef.current;
+    const speedChange = Math.abs(windSpeed - prev.speed);
+    const relationshipChanged = windRelationship !== prev.relationship;
+
+    // Only announce if wind relationship changed or speed changed significantly (2+ units)
+    if (relationshipChanged || speedChange >= 2) {
+      const direction = conditions?.windDirection !== undefined
+        ? getCardinalDirection(conditions.windDirection)
+        : '';
+      const relationshipLabel = windRelationship.toLowerCase().replace('_', ' ');
+
+      AccessibilityInfo.announceForAccessibility?.(
+        `Wind ${Math.round(windSpeed)} ${speedUnit} from ${direction}. ${relationshipLabel}.`
+      );
+
+      prevWindRef.current = { speed: windSpeed, relationship: windRelationship };
+    }
+  }, [windSpeed, windRelationship, conditions?.windDirection, speedUnit]);
+
+  // Announce gust speed when gusts become active for accessibility
+  const prevGustActive = useRef(false);
+  useEffect(() => {
+    const gustActive = gustSpeed !== undefined && gustSpeed > windSpeed;
+    if (gustActive && !prevGustActive.current) {
+      AccessibilityInfo.announceForAccessibility?.(
+        `Wind gusting to ${Math.round(gustSpeed)} ${speedUnit}`
+      );
+    }
+    prevGustActive.current = gustActive;
+  }, [gustSpeed, windSpeed, speedUnit]);
 
   useMemo(() => {
     logger.debug('Compass render', {
@@ -255,7 +297,7 @@ const WindDirectionCompass: React.FC<WindDirectionCompassProps> = ({
             textColor={tokens.colors.textMuted}
           />
 
-          <PhoneArrow color="#FFFFFF" />
+          <PhoneArrow color={tokens.colors.textPrimary} />
 
           <WindArrow
             angle={relativeWindAngle}
@@ -288,7 +330,6 @@ const WindDirectionCompass: React.FC<WindDirectionCompassProps> = ({
             style={[
               localStyles.centerDot,
               {
-                transform: [{ scale: pulseAnim }],
                 width: getCenterElementSizes(size).centerDot,
                 height: getCenterElementSizes(size).centerDot,
                 borderRadius: getCenterElementSizes(size).centerDot / 2,
@@ -298,6 +339,7 @@ const WindDirectionCompass: React.FC<WindDirectionCompassProps> = ({
                   ? `0 0 12px ${tokens.colors.glowSecondaryAlpha}`
                   : `0 0 4px ${tokens.colors.shadowAlpha}`,
               },
+              centerDotAnimatedStyle,
             ]}
           />
 
@@ -390,7 +432,7 @@ const WindDirectionCompass: React.FC<WindDirectionCompassProps> = ({
             compassSize={size}
             tokens={tokens}
             mode={scheme}
-            pulseAnim={pulseAnim}
+            pulseAnim={pulseValue}
             side={settings.dominantHand}
           />
         )}

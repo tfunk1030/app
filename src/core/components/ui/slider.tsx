@@ -161,6 +161,12 @@ export function Slider({
   // Track last stepped value for haptic feedback during dragging
   const lastSteppedValue = useRef(Math.round(value / step) * step);
 
+  // Stable ref for onValueChange to prevent callback recreation during drag
+  const onValueChangeRef = useRef(onValueChange);
+  useEffect(() => {
+    onValueChangeRef.current = onValueChange;
+  }, [onValueChange]);
+
   // Long-press handling for +/- buttons
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const longPressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -337,9 +343,10 @@ export function Slider({
 
       setSliderValue(newValue);
       setInputValue(String(Math.round(newValue)));
-      onValueChange(newValue);
+      // Use ref to avoid recreating callback on every render
+      onValueChangeRef.current(newValue);
     },
-    [onValueChange, step]
+    [step] // Removed onValueChange - now using stable ref
   );
 
   const handleSlidingStart = useCallback(() => {
@@ -495,7 +502,7 @@ export function Slider({
           style={[
             styles.textInputContainer,
             {
-              backgroundColor: isKeypadOpen ? t.colors.brandMuted : t.colors.surface,
+              backgroundColor: isKeypadOpen ? t.colors.surfaceAlt : t.colors.surface,
               borderColor: isKeypadOpen ? t.colors.brand : t.colors.border,
               minHeight: inputMinHeight,
               paddingHorizontal: getResponsiveSpacing(t.spacing.base, 'horizontal'), // 12px
@@ -685,6 +692,7 @@ export function Slider({
               minimumTrackTintColor={glow && isDark ? 'transparent' : t.colors.brand}
               maximumTrackTintColor={t.colors.border}
               renderThumbComponent={renderThumb}
+              thumbTouchSize={{ width: 48, height: 48 }} // 48dp minimum touch target per a11y guidelines
               trackClickable={false} // Prevent accidental activation during scroll - must drag thumb
               trackStyle={StyleSheet.flatten([
                 styles.track,

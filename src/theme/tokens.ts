@@ -102,6 +102,7 @@ export interface Tokens {
     brandBackgroundAlpha: string;
     dangerBackgroundAlpha: string;
     successBackgroundAlpha: string;
+    warningBackgroundAlpha: string;
     successGlow: string;
 
     // CSS boxShadow alpha values (New Architecture)
@@ -469,6 +470,7 @@ export const darkTokens: Tokens = {
     brandBackgroundAlpha: 'rgba(16, 185, 129, 0.15)',
     dangerBackgroundAlpha: 'rgba(239, 68, 68, 0.15)',
     successBackgroundAlpha: 'rgba(34, 197, 94, 0.15)',
+    warningBackgroundAlpha: 'rgba(251, 191, 36, 0.15)',
     successGlow: 'rgba(34, 197, 94, 0.5)',
 
     // CSS boxShadow alpha values (New Architecture)
@@ -616,6 +618,7 @@ export const lightTokens: Tokens = {
     brandBackgroundAlpha: 'rgba(5, 150, 105, 0.1)',
     dangerBackgroundAlpha: 'rgba(220, 38, 38, 0.1)',
     successBackgroundAlpha: 'rgba(22, 163, 74, 0.1)',
+    warningBackgroundAlpha: 'rgba(245, 158, 11, 0.15)',
     successGlow: 'rgba(22, 163, 74, 0.3)',
 
     // CSS boxShadow alpha values (New Architecture)

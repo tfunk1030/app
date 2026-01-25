@@ -1,0 +1,84 @@
+# Ralphy Configuration
+# https://github.com/michaelshimeles/ralphy
+
+# Project info
+project:
+  name: "AICaddyPro"
+  language: "TypeScript"
+  framework: "React Native / Expo"
+  description: "Professional golf application with weather-based shot calculations, GPS course mapping, and real-time score tracking"
+
+# Task configuration
+tasks:
+  file: ".ralphy/tasks.yaml"
+  reports_dir: ".ralphy/reports/"
+  parallel: true
+  max_parallel: 6
+
+# Commands
+commands:
+  test: "npm test"
+  test_wind: "npm test wind-colors"
+  test_visual: "yarn test:visual"
+  lint: "npm run lint"
+  build: "eas build --profile development"
+  start: "npx expo start"
+  typecheck: "npx tsc --noEmit"
+
+# Rules - instructions the AI MUST follow
+rules:
+  # TypeScript
+  - "Use TypeScript everywhere - no `any` types (use `unknown` if needed)"
+  - "Include TypeScript interfaces for all component props"
+
+  # React Native
+  - "Use functional components with typed props interfaces (NOT React.FC)"
+  - "Use FlashList instead of FlatList for lists with >20 items"
+  - "Wrap list item components in React.memo"
+
+  # Accessibility (WCAG 2.1)
+  - "All interactive elements MUST have accessibilityLabel and accessibilityRole"
+  - "Touch targets minimum 48x48dp (56x56dp for primary actions)"
+  - "Respect useReducedMotion for all animations"
+  - "Use AccessibilityInfo.announceForAccessibility for dynamic state changes"
+
+  # Animation
+  - "Use react-native-reanimated (NOT react-native Animated API)"
+  - "Use useSharedValue, useAnimatedStyle, withSpring/withTiming"
+  - "Animation durations: fast=150ms, normal=250ms, max=300ms"
+  - "Use spring physics for natural motion (withSpring)"
+
+  # Styling
+  - "Use design tokens from src/theme/tokens.ts - NO hardcoded colors"
+  - "Use spacing scale (xs:4, sm:8, md:16, lg:24, xl:32)"
+  - "Support both light and dark modes (use tokens, not hardcoded values)"
+
+  # File naming
+  - "Use kebab-case for files (e.g., course-card.tsx)"
+  - "Use @/ import alias for absolute paths"
+
+  # Components
+  - "Include loading, error, and empty states"
+  - "Add testID for interactive elements"
+
+  # Testing
+  - "Run `npm test wind-colors` before UI changes to compass/wind"
+  - "Verify with Playwright MCP after visual changes"
+  - "Do NOT modify test files without permission"
+
+# Boundaries - files/folders the AI should not modify
+boundaries:
+  never_touch:
+    - "*.lock"
+    - "node_modules/**"
+    - ".expo/**"
+    - "ios/Pods/**"
+    - "android/.gradle/**"
+
+  ask_first:
+    - "src/theme/tokens.ts"
+    - "app.json"
+    - "eas.json"
+    - "**/*.test.ts"
+    - "**/*.test.tsx"
+    - "e2e/**"

@@ -275,20 +275,23 @@ const ClubItem = React.memo<ClubItemProps>(({
   }), [t]);
 
   return (
-    <AnimatedPressable
-      onPressIn={handlePressIn}
-      onPressOut={handlePressOut}
+    <Animated.View
       style={[clubStyles.item, animatedStyle]}
-      accessibilityRole="button"
       accessibilityLabel={`${club.name}, ${Math.round(displayYardage)} ${unit}`}
-      accessibilityHint="Double tap to edit or delete"
     >
-      <View style={clubStyles.info}>
+      <Pressable
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        onPress={onEdit}
+        style={clubStyles.info}
+        accessibilityRole="button"
+        accessibilityLabel={`${club.name}, ${Math.round(displayYardage)} ${unit}. Tap to edit`}
+      >
         <Text style={[clubStyles.name, { color: t.colors.textPrimary }]}>{club.name}</Text>
         <Text style={[clubStyles.distance, { color: t.colors.textMuted }]}>
           <Text style={clubStyles.distanceValue}>{Math.round(displayYardage)}</Text> {unit}
         </Text>
-      </View>
+      </Pressable>
       <View style={clubStyles.actions}>
         <Pressable
           onPress={onEdit}
@@ -307,7 +310,7 @@ const ClubItem = React.memo<ClubItemProps>(({
           <Trash2 size={16} color={t.colors.danger} accessibilityElementsHidden={true} />
         </Pressable>
       </View>
-    </AnimatedPressable>
+    </Animated.View>
   );
 });
 

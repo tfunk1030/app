@@ -1,0 +1,453 @@
+# Ralphy Task Plan - UI/UX Restoration
+# Run with: ralphy run
+# PRD: .ralphy/prd-ui-restoration.md
+
+version: 1
+name: "UI/UX Restoration - OLD to NEW Version Fix"
+created: 2026-01-21
+prd: ".ralphy/prd-ui-restoration.md"
+
+# ============================================================================
+# PHASE 1: CRITICAL BUGS (P0)
+# ============================================================================
+
+tasks:
+  # --------------------------------------------------------------------------
+  # P0-1: Fix Title Overlap Bug
+  # --------------------------------------------------------------------------
+  - id: fix-title-overlap
+    name: "Fix Title Overlap Bug"
+    priority: P0
+    parallel_group: 1
+    status: partial  # Wind screen done, Settings screen remaining
+    description: |
+      Titles scroll WITH content instead of being fixed, causing overlap.
+      Move title outside ScrollView to create fixed header pattern.
+
+    evidence:
+      - "IMG_0436.PNG - Wind calculator title overlaps compass"
+      - "IMG_0437.PNG - Worse overlap in edit manually state"
+      - "IMG_0439.PNG - Setup title overlaps first club item"
+
+    files:
+      - path: "src/features/wind/screen.tsx"
+        action: "Restructure to fixed header + ScrollView pattern"
+      - path: "src/features/settings/screen.tsx"
+        action: "Restructure to fixed header + ScrollView pattern"
+
+    pattern:
+      before: |
+        <ScrollView>
+          <Text style={styles.title}>Title</Text>
+          {/* content */}
+        </ScrollView>
+      after: |
+        <View style={{ flex: 1 }}>
+          <View style={styles.fixedHeader}>
+            <Text style={styles.title}>Title</Text>
+          </View>
+          <ScrollView>
+            {/* content scrolls under fixed header */}
+          </ScrollView>
+        </View>
+
+    acceptance:
+      - "Title remains fixed at top during scroll"
+      - "Content scrolls underneath title"
+      - "No visual overlap between title and content"
+      - "Works on all screen sizes"
+
+    verification:
+      - command: "browser_snapshot"
+        check: "Title element is outside scrollable content"
+      - command: "browser_take_screenshot"
+        check: "Compare with oldbutgood1.PNG - no overlap"
+
+  # --------------------------------------------------------------------------
+  # P0-2: Restore Tab Bar Icons
+  # --------------------------------------------------------------------------
+  - id: restore-tab-icons
+    name: "Restore Tab Bar Icons"
+    priority: P0
+    parallel_group: 1
+    status: complete  # Using SF Symbols via NativeTabs (scope, wind, gearshape)
+    description: |
+      Tab bar shows "(shot) (wind) (setup)" text only.
+      Restore icons with lucide-react-native.
+
+    evidence:
+      - "All NEW screenshots show text-only tabs"
+      - "OLD version has icons + labels"
+
+    files:
+      - path: "app/(tabs-redesign)/_layout.tsx"
+        action: "Add tabBarIcon to each Tab.Screen"
+
+    icon_mapping:
+      - tab: "shot"
+        icon: "Target"
+        library: "lucide-react-native"
+      - tab: "wind"
+        icon: "Wind"
+        library: "lucide-react-native"
+      - tab: "setup"
+        icon: "Settings"
+        library: "lucide-react-native"
+
+    pattern:
+      before: |
+        <Tab.Screen
+          name="wind"
+          options={{
+            tabBarLabel: '(wind)',
+          }}
+        />
+      after: |
+        <Tab.Screen
+          name="wind"
+          options={{
+            tabBarLabel: 'Wind',
+            tabBarIcon: ({ color, size }) => (
+              <Wind color={color} size={size} />
+            ),
+          }}
+        />
+
+    acceptance:
+      - "All tabs have icons AND labels"
+      - "Icons match OLD version design"
+      - "Icons change color based on active/inactive state"
+      - "No parentheses around labels"
+
+    verification:
+      - command: "browser_snapshot"
+        check: "Tab bar has icon elements"
+
+# ============================================================================
+# PHASE 2: HIGH PRIORITY (P1)
+# ============================================================================
+
+  # --------------------------------------------------------------------------
+  # P1-1: Restore Compass Size
+  # --------------------------------------------------------------------------
+  - id: restore-compass-size
+    name: "Restore Compass Size to 280px"
+    priority: P1
+    parallel_group: 2
+    depends_on: [fix-title-overlap]
+    status: partial  # Responsive 220-380px, may need 280px minimum on small devices
+    description: |
+      Compass is too small (~200px). Restore to 280px for better usability.
+
+    evidence:
+      - "NEW compass ~200px vs OLD compass ~280px"
+
+    files:
+      - path: "src/features/wind/components/compass/WindDirectionCompass.tsx"
+        action: "Set COMPASS_SIZE = 280"
+      - path: "src/features/wind/screen.tsx"
+        action: "Verify size prop if passed from parent"
+
+    pattern:
+      before: "const COMPASS_SIZE = 200;"
+      after: "const COMPASS_SIZE = 280;"
+
+    acceptance:
+      - "Compass diameter is 280px"
+      - "Compass remains centered"
+      - "Touch targets scale proportionally"
+      - "Still fits on screen with inputs visible"
+
+    verification:
+      - command: "browser_snapshot"
+        check: "Compass element width/height is 280"
+
+  # --------------------------------------------------------------------------
+  # P1-2: Restore Compass Polish
+  # --------------------------------------------------------------------------
+  - id: restore-compass-polish
+    name: "Restore Compass Polish (Markers, Labels)"
+    priority: P1
+    parallel_group: 2
+    depends_on: [restore-compass-size]
+    status: complete  # All 8 directions (N,NE,E,SE,S,SW,W,NW) + tick marks every 10°
+    description: |
+      Restore intercardinal labels, degree ticks, and ring styling.
+
+    evidence:
+      - "OLD has NE, SE, SW, NW labels"
+      - "OLD has degree ticks every 15°"
+      - "OLD has visible ring border"
+
+    files:
+      - path: "src/features/wind/components/compass/CardinalDirections.tsx"
+        action: "Add intercardinal labels (NE, SE, SW, NW)"
+      - path: "src/features/wind/components/compass/DegreeMarks.tsx"
+        action: "Add tick marks every 15°"
+      - path: "src/features/wind/components/compass/WindDirectionCompass.tsx"
+        action: "Restore ring border styling"
+
+    compass_elements:
+      - element: "Cardinal labels"
+        old: "N, S, E, W + NE, SE, SW, NW"
+        new: "N, S, E, W only"
+        action: "Add intercardinal"
+      - element: "Degree ticks"
+        old: "Every 15°"
+        new: "Sparse"
+        action: "Add tick marks"
+      - element: "Direction labels"
+        old: "White, ~14px, readable"
+        new: "Faint, small"
+        action: "Increase contrast"
+      - element: "Ring styling"
+        old: "Dark blue (#1a2a4a)"
+        new: "Less defined"
+        action: "Restore ring"
+
+    acceptance:
+      - "All 8 direction labels visible (N, NE, E, SE, S, SW, W, NW)"
+      - "Degree tick marks every 15°"
+      - "Direction labels white with good contrast"
+      - "Compass ring has visible border/definition"
+
+    verification:
+      - command: "browser_snapshot"
+        check: "Accessibility tree shows 8 direction labels"
+
+# ============================================================================
+# PHASE 3: VISUAL POLISH (P2)
+# ============================================================================
+
+  # --------------------------------------------------------------------------
+  # P2-1: Restore Background Gradient
+  # --------------------------------------------------------------------------
+  - id: restore-gradient
+    name: "Restore Background Gradient and Card Depth"
+    priority: P2
+    parallel_group: 3
+    depends_on: [restore-compass-polish]
+    status: pending  # Still flat, needs gradient #0a0f1a → #1a2035
+    description: |
+      Restore navy gradient background and card shadows/borders.
+
+    evidence:
+      - "OLD: Navy gradient (#0a0f1a → #1a2035)"
+      - "NEW: Flat black"
+
+    files:
+      - path: "src/theme/tokens.ts"
+        action: "Add gradient colors if missing"
+      - path: "src/features/wind/screen.tsx"
+        action: "Apply gradient background"
+      - path: "src/features/shot/screen.tsx"
+        action: "Apply gradient background"
+      - path: "src/features/settings/screen.tsx"
+        action: "Apply gradient background"
+
+    colors:
+      background_start: "#0a0f1a"
+      background_end: "#1a2035"
+      card_background: "#0d1220"
+      card_border: "#2a3545"
+
+    card_style: |
+      {
+        backgroundColor: '#0d1220',
+        borderWidth: 1,
+        borderColor: '#2a3545',
+        borderRadius: 12,
+        shadowColor: '#000',
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        shadowOffset: { width: 0, height: 4 },
+      }
+
+    acceptance:
+      - "Background has subtle gradient (not flat black)"
+      - "Cards have visible borders"
+      - "Cards have subtle shadow for depth"
+      - "Premium feel restored"
+
+    verification:
+      - command: "browser_take_screenshot"
+        check: "Compare with oldbutgood.PNG - gradient visible"
+
+  # --------------------------------------------------------------------------
+  # P2-2: Fix Truncated Direction Display
+  # --------------------------------------------------------------------------
+  - id: fix-truncation
+    name: "Fix Truncated Direction Display"
+    priority: P2
+    parallel_group: 3
+    status: complete  # Format now "315° NW" (no truncation)
+    description: |
+      Fix "Direction S (?" truncation bug in wind pills.
+
+    evidence:
+      - "IMG_0435.PNG shows 'Direction S (?' - truncated"
+
+    files:
+      - path: "src/features/wind/components/wind-weather-bar.tsx"
+        action: "Fix text overflow/truncation"
+
+    acceptance:
+      - "Direction displays fully (e.g., 'Direction: S' or 'S (180°)')"
+      - "No truncation or malformed text"
+      - "Consistent format across all states"
+
+    verification:
+      - command: "browser_snapshot"
+        check: "Direction text complete"
+
+# ============================================================================
+# PHASE 4: PRESERVATION CHECK
+# ============================================================================
+
+  # --------------------------------------------------------------------------
+  # Preserve NEW Features
+  # --------------------------------------------------------------------------
+  - id: preserve-new-features
+    name: "Verify NEW Features Preserved"
+    priority: P1
+    parallel_group: 4
+    depends_on: [fix-truncation, restore-gradient]
+    description: |
+      Ensure valuable NEW features are NOT removed during restoration.
+
+    features_to_preserve:
+      - name: "Inline wind pill editing"
+        location: "Wind calculator header"
+        file: "src/features/wind/components/wind-weather-bar.tsx"
+      - name: "+1/-1 fine adjustment buttons"
+        location: "Yardage input"
+        file: "src/features/wind/screen.tsx"
+      - name: "'Lock Direction First' guidance"
+        location: "Below compass"
+        file: "src/features/wind/screen.tsx"
+      - name: "'Edit manually' option"
+        location: "Below compass"
+        file: "src/features/wind/screen.tsx"
+      - name: "Locked state green ring"
+        location: "Compass"
+        file: "src/features/wind/components/compass/WindDirectionCompass.tsx"
+
+    acceptance:
+      - "Inline wind pill editing still works"
+      - "+1/-1 buttons still present and functional"
+      - "'Lock Direction First' text visible"
+      - "'Edit manually' option accessible"
+      - "Green ring appears when locked"
+
+    verification:
+      - command: "browser_snapshot"
+        check: "All NEW features in accessibility tree"
+
+# ============================================================================
+# PHASE 5: VERIFICATION
+# ============================================================================
+
+  # --------------------------------------------------------------------------
+  # Final Verification
+  # --------------------------------------------------------------------------
+  - id: final-verification
+    name: "Final Verification & Tests"
+    priority: P0
+    parallel_group: 5
+    depends_on: [preserve-new-features]
+    description: |
+      Run all tests and visual verification.
+
+    steps:
+      - action: command
+        run: "npm test wind-colors"
+        expect_exit: 0
+        check: "All 41 wind-colors tests pass"
+
+      - action: command
+        run: "npx tsc --noEmit"
+        expect_exit: 0
+        check: "No TypeScript errors"
+
+      - action: command
+        run: "yarn test:visual"
+        check: "Visual regression tests pass"
+
+      - action: playwright
+        commands:
+          - "browser_navigate → http://localhost:8081/(tabs-redesign)/(wind)"
+          - "browser_snapshot → Verify structure"
+          - "browser_take_screenshot filename='final-wind.png'"
+        check: "Compare with OLD screenshots"
+
+    acceptance:
+      - "All 41 wind-colors tests pass"
+      - "No TypeScript errors"
+      - "Visual regression tests pass"
+      - "Screenshot matches OLD version styling"
+
+# ============================================================================
+# SUCCESS CRITERIA
+# ============================================================================
+
+success_criteria:
+  fix-title-overlap:
+    - "Title fixed at top on Wind screen"
+    - "Title fixed at top on Setup screen"
+    - "No overlap during scroll"
+
+  restore-tab-icons:
+    - "Shot tab has Target icon"
+    - "Wind tab has Wind icon"
+    - "Setup tab has Settings icon"
+    - "No parentheses in labels"
+
+  restore-compass-size:
+    - "Compass diameter = 280px"
+
+  restore-compass-polish:
+    - "8 direction labels visible"
+    - "Tick marks every 15°"
+    - "Ring border visible"
+
+  restore-gradient:
+    - "Background gradient visible"
+    - "Card borders visible"
+    - "Card shadows visible"
+
+  fix-truncation:
+    - "Direction text not truncated"
+
+  preserve-new-features:
+    - "Inline editing works"
+    - "+1/-1 buttons present"
+    - "Flow guidance visible"
+    - "Green ring on lock"
+
+  final-verification:
+    - "41/41 tests pass"
+    - "0 TypeScript errors"
+    - "Visual score >= 9/10"
+
+# ============================================================================
+# SCORECARD TARGET
+# ============================================================================
+
+scorecard:
+  before:
+    visual_polish: 4
+    typography: 6
+    layout: 3
+    navigation: 2
+    compass: 5
+    ux_flow: 7
+    overall: 4.5
+
+  after:
+    visual_polish: 9
+    typography: 8
+    layout: 9
+    navigation: 9
+    compass: 9
+    ux_flow: 8
+    overall: 9.0

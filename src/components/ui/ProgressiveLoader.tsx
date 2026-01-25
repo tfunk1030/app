@@ -9,7 +9,7 @@ import { useTokens } from '@/src/theme/useTokens';
 import { LogManager } from '@/src/utils/LogManager';
 import { scaledFontSize } from '@/src/utils/responsive';
 import React, { ReactNode, useCallback, useEffect, useState } from 'react';
-import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
+import { Animated, Easing, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SkeletonLoader } from './SkeletonLoader';
 
 // Priority levels for loading content
@@ -191,9 +191,16 @@ export function ProgressiveLoader({
           {error}
         </Text>
         {retryOnError && (
-          <Text style={[styles.retryText, { color: t.colors.brandAlt }]} onPress={handleRetry}>
-            Tap to retry
-          </Text>
+          <Pressable
+            onPress={handleRetry}
+            style={styles.retryButton}
+            accessibilityRole="button"
+            accessibilityLabel="Tap to retry loading"
+          >
+            <Text style={[styles.retryText, { color: t.colors.brandAlt }]}>
+              Tap to retry
+            </Text>
+          </Pressable>
         )}
       </View>
     );
@@ -283,6 +290,13 @@ const styles = StyleSheet.create({
     fontSize: scaledFontSize(14),
     textAlign: 'center',
     marginBottom: 8,
+  },
+  retryButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    minHeight: 48,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   retryText: {
     fontSize: scaledFontSize(14),
